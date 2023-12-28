@@ -8,7 +8,7 @@ from django.conf import settings
 from django.test import TestCase
 
 from booking.models import Event, EventType, FilterCategory
-from studioadmin.forms import EventFormSet, EventAdminForm
+from studioadmin.forms import EventFormSet, EventAdminForm, OnlineTutorialAdminForm
 
 
 class EventFormSetTests(TestCase):
@@ -16,7 +16,7 @@ class EventFormSetTests(TestCase):
     def setUp(self):
         self.event = baker.make_recipe('booking.future_EV')
         self.event1 = baker.make_recipe('booking.future_EV')
-        baker.make_recipe('booking.booking', event=self.event1)
+        self.tutorial = baker.make_recipe('booking.future_OT')
 
     def formset_data(self, extra_data={}):
 
@@ -101,6 +101,8 @@ class EventAdminFormTests(TestCase):
         self.event_type = baker.make_recipe('booking.event_type_PC')
         self.event_type_ev = baker.make_recipe('booking.event_type_OE')
         self.event_type_oc = baker.make_recipe('booking.event_type_OC')
+        self.event_type_ot = baker.make_recipe('booking.event_type_OT')
+
 
     def form_data(self, extra_data={}):
         data = {
@@ -533,3 +535,98 @@ class EventAdminFormTests(TestCase):
             ev_type='CL'
         )
         self.assertTrue(form.is_valid())
+
+    def test_online_tutorial_form_initial(self):
+        form = OnlineTutorialAdminForm(ev_type='OT')
+        for field in [
+            "video_link_available_after_class",
+            "advance_payment_required",
+
+        ]:
+            assert form.fields[field].initial == True
+        
+        for field in [
+            "allow_booking_cancellation",
+            "email_studio_when_booked",
+
+        ]:
+            assert form.fields[field].initial == False
+        
+        for field in [
+            "max_participants",
+            "payment_due_date",
+
+        ]:
+            assert form.fields[field].initial is None
+
+        assert form.fields["location"].initial == "Online"
+        assert form.fields["payment_time_allowed"].initial == 4
+
+    def test_online_tutorial_form_valid(self):
+        data = {
+            'name': 'test_tutorial',
+            'event_type': self.event_type_ot.id,
+            'date': '15 Jun 2015 18:00',
+            'contact_email': 'test@test.com',
+            'contact_person': 'test',
+            'cancellation_period': 24,
+            'location': "Online",
+            'paypal_email': settings.DEFAULT_PAYPAL_EMAIL,
+            'video_link': "http://foo.com"
+        }
+        form = OnlineTutorialAdminForm(data=data, ev_type='OT')
+        assert form.is_valid()
+
+    def test_online_tutorial_with_instance_form_valid(self):
+        tutorial = baker.make_recipe("booking.future_OT", event_type=self.event_type_ot, cost=10)
+        data = {
+            'id': tutorial.id,
+            'name': tutorial.name,
+            'event_type': self.event_type_ot.id,
+            'date': '15 Jun 2015 18:00',
+            'contact_email': 'test@test.com',
+            'contact_person': 'test',
+            'cancellation_period': 24,
+            'location': "Online",
+            'paypal_email': settings.DEFAULT_PAYPAL_EMAIL,
+            'video_link': "http://foo.com",
+            "cost": 10,
+            "advance_payment_required": True 
+        }
+        form = OnlineTutorialAdminForm(instance=tutorial, data=data, ev_type='OT')
+        assert form.is_valid()
+    
+    def test_online_tutorial_with_instance_no_cost_form_valid(self):
+        data = {
+            'name': "tutorial",
+            'event_type': self.event_type_ot.id,
+            'date': '15 Jun 2015 18:00',
+            'contact_email': 'test@test.com',
+            'contact_person': 'test',
+            'cancellation_period': 24,
+            'location': "Online",
+            'paypal_email': settings.DEFAULT_PAYPAL_EMAIL,
+            'video_link': "http://foo.com",
+            # these will be reset in the form clean method because cost is 0
+            "allow_booking_cancellation": False,
+            "advance_payment_required": True,
+            "payment_due_date": '14 Jun 2015',
+            "payment_time_allowed": 4,
+
+        }
+        
+        def assert_non_cost(form_data):
+            form = OnlineTutorialAdminForm(data=data, ev_type='OT')
+            assert form.is_valid()
+            assert form.cleaned_data["advance_payment_required"] == False
+            assert form.cleaned_data["allow_booking_cancellation"] == True
+            assert form.cleaned_data["payment_due_date"] == None
+            assert form.cleaned_data["payment_time_allowed"] == None
+            assert form.cleaned_data["cost"] == 0
+        
+        # no cost in posted data
+        assert_non_cost(data)
+
+        # non-cost values
+        for cost in [None, -1, 0]:
+            assert_non_cost(data)

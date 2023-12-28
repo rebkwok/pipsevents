@@ -457,13 +457,16 @@ class OnlineTutorialAdminForm(EventAdminForm):
             self.fields[field].hidden = True
 
     def clean(self):
-        if not self.cleaned_data.get('cost'):
+        super().clean()
+        cost = self.cleaned_data.get('cost', 0)
+        if cost is None or cost <= 0:
             self.cleaned_data["advance_payment_required"] = False
             self.cleaned_data["payment_due_date"] = None
             self.cleaned_data["payment_time_allowed"] = None
             self.cleaned_data["allow_booking_cancellation"] = True
+            self.cleaned_data["cost"] = 0
 
-            for field in ["advance_payment_required", "allow_booking_cancellation", "payment_due_date", "payment_time_allowed"]:
+            for field in ["advance_payment_required", "allow_booking_cancellation", "payment_due_date", "payment_time_allowed", "cost"]:
                 if field in self.errors:
                     del self.errors[field]
-        super().clean()
+        
