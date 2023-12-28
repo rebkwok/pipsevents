@@ -9,16 +9,39 @@
             <div class="col-sm-12">
             <form action="" method="get">
                 {{ form.search }}
-                <input class="btn btn-wm table-btn" type="submit" name='search_submitted' value="Search" />
-                <input class="btn btn-sucess table-btn" type="submit" name='reset' value="Reset" /><br/>
-                And/or filter by first name<br/>
+                <input class="btn btn-wm table-btn" type="submit" value="Search" />
+                <input class="btn btn-secondary table-btn" type="submit" name='reset' value="Reset" /><br/>
+                Filter by first name<br/>
+                <input type="hidden" name="pfilter" value={{ active_filter }}>
                 {% for opt in filter_options %}
                     <input
-                            class="btn btn-alph-filter {% if not opt.available %}btn-disabled{% elif active_filter == opt.value %}btn-alph-primary{% else %}btn-unselected{% endif %} "
+                            class="btn btn-alph-filter {% if active_filter == opt.value %}btn-alph-primary{% elif not opt.available %}btn-light{% else %}btn-unselected{% endif %} "
                             {% if not opt.available %}disabled{% endif %}
                             type="submit"
                             name="filter"
                             value="{{ opt.value }}"
+                    />
+                {% endfor %}<br/>
+                Filter by group<br/>
+                <input type="hidden" name="pgroup_filter" value="{{ active_group }}">
+                <input
+                        class="btn btn-alph-filter mb-1 {% if active_group == "All" %}btn-alph-primary{% else %}btn-secondary{% endif %} "
+                        type="submit"
+                        name="group_filter"
+                        value="All"
+                />
+                <input
+                        class="btn btn-alph-filter mb-1 {% if active_group == "Instructors" %}btn-alph-primary{% else %}btn-secondary{% endif %} "
+                        type="submit"
+                        name="group_filter"
+                        value="Instructors"
+                />
+                {% for allowed_group in allowed_groups %}
+                    <input
+                            class="btn table-btn btn-alph-filter mb-1 {% if active_group == allowed_group|title %}btn-alph-primary{% else %}btn-secondary{% endif %} "
+                            type="submit"
+                            name="group_filter"
+                            value="{{ allowed_group }}"
                     />
                 {% endfor %}
             </form>

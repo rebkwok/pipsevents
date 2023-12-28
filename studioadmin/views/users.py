@@ -71,24 +71,29 @@ class UserListView(LoginRequiredMixin,  InstructorOrStaffUserMixin,  ListView):
     context_object_name = 'users'
 
     def get_queryset(self):
-        queryset = User.objects.all().order_by('first_name')
         reset = self.request.GET.get('reset')
-        search_submitted = self.request.GET.get('search_submitted')
-        search_text = self.request.GET.get('search')
-        filter = self.request.GET.get('filter')
+        if reset:
+            queryset = User.objects.all().order_by('first_name')
+        else:
+            search_text = self.request.GET.get('search')
+            filter = self.request.GET.get('filter', self.request.GET.get('pfilter'))
+            group_name = self.request.GET.get('group_filter', self.request.GET.get('pgroup_filter'))
 
-        if reset or (search_submitted and not search_text) or \
-                (not reset and not search_submitted and not filter):
-            queryset = queryset
-        elif search_text:
-            queryset = queryset.filter(
-                Q(first_name__icontains=search_text) |
-                Q(last_name__icontains=search_text) |
-                Q(username__icontains=search_text)
-            )
+            if group_name and group_name != 'All' and not reset:
+                group = Group.objects.get(name__iexact=group_name)
+                queryset = group.user_set.all().order_by('first_name')
+            else:
+                queryset = User.objects.all().order_by('first_name')
 
-        if filter and filter != 'All':
-            queryset = queryset.filter(first_name__istartswith=filter)
+            if search_text:
+                queryset = queryset.filter(
+                    Q(first_name__icontains=search_text) |
+                    Q(last_name__icontains=search_text) |
+                    Q(username__icontains=search_text)
+                )
+
+            if filter and filter != 'All':
+                queryset = queryset.filter(first_name__istartswith=filter)
 
         return queryset
 
@@ -111,13 +116,19 @@ class UserListView(LoginRequiredMixin,  InstructorOrStaffUserMixin,  ListView):
 
         context['sidenav_selection'] = 'users'
         context['search_submitted'] = self.request.GET.get('search_submitted')
-        context['active_filter'] = self.request.GET.get('filter',  'All')
+
         search_text = self.request.GET.get('search',  '')
         reset = self.request.GET.get('reset')
         context['filter_options'] = _get_name_filter_available(queryset)
 
         if reset:
             search_text = ''
+            context['active_filter'] = "All"
+            context['active_group'] = "All"
+        else:
+            context['active_filter'] = self.request.GET.get('filter', self.request.GET.get('pfilter', "All"))
+            context['active_group'] = self.request.GET.get('group_filter', self.request.GET.get('pgroup_filter', "all"))
+
         form = UserListSearchForm(initial={'search': search_text})
         context['form'] = form
         num_results = queryset.count()

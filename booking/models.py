@@ -130,6 +130,7 @@ class EventType(models.Model):
 
     class Meta:
         unique_together = ('event_type', 'subtype')
+        ordering = ('event_type', 'subtype')
 
 
 class FilterCategory(models.Model):
