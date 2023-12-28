@@ -188,7 +188,9 @@
             </li>
 {% elif request.user|in_group:"instructors" %}
     <li class="d-block d-md-none"><a class='adminmenu' href="{% url 'studioadmin:class_register_list' %}">{% if sidenav_selection == 'lessons_register' %}
-        <span class="sidebar_active">Class/Room Hire Registers</span>{% else %}Class/Room Hire Registers{% endif %}</a></li>
+        <span class="sidebar_active">Class Registers</span>{% else %}Class Registers{% endif %}</a></li>
+    <li class="d-block d-md-none"><a class='adminmenu' href="{% url 'studioadmin:room_hire_register_list' %}">{% if sidenav_selection == 'room_hires_register' %}
+        <span class="sidebar_active">Room Hire Registers</span>{% else %}Room Hire Registers{% endif %}</a></li>
     <li class="d-block d-md-none"><a class='adminmenu' href="{% url 'studioadmin:online_tutorials_register_list' %}">{% if sidenav_selection == 'online_tutorials_register' %}
         <span class="sidebar_active">Online Tutorials Registers</span>{% else %}Online Tutorials Registers{% endif %}</a></li>
     <li class="d-block d-md-none"><a class='adminmenu' href="{% url 'studioadmin:event_register_list' %}">{% if sidenav_selection == 'events_register' %}
@@ -240,7 +242,7 @@
                     </li>
                     <li class="sidebar-title">
                         <a id="toggler" href="#" data-toggle="collapse" class="active" data-target="#setup">
-                            <span class="fa classes
+                            <span class="fa setup
                                 {% if sidenav_selection in 'allowed_groups,event_types' %}
                                     fa-minus-square
                                 {% else %}
@@ -278,7 +280,7 @@
                                     fa-plus-square
                                 {% endif %}">
                             </span>
-                            Scheduled Classes
+                            Classes
                         </a>
                     </li>
                     <span id="classes" class="collapse {% if sidenav_selection in 'lessons,add_lesson,lessons_register' %} in show{% endif %}">
@@ -306,14 +308,14 @@
 
                     <li class="sidebar-title">
                         <a id="toggler" href="#" data-toggle="collapse" class="active" data-target="#room_hires">
-                            <span class="fa classes
+                            <span class="fa room_hires
                                 {% if sidenav_selection in 'room_hires,add_room_hire,room_hires_register' %}
                                     fa-minus-square
                                 {% else %}
                                     fa-plus-square
                                 {% endif %}">
                             </span>
-                            Scheduled Room Hire
+                            Room Hire
                         </a>
                     </li>
                     <span id="room_hires" class="collapse {% if sidenav_selection in 'room_hires,add_room_hire,room_hires_register' %} in show{% endif %}">
@@ -383,7 +385,7 @@
 
                     <li class="sidebar-title">
                         <a id="toggler" href="#" data-toggle="collapse" class="active" data-target="#tutorials">
-                            <span class="fa events
+                            <span class="fa tutorials
                                 {% if sidenav_selection in 'online_tutorials,add_online_tutorial,online_tutorials_register' %}
                                     fa-minus-square
                                 {% else %}
@@ -470,7 +472,7 @@
 
                     <li class="sidebar-title">
                         <a id="toggler" href="#" data-toggle="collapse" class="active" data-target="#vouchers">
-                            <span class="fa events
+                            <span class="fa vouchers
                                 {% if sidenav_selection in 'vouchers,add_voucher,block_vouchers,add_block_voucher' %}
                                     fa-minus-square
                                 {% else %}
@@ -495,7 +497,7 @@
 
                     <li class="sidebar-title">
                         <a id="toggler" href="#" data-toggle="collapse" class="active" data-target="#payments">
-                            <span class="fa log
+                            <span class="fa payments
                                 {% if sidenav_selection == 'test_paypal' or sidenav_selection == 'invoices' or sidenav_selection == 'connect_stripe' or sidenav_selection == 'test_stripe' %}
                                     fa-minus-square
                                 {% else %}
@@ -529,7 +531,7 @@
 
                 <li class="sidebar-title">
                         <a id="toggler" href="#" data-toggle="collapse" class="active" data-target="#disclaimerversions">
-                            <span class="fa events
+                            <span class="fa disclaimerversions
                                 {% if sidenav_selection in 'disclaimer_content_list,disclaimer_content_new,disclaimer_content_view' %}
                                     fa-minus-square
                                 {% else %}
@@ -548,7 +550,7 @@
 
                     <li class="sidebar-title">
                         <a id="toggler" href="#" data-toggle="collapse" class="active" data-target="#notifications">
-                            <span class="fa log
+                            <span class="fa notifications
                                 {% if sidenav_selection == 'notifications' %}
                                     fa-minus-square
                                 {% else %}
@@ -597,8 +599,10 @@
                     <li class="sidebar-title">
                             Registers/Waiting lists
                     </li>
-                        <li><a href="{% url 'studioadmin:class_register_list' %}">{% if sidenav_selection == 'lessons_register' %}
-                        <span class="sidebar_active">Classes/Room Hire</span>{% else %}Classes/Room Hire{% endif %}</a></li>
+                    <li><a href="{% url 'studioadmin:class_register_list' %}">{% if sidenav_selection == 'lessons_register' %}
+                        <span class="sidebar_active">Classes</span>{% else %}Classes{% endif %}</a></li>
+                    <li><a href="{% url 'studioadmin:room_hire_register_list' %}">{% if sidenav_selection == 'room_hires_register' %}
+                        <span class="sidebar_active">Room Hire</span>{% else %}Room Hire{% endif %}</a></li>
                     <li><a href="{% url 'studioadmin:event_register_list' %}">{% if sidenav_selection == 'events_register' %}
                         <span class="sidebar_active">Events/Workshops</span>{% else %}Events/Workshops{% endif %}</a></li>
                     <li><a href="{% url 'studioadmin:register-day' %}">{% if sidenav_selection == 'register_day' %}
