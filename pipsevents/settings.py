@@ -114,15 +114,15 @@ MIDDLEWARE = (
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
 
-
-if TESTING or env('LOCAL'):  # use local cache for tests
+#  use local cache for tests
+if TESTING or env('LOCAL'):
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
             'LOCATION': 'test-pips',
         }
     }
-else:
+else:   # pragma: no cover
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.memcached.PyMemcacheCache',
@@ -224,7 +224,7 @@ STATIC_ROOT = root('collected-static')
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = root('media')
-if env("CONSOLE_EMAIL"):
+if env("CONSOLE_EMAIL"):   # pragma: no cover
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
