@@ -130,8 +130,6 @@ class EventAdminForm(forms.ModelForm):
             queryset=ev_type_qset,
         )
 
-        self.fields['allowed_group'].widget.attrs = {'class': "form-control"}
-
         ph_type = "event" if ev_type == 'EV' else 'class' if ev_type == "CL" else 'room hire' if ev_type == "RH" else "online tutorial"
         ex_name = "Workshop" if ev_type == 'EV' else "Pole Level 1" if ev_type == "CL" else "Private Practice" if ev_type == "RH" else "Spin Combo"
         self.fields['name'] = forms.CharField(
@@ -162,7 +160,6 @@ class EventAdminForm(forms.ModelForm):
                 )
         else:
             self.fields['paypal_email'].initial = settings.DEFAULT_PAYPAL_EMAIL
-            self.fields['allowed_group'].initial = AllowedGroup.default_group().id
 
     def clean_new_category(self):
         new_category = self.cleaned_data.get("new_category")
@@ -393,6 +390,9 @@ class EventAdminForm(forms.ModelForm):
             'paypal_email': forms.EmailInput(
                 attrs={'class': "form-control"}
             ),
+             'allowed_group': forms.Select(
+                attrs={'class': "form-control"}
+            ),
             }
         help_texts = {
             'visible_on_site': _('Is this event visible to users?'),
@@ -427,6 +427,9 @@ class EventAdminForm(forms.ModelForm):
                 'Check this carefully!  If you enter an incorrect email, '
                 'payments will fail or could be paid to the wrong account!'
             ),
+            'allowed_group': _(
+                "Group allowed to book this event (leave blank to default to same group as the event type)"
+            )
         }
 
 
