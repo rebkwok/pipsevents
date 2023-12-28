@@ -53,19 +53,15 @@ class AllowedGroup(models.Model):
         return self.group.name.title()
 
     def has_permission(self, user):
-        if user.is_superuser or self.group == self.open_to_all_group():
+        if self.group == self.open_to_all_group():
             return True
         return self.group in user.groups.all()
 
     def add_user(self, user):
-        if user.is_superuser:
-            return
         if self.group not in user.groups.all():
             user.groups.add(self.group)
 
     def remove_user(self, user):
-        if user.is_superuser:
-            return
         if self.group in user.groups.all():
             user.groups.remove(self.group)
 

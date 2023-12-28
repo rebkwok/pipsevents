@@ -277,18 +277,6 @@ class UserListViewTests(TestPermissionMixin, TestCase):
             else:
                 self.assertFalse(opt['available'])
 
-    def test_instructor_cannot_change_regular_student(self):
-        reg_student = baker.make_recipe('booking.user')
-        perm = Permission.objects.get(codename='is_regular_student')
-        reg_student.user_permissions.add(perm)
-        reg_student.save()
-
-        resp = self._get_response(
-            self.instructor_user, {'change_user': [reg_student.id]}
-        )
-        reg_student = User.objects.get(id=reg_student.id)
-        self.assertTrue(reg_student.has_perm('booking.is_regular_student'))
-
     def test_display_disclaimers(self):
         """
         Test that users with online disclaimers do not display print disclaimer

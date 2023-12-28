@@ -12,7 +12,7 @@ def staff_user():
     yield staff_user
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture()
 def instructor_user(client):
     user = User.objects.create_user(username="instructor", password="test")
     group, _ = Group.objects.get_or_create(name="instructors")

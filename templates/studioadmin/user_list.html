@@ -59,20 +59,16 @@
                                 <td class="text-center studioadmin-tbl">{{ user.first_name|abbr_name }} {{ user.last_name|abbr_name }}</td>
                                 <td class="text-center studioadmin-tbl">{% if user.userprofile.pronouns %}{{ user.userprofile.pronouns }}{% endif %}</td>
                                 {% if request.user.is_staff %}
-                                    {% if user.is_superuser %}
-                                        <td class="text-center studioadmin-tbl">N/A</td>
-                                    {% else %}
-                                        <td class="text-center studioadmin-tbl" id="toggle_permission_{{ user.id }}">
-                                            {% for allowed_group in allowed_groups %}
-                                                <div
-                                                    id="toggle-et-{{ allowed_group.id }}-user-{{ user.id }}"
-                                                    hx-get={% url 'studioadmin:toggle_permission' user.id allowed_group.id %}
-                                                >
-                                                    {% include "studioadmin/includes/toggle_permission_button.html" %}
-                                                </div>
-                                                {% endfor %}
-                                        </td>
-                                    {% endif %}
+                                    <td class="text-center studioadmin-tbl" id="toggle_permission_{{ user.id }}">
+                                        {% for allowed_group in allowed_groups %}
+                                            <div
+                                                id="toggle-et-{{ allowed_group.id }}-user-{{ user.id }}"
+                                                hx-get={% url 'studioadmin:toggle_permission' user.id allowed_group.id %}
+                                            >
+                                                {% include "studioadmin/includes/toggle_permission_button.html" %}
+                                            </div>
+                                            {% endfor %}
+                                    </td>
                                 {% endif %}
                                 <td class="text-center studioadmin-tbl td-disclaimer">
                                     {% if user|has_online_disclaimer %}
