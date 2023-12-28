@@ -21,24 +21,18 @@ from studioadmin.tests.test_views.helpers import TestPermissionMixin
 
 class UserListViewTests(TestPermissionMixin, TestCase):
 
-    def _get_response(self, user, form_data={}):
-        url = reverse('studioadmin:users')
-        session = _create_session()
-        request = self.factory.get(url, form_data)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        view = UserListView.as_view()
-        return view(request)
+    def setUp(self):
+        super().setUp()
+        self.url = reverse('studioadmin:users')
+        self.client.force_login(self.staff_user)
 
     def test_cannot_access_if_not_logged_in(self):
         """
         test that the page redirects if user is not logged in
         """
-        url = reverse('studioadmin:users')
-        resp = self.client.get(url)
-        redirected_url = reverse('account_login') + "?next={}".format(url)
+        self.client.logout()
+        resp = self.client.get(self.url)
+        redirected_url = reverse('account_login') + f"?next={self.url}"
         self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
@@ -46,33 +40,33 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         """
         test that the page redirects if user is not a staff user
         """
-        resp = self._get_response(self.user)
-        self.assertEqual(resp.status_code, 302)
-        self.assertEqual(resp.url, reverse('booking:permission_denied'))
+        self.client.force_login(self.user)
+        resp = self.client.get(self.url)
+        assert resp.status_code == 302
+        assert resp.url == reverse('booking:permission_denied')
 
     def test_instructor_group_can_access(self):
         """
         test that the page can be accessed by a non-staff user who is in the
         instructor group
         """
-        resp = self._get_response(self.instructor_user)
-        self.assertEqual(resp.status_code, 200)
+        self.client.force_login(self.instructor_user)
+        resp = self.client.get(self.url)
+        assert resp.status_code == 200
 
     def test_can_access_as_staff_user(self):
         """
         test that the page can be accessed by a staff user
         """
-        resp = self._get_response(self.staff_user)
-        self.assertEqual(resp.status_code, 200)
+        resp = self.client.get(self.url)
+        assert resp.status_code == 200
 
     def test_all_users_are_displayed(self):
         baker.make_recipe('booking.user', _quantity=6)
         # 9 users total, incl self.user, self.instructor_user self.staff_user
-        self.assertEqual(User.objects.count(), 9)
-        resp = self._get_response(self.staff_user)
-        self.assertEqual(
-            list(resp.context_data['users']), list(User.objects.all())
-        )
+        assert User.objects.count() == 9
+        resp = self.client.get(self.url)
+        assert list(resp.context_data['users']) == list(User.objects.all())
 
     def test_abbreviations_for_long_username(self):
         """
@@ -82,8 +76,8 @@ class UserListViewTests(TestPermissionMixin, TestCase):
             'booking.user',
             username='test123456789101112'
         )
-        resp = self._get_response(self.staff_user)
-        self.assertIn('test12345678-</br>9101112', resp.rendered_content)
+        resp = self.client.get(self.url)
+        assert 'test12345678-</br>9101112' in resp.rendered_content
 
     def test_abbreviations_for_long_names(self):
         """
@@ -95,11 +89,9 @@ class UserListViewTests(TestPermissionMixin, TestCase):
             first_name='namewithmorethan12characters',
             last_name='name-with-three-hyphens'
         )
-        resp = self._get_response(self.staff_user)
-        self.assertIn(
-            'namewith-</br>morethan12characters', resp.rendered_content
-        )
-        self.assertIn('name-</br>with-three-hyphens', resp.rendered_content)
+        resp = self.client.get(self.url)
+        assert 'namewith-</br>morethan12characters' in resp.rendered_content
+        assert 'name-</br>with-three-hyphens' in resp.rendered_content
 
     def test_abbreviations_for_long_email(self):
         """
@@ -109,94 +101,57 @@ class UserListViewTests(TestPermissionMixin, TestCase):
             'booking.user',
             email='test12345678@longemail.com'
         )
-        resp = self._get_response(self.staff_user)
-        self.assertIn('test12345678@longemail...', resp.rendered_content)
+        resp = self.client.get(self.url)
+        assert 'test12345678@longemail...' in resp.rendered_content
 
-    def test_regular_student_button_not_shown_for_instructors(self):
+    def test_toggle_permission_buttons_not_shown_for_instructors(self):
+        pp = baker.make_recipe("booking.event_type_PP")
         not_reg_student = baker.make_recipe('booking.user')
         reg_student = baker.make_recipe('booking.user')
-        perm = Permission.objects.get(codename='is_regular_student')
-        reg_student.user_permissions.add(perm)
-        reg_student.save()
+        pp.add_permission_to_book(reg_student)
 
-        resp = self._get_response(self.staff_user)
+        resp = self.client.get(self.url)
         resp.render()
         self.assertIn(
-            'id="toggle_regular_student_{}"'.format(reg_student.id),
+            f'id="toggle_permission_{reg_student.id}"',
             str(resp.content)
         )
         self.assertIn(
-            'id="toggle_regular_student_{}"'.format(not_reg_student.id),
+            f'id="toggle_permission_{not_reg_student.id}"',
             str(resp.content)
         )
 
-        resp = self._get_response(self.instructor_user)
+        self.client.force_login(self.instructor_user)
+        resp = self.client.get(self.url)
         resp.render()
         self.assertNotIn(
-            'id="toggle_regular_student_{}"'.format(reg_student.id),
+            f'id="toggle_permission_{reg_student.id}"',
             str(resp.content)
         )
         self.assertNotIn(
-            'id="toggle_regular_student_{}"'.format(not_reg_student.id),
+            f'id="toggle_permission_{not_reg_student.id}"',
             str(resp.content)
         )
 
-    def test_change_regular_student(self):
+    def test_change_permission(self):
+        pp = baker.make_recipe("booking.event_type_PP")
         not_reg_student = baker.make_recipe('booking.user')
         reg_student = baker.make_recipe('booking.user')
-        perm = Permission.objects.get(codename='is_regular_student')
-        reg_student.user_permissions.add(perm)
-        reg_student.save()
+        pp.add_permission_to_book(reg_student)
 
-        self.assertTrue(reg_student.has_perm('booking.is_regular_student'))
+        assert pp.has_permission_to_book(reg_student)
+        assert not pp.has_permission_to_book(not_reg_student)
+
         self.client.login(username=self.staff_user, password='test')
         self.client.get(
-            reverse('studioadmin:toggle_regular_student', args=[reg_student.id])
+            reverse('studioadmin:toggle_permission', args=[reg_student.id, pp.allowed_group.id])
         )
-        changed_student = User.objects.get(id=reg_student.id)
-        self.assertFalse(changed_student.has_perm('booking.is_regular_student'))
-
-        self.assertFalse(not_reg_student.has_perm('booking.is_regular_student'))
-        self.client.get(
-            reverse(
-                'studioadmin:toggle_regular_student', args=[not_reg_student.id]
-            )
-        )
-
-        changed_student = User.objects.get(id=not_reg_student.id)
-        self.assertTrue(changed_student.has_perm('booking.is_regular_student'))
-
-    def test_cannot_remove_regular_student_for_superuser(self):
-        reg_student = baker.make_recipe('booking.user')
-        superuser = baker.make_recipe(
-            'booking.user', first_name='Donald', last_name='Duck', username='dd'
-        )
-        superuser.is_superuser = True
-        superuser.save()
-
-        perm = Permission.objects.get(codename='is_regular_student')
-        reg_student.user_permissions.add(perm)
-        reg_student.save()
-
-        self.assertTrue(reg_student.has_perm('booking.is_regular_student'))
-        self.assertTrue(superuser.has_perm('booking.is_regular_student'))
-
-        self.client.login(
-            username=self.staff_user.username, password='test'
-        )
-        self.client.get(
-            reverse('studioadmin:toggle_regular_student', args=[reg_student.id])
-        )
-
-        changed_student = User.objects.get(id=reg_student.id)
-        self.assertFalse(changed_student.has_perm('booking.is_regular_student'))
+        assert not pp.has_permission_to_book(reg_student)
 
         self.client.get(
-            reverse('studioadmin:toggle_regular_student', args=[superuser.id])
+            reverse('studioadmin:toggle_permission', args=[not_reg_student.id, pp.allowed_group.id])
         )
-
-        # status hasn't changed
-        self.assertTrue(superuser.has_perm('booking.is_regular_student'))
+        assert pp.has_permission_to_book(not_reg_student)
 
     def test_user_search(self):
 
@@ -213,26 +168,17 @@ class UserListViewTests(TestPermissionMixin, TestCase):
             last_name='Bar'
         )
 
-        resp = self._get_response(self.staff_user, {
-            'search_submitted': 'Search',
-            'search': 'Foo'})
+        resp = self.client.get(self.url + "?search=Foo")
         self.assertEqual(len(resp.context_data['users']), 2)
 
-        resp = self._get_response(self.staff_user, {
-            'search_submitted': 'Search',
-            'search': 'FooBar'})
+        resp = self.client.get(self.url + "?search=FooBar")
         self.assertEqual(len(resp.context_data['users']), 1)
 
-        resp = self._get_response(self.staff_user, {
-            'search_submitted': 'Search',
-            'search': 'testing'})
+        resp = self.client.get(self.url + "?search=testing")
         self.assertEqual(len(resp.context_data['users']), 2)
 
         self.assertEqual(User.objects.count(), 6)
-        resp = self._get_response(self.staff_user, {
-            'search': 'Foo',
-            'reset': 'Reset'
-        })
+        resp = self.client.get(self.url + "?search=Foo&reset=Reset")
         self.assertEqual(len(resp.context_data['users']), 6)
 
     def test_user_filter(self):
@@ -248,17 +194,14 @@ class UserListViewTests(TestPermissionMixin, TestCase):
             'booking.user', username='Testing2', first_name='BUser',
             last_name='Bar'
         )
-
-        resp = self._get_response(self.staff_user, {
-            'filter': 'A'})
+        resp = self.client.get(self.url + "?filter=A")
         self.assertEqual(len(resp.context_data['users']), 2)
         for user in resp.context_data['users']:
             self.assertTrue(user.first_name.upper().startswith('A'))
 
          # 6 users total, incl self.user, self.instructor_user self.staff_user
         self.assertEqual(User.objects.count(), 6)
-        resp = self._get_response(self.staff_user, {
-            'filter': 'All'})
+        resp = self.client.get(self.url + "?filter=All")
         self.assertEqual(len(resp.context_data['users']), 6)
 
     def test_user_filter_and_search(self):
@@ -274,9 +217,7 @@ class UserListViewTests(TestPermissionMixin, TestCase):
             'booking.user', username='Testing2', first_name='BUser',
             last_name='Bar'
         )
-
-        resp = self._get_response(self.staff_user, {
-            'filter': 'A', 'search': 'Test'})
+        resp = self.client.get(self.url + "?filter=A&search=Test")
         self.assertEqual(len(resp.context_data['users']), 1)
         found_user = resp.context_data['users'][0]
         self.assertEqual(found_user.first_name, "aUser")
@@ -287,7 +228,7 @@ class UserListViewTests(TestPermissionMixin, TestCase):
             baker.make_recipe('booking.user', first_name='{}Usr'.format(option))
         # delete any starting with Z
         User.objects.filter(first_name__istartswith='Z').delete()
-        resp = self._get_response(self.staff_user)
+        resp = self.client.get(self.url)
         filter_options = resp.context_data['filter_options']
         for opt in filter_options:
             if opt['value'] == 'Z':
@@ -304,9 +245,7 @@ class UserListViewTests(TestPermissionMixin, TestCase):
             user.username = "{}_testfoo".format(user.first_name)
             user.save()
 
-        resp = self._get_response(
-            self.staff_user, {'search': 'testfoo', 'search_submitted': 'Search'}
-        )
+        resp = self.client.get(self.url + "?search=testfoo")
         filter_options = resp.context_data['filter_options']
         for opt in filter_options:
             if opt['value'] in ['All', 'A', 'B', 'C']:
@@ -314,17 +253,87 @@ class UserListViewTests(TestPermissionMixin, TestCase):
             else:
                 self.assertFalse(opt['available'])
 
-    def test_instructor_cannot_change_regular_student(self):
-        reg_student = baker.make_recipe('booking.user')
-        perm = Permission.objects.get(codename='is_regular_student')
-        reg_student.user_permissions.add(perm)
-        reg_student.save()
-
-        resp = self._get_response(
-            self.instructor_user, {'change_user': [reg_student.id]}
+    def testgroup_filter(self):
+        baker.make_recipe(
+            'booking.user', username='FooBar', first_name='AUser',
+            last_name='Bar'
         )
-        reg_student = User.objects.get(id=reg_student.id)
-        self.assertTrue(reg_student.has_perm('booking.is_regular_student'))
+        baker.make_recipe(
+            'booking.user', username='Testing1', first_name='aUser',
+            last_name='Bar'
+        )
+        baker.make_recipe(
+            'booking.user', username='Testing2', first_name='BUser',
+            last_name='Bar'
+        )
+
+         # 6 users total, incl self.user, self.instructor_user self.staff_user; 1 instructor doesn't match first name filter
+        self.assertEqual(User.objects.count(), 6)
+        resp = self.client.get(self.url + "?group_filter=Instructors&pfilter=auser")
+        self.assertEqual(len(resp.context_data['users']), 0)
+    
+    def testgroup_filter_unknown_group(self):
+        baker.make_recipe(
+            'booking.user', username='FooBar', first_name='AUser',
+            last_name='Bar'
+        )
+        baker.make_recipe(
+            'booking.user', username='Testing1', first_name='aUser',
+            last_name='Bar'
+        )
+        baker.make_recipe(
+            'booking.user', username='Testing2', first_name='BUser',
+            last_name='Bar'
+        )
+
+         # 6 users total, incl self.user, self.instructor_user self.staff_user; 1 instructor doesn't match first name filter
+        self.assertEqual(User.objects.count(), 6)
+        resp = self.client.get(self.url + "?group_filter=foo")
+        self.assertEqual(len(resp.context_data['users']), 6)
+
+    def testgroup_filter_all_groups(self):
+        baker.make_recipe(
+            'booking.user', username='FooBar', first_name='AUser',
+            last_name='Bar'
+        )
+        baker.make_recipe(
+            'booking.user', username='Testing1', first_name='aUser',
+            last_name='Bar'
+        )
+        baker.make_recipe(
+            'booking.user', username='Testing2', first_name='BUser',
+            last_name='Bar'
+        )
+
+         # 6 users total, incl self.user, self.instructor_user self.staff_user
+         # group filter case insensitive
+        self.assertEqual(User.objects.count(), 6)
+        resp = self.client.get(self.url + "?group_filter=all")
+        self.assertEqual(len(resp.context_data['users']), 6)
+
+        resp = self.client.get(self.url + "?group_filter=All")
+        self.assertEqual(len(resp.context_data['users']), 6)
+
+    def testgroup_filter_and_previous_filter(self):
+        baker.make_recipe(
+            'booking.user', username='FooBar', first_name='AUser',
+            last_name='Bar'
+        )
+        baker.make_recipe(
+            'booking.user', username='Testing1', first_name='aUser',
+            last_name='Bar'
+        )
+        baker.make_recipe(
+            'booking.user', username='Testing2', first_name='BUser',
+            last_name='Bar'
+        )
+        resp = self.client.get(self.url + "?group_filter=Instructors")
+        self.assertEqual(len(resp.context_data['users']), 1)
+
+         # 6 users total, incl self.user, self.instructor_user self.staff_user
+        self.assertEqual(User.objects.count(), 6)
+        resp = self.client.get(self.url + "?group_filter=All")
+        self.assertEqual(len(resp.context_data['users']), 6)
 
     def test_display_disclaimers(self):
         """
@@ -342,7 +351,8 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         baker.make(OnlineDisclaimer, user=user_with_online_disclaimer, version=DisclaimerContent.current_version())
         user_with_no_disclaimer = baker.make_recipe('booking.user')
 
-        resp = self._get_response(superuser)
+        self.client.force_login(superuser)
+        resp = self.client.get(self.url)
         self.assertIn(
             'class="has-disclaimer-pill"', str(resp.rendered_content)
         )
@@ -353,25 +363,8 @@ class UserListViewTests(TestPermissionMixin, TestCase):
             ),
             str(resp.rendered_content)
         )
-        self.assertIn(
-            'id="toggle_print_disclaimer_{}"'.format(
-                user_with_print_disclaimer.id
-            ),
-            str(resp.rendered_content)
-        )
-        self.assertIn(
-            'id="toggle_print_disclaimer_{}"'.format(
-                user_with_no_disclaimer.id
-            ),
-            str(resp.rendered_content)
-        )
-        self.assertNotIn(
-            'id="toggle_print_disclaimer_{}"'.format(
-                user_with_online_disclaimer.id
-            ),
-            str(resp.rendered_content)
-        )
-        resp = self._get_response(self.staff_user)
+        self.client.force_login(self.staff_user)
+        resp = self.client.get(self.url)
         self.assertIn(
             'class="has-disclaimer-pill"', str(resp.rendered_content)
         )
@@ -382,98 +375,6 @@ class UserListViewTests(TestPermissionMixin, TestCase):
             ),
             str(resp.rendered_content)
         )
-
-    def test_print_disclaimer_button_only_shown_for_superusers(self):
-        user_with_print_disclaimer = baker.make_recipe('booking.user')
-        baker.make(PrintDisclaimer, user=user_with_print_disclaimer)
-        superuser = User.objects.create_superuser(
-            username='super', email='super@test.com', password='test'
-        )
-        resp = self._get_response(superuser)
-        self.assertIn(
-            'id="toggle_print_disclaimer_{}"'.format(
-                user_with_print_disclaimer.id
-            ),
-            str(resp.rendered_content)
-        )
-        resp = self._get_response(self.staff_user)
-        self.assertNotIn(
-            'id="toggle_print_disclaimer_{}"'.format(
-                user_with_print_disclaimer.id
-            ),
-            str(resp.rendered_content)
-        )
-        resp = self._get_response(self.instructor_user)
-        self.assertNotIn(
-            'id="toggle_print_disclaimer_{}"'.format(
-                user_with_print_disclaimer.id
-            ),
-            str(resp.rendered_content)
-        )
-
-    def test_change_print_disclaimer(self):
-        user_with_print_disclaimer = baker.make_recipe('booking.user')
-        print_disc = baker.make(PrintDisclaimer, user=user_with_print_disclaimer)
-        self.assertEqual(
-            print_disc.id,
-            user_with_print_disclaimer.print_disclaimer.id
-        )
-
-        self.assertEqual(PrintDisclaimer.objects.count(), 1)
-        self.client.login(username=self.staff_user.username, password='test')
-        self.client.get(
-            reverse(
-                'studioadmin:toggle_print_disclaimer',
-                args=[user_with_print_disclaimer.id]
-            )
-        )
-
-        # print disclaimer has been deleted
-        self.assertEqual(PrintDisclaimer.objects.count(), 0)
-
-        self.client.get(
-            reverse(
-                'studioadmin:toggle_print_disclaimer',
-                args=[user_with_print_disclaimer.id]
-            )
-        )
-        self.assertEqual(PrintDisclaimer.objects.count(), 1)
-        user = User.objects.get(id=user_with_print_disclaimer.id)
-        # a new print disclaimer has been created
-        self.assertNotEqual(
-            print_disc.id,
-            user.print_disclaimer.id
-        )
-
-    def test_instructor_cannot_change_print_disclaimer(self):
-        user_with_print_disclaimer = baker.make_recipe('booking.user')
-        print_disc = baker.make(PrintDisclaimer, user=user_with_print_disclaimer)
-        self.assertEqual(
-            print_disc.id,
-            user_with_print_disclaimer.print_disclaimer.id
-        )
-
-        self.assertEqual(PrintDisclaimer.objects.count(), 1)
-        self.client.login(username=self.staff_user.username, password='test')
-        self.client.get(
-            reverse(
-                'studioadmin:toggle_print_disclaimer',
-                args=[user_with_print_disclaimer.id]
-                )
-        )
-        # print disclaimer has been deleted
-        self.assertEqual(PrintDisclaimer.objects.count(), 0)
-
-        self.client.login(username=self.instructor_user.username, password='test')
-        resp = self.client.get(
-            reverse(
-                'studioadmin:toggle_print_disclaimer',
-                args=[user_with_print_disclaimer.id]
-            )
-        )
-        # not permitted - no print disclaimer created
-        self.assertEqual(PrintDisclaimer.objects.count(), 0)
-        self.assertIn(resp.url, reverse('booking:permission_denied'))
 
     def test_mailing_list_button_not_shown_for_instructors(self):
         subscribed_user = baker.make_recipe('booking.user')
@@ -481,7 +382,7 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         subscribed = baker.make(Group, name='subscribed')
         subscribed.user_set.add(subscribed_user)
 
-        resp = self._get_response(self.staff_user)
+        resp = self.client.get(self.url)
         self.assertIn(
             'id="toggle_subscribed_{}"'.format(subscribed_user.id),
             resp.rendered_content
@@ -491,7 +392,8 @@ class UserListViewTests(TestPermissionMixin, TestCase):
             resp.rendered_content
         )
 
-        resp = self._get_response(self.instructor_user)
+        self.client.force_login(self.instructor_user)
+        resp = self.client.get(self.url)
         resp.render()
         self.assertNotIn(
             'id="toggle_subscribed_{}"'.format(subscribed_user.id),

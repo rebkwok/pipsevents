@@ -33,8 +33,6 @@ from studioadmin.views import (BookingEditView,
                                register_print_day,
                                event_admin_list,
                                timetable_admin_list,
-                               toggle_regular_student,
-                               toggle_print_disclaimer,
                                toggle_subscribed,
                                unsubscribe,
                                upload_timetable_view,
@@ -74,7 +72,10 @@ from studioadmin.views import (BookingEditView,
                                InvoiceListView,
                                stripe_test,
                                ticketed_event_waiting_list_view,
-                               email_ticketed_event_waiting_list
+                               email_ticketed_event_waiting_list,
+                               toggle_permission,
+                               AllowedGroupListView,
+                               EventTypeListView,
                                )
 
 app_name = 'studioadmin'
@@ -92,13 +93,15 @@ urlpatterns = [
         {'ev_type': 'events'}, name='events'),
     path('events/<slug:slug>/cancel', cancel_event_view,
         name='cancel_event'),
+    
     path('event-registers/', EventRegisterListView.as_view(),
         {'ev_type': 'events'}, name='event_register_list'),
     path('event-registers/print-registers-by-date/', register_print_day,
         name='register-day'),
-    path('event-registers/<slug:event_slug>/', register_view, name='event_register'),
+        path('event-registers/<slug:event_slug>/', register_view, name='event_register'),
     path('events/new/', EventAdminCreateView.as_view(),
         {'ev_type': 'event'}, name='add_event'),
+
     path('classes/<slug:slug>/edit/', EventAdminUpdateView.as_view(),
         {'ev_type': 'lesson'}, name='edit_lesson'),
     path('classes/', event_admin_list,
@@ -107,6 +110,17 @@ urlpatterns = [
         {'ev_type': 'lessons'}, name='class_register_list'),
     path('classes/new/', EventAdminCreateView.as_view(),
         {'ev_type': 'lesson'}, name='add_lesson'),
+
+    path('room-hire-registers/', EventRegisterListView.as_view(),
+        {'ev_type': 'room_hires'}, name='room_hire_register_list'),
+    path('room-hire/new/', EventAdminCreateView.as_view(),
+        {'ev_type': 'room_hire'}, name='add_room_hire'),
+    path('room-hires/<slug:slug>/edit/', EventAdminUpdateView.as_view(),
+        {'ev_type': 'room_hire'}, name='edit_room_hire'),
+    path('room-hires/', event_admin_list,
+        {'ev_type': 'room_hires'}, name='room_hires'),
+   
+    
     path('online-tutorials/<slug:slug>/edit/', EventAdminUpdateView.as_view(),
          {'ev_type': 'online_tutorial'}, name='edit_online_tutorial'),
     path('online-tutorials/', event_admin_list,
@@ -115,6 +129,7 @@ urlpatterns = [
          {'ev_type': 'online_tutorials'}, name='online_tutorials_register_list'),
     path('online-tutorials/new/', EventAdminCreateView.as_view(),
          {'ev_type': 'online_tutorial'}, name='add_online_tutorial'),
+
     path('event/clone/<slug:slug>/', clone_event, name='clone_event'),
     path('events/<str:event_type>/open/', open_all_events, name='open_all_events'),
     path('timetable', timetable_admin_list, name='timetable'),
@@ -163,12 +178,8 @@ urlpatterns = [
         user_blocks_view, name='user_blocks_list'
     ),
     path(
-        'users/<int:user_id>/toggle_regular_student/',
-        toggle_regular_student, name='toggle_regular_student'
-    ),
-    path(
-        'users/<int:user_id>/toggle_print_disclaimer/',
-        toggle_print_disclaimer, name='toggle_print_disclaimer'
+        'users/<int:user_id>/toggle_permission/<int:allowed_group_id>/',
+        toggle_permission, name='toggle_permission'
     ),
     path(
         'users/<int:user_id>/toggle_subscribed/',
@@ -334,6 +345,8 @@ urlpatterns = [
     ),
     path("payment/transactions/", InvoiceListView.as_view(), name="invoices"),
     path("payment/stripe-test/", stripe_test, name="stripe_test"),
+    path("setup/event-types/", EventTypeListView.as_view(), name="setup_event_types"),
+    path("setup/allowed_groups/", AllowedGroupListView.as_view(), name="setup_allowed_groups"),
     path('jsi18n/', JavaScriptCatalog.as_view(), name='jsi18n'),
     path('', RedirectView.as_view(url='/studioadmin/class-registers/', permanent=True)),
     ]

@@ -540,11 +540,12 @@ class EventVoucherAdminTests(TestCase):
 
     def test_event_types_display(self):
         voucher = baker.make(EventVoucher)
-        event_typepp = baker.make_recipe(
-            'booking.event_type_PP', subtype='Pole class')
         event_typepc = baker.make_recipe(
-            'booking.event_type_PC', subtype='Pole practice'
+            'booking.event_type_PC', subtype='Pole class'
         )
+        event_typepp = baker.make_recipe(
+            'booking.event_type_PP', subtype='Pole practice')
+        
         voucher.event_types.add(event_typepc)
         voucher.event_types.add(event_typepp)
 

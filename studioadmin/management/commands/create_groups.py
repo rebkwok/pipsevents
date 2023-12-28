@@ -6,7 +6,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
 
-        groups = ['instructors', 'free_5monthly_blocks', 'free_7monthly_blocks']
+        groups = ['instructors']
         for group in groups:
             self.stdout.write("Creating group {}...".format(group))
             _, created = Group.objects.get_or_create(name=group)

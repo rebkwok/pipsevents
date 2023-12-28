@@ -11,7 +11,7 @@ from booking.models import Banner
 pytestmark = pytest.mark.django_db
 
 @pytest.fixture(autouse=True)
-def instructor_user(client):
+def logged_in_instructor_user(client):
     user = User.objects.create_user(username="instructor", password="test")
     group, _ = Group.objects.get_or_create(name="instructors")
     user.groups.add(group)

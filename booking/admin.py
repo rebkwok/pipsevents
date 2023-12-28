@@ -11,7 +11,7 @@ from django import forms
 from django.urls import reverse
 from ckeditor.widgets import CKEditorWidget
 
-from booking.models import Banner, Event, Booking, Block, BlockType, \
+from booking.models import AllowedGroup, Banner, Event, Booking, Block, BlockType, \
     EventType, GiftVoucherType, WaitingListUser, TicketedEvent, TicketBooking, Ticket, \
     BlockVoucher, EventVoucher, UsedBlockVoucher, UsedEventVoucher, FilterCategory, \
     TicketedEventWaitingListUser
@@ -568,6 +568,7 @@ admin.site.register(Booking, BookingAdmin)
 admin.site.register(Block, BlockAdmin)
 admin.site.register(BlockType, BlockTypeAdmin)
 admin.site.register(EventType)
+admin.site.register(AllowedGroup)
 admin.site.register(Banner)
 admin.site.register(WaitingListUser, WaitingListUserAdmin)
 admin.site.register(TicketBooking, TicketBookingAdmin)

@@ -124,47 +124,35 @@ class Command(BaseCommand):
         for event in send_waiting_list:
             waiting_list_users = WaitingListUser.objects.filter(event=event)
             if waiting_list_users.exists():
-                try:
-                    send_waiting_list_email(
-                        event, [user.user for user in waiting_list_users]
+                send_waiting_list_email(
+                    event, [user.user for user in waiting_list_users]
+                )
+                ActivityLog.objects.create(
+                    log='Waiting list email sent to user(s) {} for '
+                    'event {}'.format(
+                        ', '.join(
+                            [wluser.user.username for wluser in waiting_list_users]
+                        ),
+                        event
                     )
-                    ActivityLog.objects.create(
-                        log='Waiting list email sent to user(s) {} for '
-                        'event {}'.format(
-                            ', '.join(
-                                [wluser.user.username for wluser in waiting_list_users]
-                            ),
-                            event
-                        )
-                    )
-                except Exception as e:
-                    # send mail to tech support with Exception
-                    send_support_email(
-                        e, __name__, "Automatic cancel job - waiting list email"
-                    )
+                )
 
         if bookings_for_studio_email:
             # send single mail to Studio
-            try:
-                send_mail('{} Booking{} been automatically cancelled'.format(
-                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
-                    ' has' if len(bookings_for_studio_email) == 1 else 's have'),
-                    get_template(
-                        'booking/email/booking_auto_cancelled_studio_email.txt'
+            send_mail('{} Booking{} been automatically cancelled'.format(
+                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
+                ' has' if len(bookings_for_studio_email) == 1 else 's have'),
+                get_template(
+                    'booking/email/booking_auto_cancelled_studio_email.txt'
+                ).render({'bookings': bookings_for_studio_email}),
+                settings.DEFAULT_FROM_EMAIL,
+                [settings.DEFAULT_STUDIO_EMAIL],
+                html_message=get_template(
+                    'booking/email/booking_auto_cancelled_studio_email.html'
                     ).render({'bookings': bookings_for_studio_email}),
-                    settings.DEFAULT_FROM_EMAIL,
-                    [settings.DEFAULT_STUDIO_EMAIL],
-                    html_message=get_template(
-                        'booking/email/booking_auto_cancelled_studio_email.html'
-                        ).render({'bookings': bookings_for_studio_email}),
-                    fail_silently=False)
-                self.stdout.write(
-                    'Cancellation emails sent for booking ids {}'.format(
-                        ', '.join([str(booking.id) for booking in bookings_for_studio_email])
-                    )
+                fail_silently=False)
+            self.stdout.write(
+                'Cancellation emails sent for booking ids {}'.format(
+                    ', '.join([str(booking.id) for booking in bookings_for_studio_email])
                 )
-            except Exception as e:
-                # send mail to tech support with Exception
-                send_support_email(
-                    e, __name__, "Automatic cancel job - studio email"
-                )
+            )

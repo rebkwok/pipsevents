@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from collections.abc import Iterable
 import logging
 import pytz
 import shortuuid
@@ -36,6 +37,50 @@ class TicketBookingError(Exception):
     pass
 
 
+class AllowedGroup(models.Model):
+    group = models.OneToOneField(Group, on_delete=models.CASCADE)
+    description = models.CharField(
+        max_length=255, null=True, blank=True, 
+        help_text='Optional description of permitted group, e.g. "only available to regular students"'
+    )
+
+    class Meta:
+        ordering = ("group__name",)
+
+    def __str__(self):
+        if self.group.name.startswith("_"):
+            return self.group.name[1:].title()
+        return self.group.name.title()
+
+    def has_permission(self, user):
+        if self.group == self.open_to_all_group():
+            return True
+        return self.group in user.groups.all()
+
+    def add_user(self, user):
+        if self.group not in user.groups.all():
+            user.groups.add(self.group)
+
+    def remove_user(self, user):
+        if self.group in user.groups.all():
+            user.groups.remove(self.group)
+
+    @classmethod
+    def open_to_all_group(cls):
+        group, _ = Group.objects.get_or_create(name="_open to all")
+        return group
+
+    @classmethod
+    def default_group(cls):
+        allowed_group, _ = cls.objects.get_or_create(group=cls.open_to_all_group(), defaults={"description": "default group; open to all"})
+        return allowed_group
+
+    @classmethod
+    def create_with_group(cls, group_name, description=None):
+        group = Group.objects.create(name=group_name.lower())
+        return cls.objects.create(group=group, description=description)
+
+
 class EventType(models.Model):
     TYPE_CHOICE = (
         ('CL', 'Class'),
@@ -55,6 +100,10 @@ class EventType(models.Model):
                                          "event can be block booked, this "
                                          "should match the event type used in "
                                          "the Block Type.")
+    allowed_group = models.ForeignKey(
+        AllowedGroup, null=True, blank=True, related_name="event_types",
+        help_text="Group allowed to book this type of event", on_delete=models.SET_NULL
+    )
 
     def __str__(self):
         return f'{self.TYPE_VERBOSE_NAME.get(self.event_type, "Unknown")} - {self.subtype}'
@@ -63,8 +112,25 @@ class EventType(models.Model):
     def readable_name(self):
         return self.TYPE_VERBOSE_NAME[self.event_type]
 
+    def has_permission_to_book(self, user):
+        return self.allowed_group.has_permission(user)
+
+    def add_permission_to_book(self, user):
+
+        return self.allowed_group.add_user(user)
+
+    @property
+    def allowed_group_description(self):
+        return self.allowed_group.description
+
+    def save(self, *args, **kwargs):
+        if not self.allowed_group:
+            self.allowed_group = AllowedGroup.default_group()
+        return super().save(*args, **kwargs)
+
     class Meta:
         unique_together = ('event_type', 'subtype')
+        ordering = ('event_type', 'subtype')
 
 
 class FilterCategory(models.Model):
@@ -119,9 +185,7 @@ class Event(models.Model):
     payment_time_allowed = models.PositiveIntegerField(
         null=True, blank=True,
         help_text="Number of hours allowed for payment after booking (after "
-                  "this bookings will be cancelled.  Note that the "
-                  "automatic cancel job allows 6 hours after booking, so "
-                  "6 hours is the minimum time that will be applied."
+                  "this bookings will be cancelled.)"
     )
     cancellation_period = models.PositiveIntegerField(
         default=24
@@ -148,6 +212,11 @@ class Event(models.Model):
     )
     visible_on_site = models.BooleanField(default=True)
     categories = models.ManyToManyField(FilterCategory)
+
+    allowed_group = models.ForeignKey(
+        AllowedGroup, null=True, blank=True, related_name="events", on_delete=models.SET_NULL,
+        help_text="Override group allowed to book this event (defaults to same group as the event type)"
+    )
 
     class Meta:
         ordering = ['-date']
@@ -204,6 +273,18 @@ class Event(models.Model):
     def show_video_link(self):
         return (self.is_online and (timezone.now() > self.date - timedelta(minutes=20)) or self.event_type.event_type == "OT")
 
+    def has_permission_to_book(self, user):
+        return self.allowed_group.has_permission(user)
+    
+    @property
+    def allowed_group_description(self):
+        return self.allowed_group.description
+
+    def allowed_group_for_event(self):
+        if self.allowed_group == AllowedGroup.default_group():
+            return "-"
+        return self.allowed_group or self.event_type.allowed_group
+        
     def get_absolute_url(self):
         return reverse("booking:event_detail", kwargs={'slug': self.slug})
 
@@ -248,6 +329,10 @@ class Event(models.Model):
             # are False
             self.payment_open = False
             self.booking_open = False
+
+        if not self.allowed_group:
+            self.allowed_group = self.event_type.allowed_group
+
         super(Event, self).save(*args, **kwargs)
 
 

@@ -9,16 +9,39 @@
             <div class="col-sm-12">
             <form action="" method="get">
                 {{ form.search }}
-                <input class="btn btn-wm table-btn" type="submit" name='search_submitted' value="Search" />
-                <input class="btn btn-sucess table-btn" type="submit" name='reset' value="Reset" /><br/>
-                And/or filter by first name<br/>
+                <input class="btn btn-wm table-btn" type="submit" value="Search" />
+                <input class="btn btn-secondary table-btn" type="submit" name='reset' value="Reset" /><br/>
+                Filter by first name<br/>
+                <input type="hidden" name="pfilter" value={{ active_filter }}>
                 {% for opt in filter_options %}
                     <input
-                            class="btn btn-alph-filter {% if not opt.available %}btn-disabled{% elif active_filter == opt.value %}btn-alph-primary{% else %}btn-unselected{% endif %} "
+                            class="btn btn-alph-filter {% if active_filter == opt.value %}btn-alph-primary{% elif not opt.available %}btn-light{% else %}btn-unselected{% endif %} "
                             {% if not opt.available %}disabled{% endif %}
                             type="submit"
                             name="filter"
                             value="{{ opt.value }}"
+                    />
+                {% endfor %}<br/>
+                Filter by group<br/>
+                <input type="hidden" name="pgroup_filter" value="{{ active_group }}">
+                <input
+                        class="btn btn-alph-filter mb-1 {% if active_group == "All" %}btn-alph-primary{% else %}btn-secondary{% endif %} "
+                        type="submit"
+                        name="group_filter"
+                        value="All"
+                />
+                <input
+                        class="btn btn-alph-filter mb-1 {% if active_group == "Instructors" %}btn-alph-primary{% else %}btn-secondary{% endif %} "
+                        type="submit"
+                        name="group_filter"
+                        value="Instructors"
+                />
+                {% for allowed_group in allowed_groups %}
+                    <input
+                            class="btn table-btn btn-alph-filter mb-1 {% if active_group == allowed_group|title %}btn-alph-primary{% else %}btn-secondary{% endif %} "
+                            type="submit"
+                            name="group_filter"
+                            value="{{ allowed_group }}"
                     />
                 {% endfor %}
             </form>
@@ -32,12 +55,10 @@
                         <table class="table tablesorter" id="sortTable">
                             <thead>
                             <tr class="success">
-                                <th class="text-center">Username <span class="fa fa-sort"></span>{% if request.user.is_staff %}</br><span class="studioadmin-help">Click to view bookings</span>{% endif %}</th>
-                                <th class="text-center">First Name <span class="fa fa-sort"></span></th>
-                                <th class="text-center">Last Name <span class="fa fa-sort"></span></th>
+                                <th class="text-center">Username <span class="fa fa-sort"></span></th>
+                                <th class="text-center">Name <span class="fa fa-sort"></span></th>
                                 <th class="text-center">Pronouns</th>
-                                {% if request.user.is_staff %}<th class="text-center">Regular student</th>{% endif %}
-                                {% if request.user.is_superuser %}<th class="text-center">Paper Disclaimer</th>{% endif %}
+                                {% if request.user.is_staff %}<th class="text-center">Permissions</th>{% endif %}
                                 <th class="text-center">Online Disclaimer</br><span class="studioadmin-help">Click to view/print disclaimer</span></th>
                                 <th class="text-center">Email</th>
                                 {% if request.user.is_staff %}
@@ -58,26 +79,19 @@
                                     {{ user.username|abbr_username }}
                                     {% endif %}
                                 </td>
-                                <td class="text-center studioadmin-tbl">{{ user.first_name|abbr_name }}</td>
-                                <td class="text-center studioadmin-tbl">{{ user.last_name|abbr_name }}</td>
+                                <td class="text-center studioadmin-tbl">{{ user.first_name|abbr_name }} {{ user.last_name|abbr_name }}</td>
                                 <td class="text-center studioadmin-tbl">{% if user.userprofile.pronouns %}{{ user.userprofile.pronouns }}{% endif %}</td>
                                 {% if request.user.is_staff %}
-                                    {% if user.is_superuser %}
-                                        <td class="text-center studioadmin-tbl">YES</td>
-                                    {% else %}
-                                        <td id="toggle_regular_student_{{ user.id }}" data-user_id="{{ user.id }}" class="text-center studioadmin-tbl td_regular_student_button">
-                                            {% include "studioadmin/includes/regular_student_button.txt" %}
-                                        </td>
-                                    {% endif %}
-                                {% endif %}
-                                {% if request.user.is_superuser %}
-                                    {% if user|has_online_disclaimer %}
-                                        <td class="text-center studioadmin-tbl">N/A</td>
-                                    {% else %}
-                                        <td id="toggle_print_disclaimer_{{ user.id }}" data-user_id="{{ user.id }}" class="text-center studioadmin-tbl td_print_disclaimer_button">
-                                        {% include "studioadmin/includes/print_disclaimer_button.txt" %}
-                                        </td>
-                                    {% endif %}
+                                    <td class="text-center studioadmin-tbl" id="toggle_permission_{{ user.id }}">
+                                        {% for allowed_group in allowed_groups %}
+                                            <div
+                                                id="toggle-et-{{ allowed_group.id }}-user-{{ user.id }}"
+                                                hx-get={% url 'studioadmin:toggle_permission' user.id allowed_group.id %}
+                                            >
+                                                {% include "studioadmin/includes/toggle_permission_button.html" %}
+                                            </div>
+                                            {% endfor %}
+                                    </td>
                                 {% endif %}
                                 <td class="text-center studioadmin-tbl td-disclaimer">
                                     {% if user|has_online_disclaimer %}
@@ -87,8 +101,11 @@
                                     {% else %}No{% endif %}
                                 <td class="text-center studioadmin-tbl"><a href="mailto:{{ user.email }}" target="_blank">{{ user.email|abbr_email }}</a></td>
                                 {% if request.user.is_staff %}
-                                    <td id="toggle_subscribed_{{ user.id }}" data-user_id="{{ user.id }}" class="text-center studioadmin-tbl td_subscribed_button">
-                                        {% include "studioadmin/includes/subscribed_button.txt" %}
+                                    <td id="toggle_subscribed_{{ user.id }}" 
+                                        class="text-center studioadmin-tbl td_subscribed_button"
+                                        hx-get={% url 'studioadmin:toggle_subscribed' user.id %}
+                                    >
+                                        {% include "studioadmin/includes/subscribed_button.html" %}
                                     </td>
                                     <td class="text-center">{% if user.currently_banned %}<span class="text-danger">YES</span>{% endif %}</td>
                                 {% endif %}
@@ -98,7 +115,7 @@
                             </tbody>
                             <tfoot>
                             <tr class="success">
-                                <td {% if request.user.is_superuser %}colspan="10"{% elif request.user.is_staff %}colspan="9"{% else %}colspan="6"{% endif %}>
+                                <td {% if request.user.is_superuser or request.user.is_staff %}colspan="8"{% else %}colspan="5"{% endif %}>
                                     {% if search_submitted or active_filter %}
                                         Search results: returned {{ num_results }} of {{ total_users }} users
                                     {% else %}
@@ -116,8 +133,3 @@
          </div>
 
 {% endblock studioadmincontent %}
-
-{% block extra_js %}
-   <script type='text/javascript' src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
-   <script type='text/javascript' src="{% static 'studioadmin/js/user_list_ajax-v1.js' %}"></script>
-{% endblock %}

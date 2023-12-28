@@ -5,7 +5,7 @@ import logging
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import Group, User,  Permission
+from django.contrib.auth.models import Group, User
 from django.contrib import messages
 from django.core.cache import cache
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
@@ -22,9 +22,7 @@ from django.core.mail import send_mail
 
 from braces.views import LoginRequiredMixin
 
-from accounts.models import PrintDisclaimer, active_print_disclaimer_cache_key
-
-from booking.models import Booking,  Block, BlockType, WaitingListUser
+from booking.models import AllowedGroup, Booking,  Block, BlockType, EventType, WaitingListUser
 from booking.email_helpers import send_support_email,  send_waiting_list_email
 
 from common.mailchimp_utils import update_mailchimp
@@ -73,24 +71,32 @@ class UserListView(LoginRequiredMixin,  InstructorOrStaffUserMixin,  ListView):
     context_object_name = 'users'
 
     def get_queryset(self):
-        queryset = User.objects.all().order_by('first_name')
         reset = self.request.GET.get('reset')
-        search_submitted = self.request.GET.get('search_submitted')
-        search_text = self.request.GET.get('search')
-        filter = self.request.GET.get('filter')
+        if reset:
+            queryset = User.objects.all().order_by('first_name')
+        else:
+            search_text = self.request.GET.get('search')
+            filter = self.request.GET.get('filter', self.request.GET.get('pfilter'))
+            group_name = self.request.GET.get('group_filter', self.request.GET.get('pgroup_filter'))
 
-        if reset or (search_submitted and not search_text) or \
-                (not reset and not search_submitted and not filter):
-            queryset = queryset
-        elif search_text:
-            queryset = queryset.filter(
-                Q(first_name__icontains=search_text) |
-                Q(last_name__icontains=search_text) |
-                Q(username__icontains=search_text)
-            )
+            if group_name and group_name.lower() != 'all' and not reset:
+                try:
+                    group = Group.objects.get(name__iexact=group_name)
+                    queryset = group.user_set.all().order_by('first_name')
+                except Group.DoesNotExist:
+                    queryset = User.objects.all().order_by('first_name')
+            else:
+                queryset = User.objects.all().order_by('first_name')
 
-        if filter and filter != 'All':
-            queryset = queryset.filter(first_name__istartswith=filter)
+            if search_text:
+                queryset = queryset.filter(
+                    Q(first_name__icontains=search_text) |
+                    Q(last_name__icontains=search_text) |
+                    Q(username__icontains=search_text)
+                )
+
+            if filter and filter.lower() != 'all':
+                queryset = queryset.filter(first_name__istartswith=filter)
 
         return queryset
 
@@ -113,13 +119,19 @@ class UserListView(LoginRequiredMixin,  InstructorOrStaffUserMixin,  ListView):
 
         context['sidenav_selection'] = 'users'
         context['search_submitted'] = self.request.GET.get('search_submitted')
-        context['active_filter'] = self.request.GET.get('filter',  'All')
+
         search_text = self.request.GET.get('search',  '')
         reset = self.request.GET.get('reset')
         context['filter_options'] = _get_name_filter_available(queryset)
 
         if reset:
             search_text = ''
+            context['active_filter'] = "All"
+            context['active_group'] = "All"
+        else:
+            context['active_filter'] = self.request.GET.get('filter', self.request.GET.get('pfilter', "All"))
+            context['active_group'] = self.request.GET.get('group_filter', self.request.GET.get('pgroup_filter', "All"))
+
         form = UserListSearchForm(initial={'search': search_text})
         context['form'] = form
         num_results = queryset.count()
@@ -127,6 +139,7 @@ class UserListView(LoginRequiredMixin,  InstructorOrStaffUserMixin,  ListView):
         context['num_results'] = num_results
         context['total_users'] = total_users
 
+        context["allowed_groups"] = AllowedGroup.objects.exclude(id=AllowedGroup.default_group().id)
         return context
 
 
@@ -224,82 +237,6 @@ def users_status(request):
 
 @login_required
 @staff_required
-def toggle_regular_student(request,  user_id):
-    user_to_change = User.objects.get(id=user_id)
-    perm = Permission.objects.get(codename='is_regular_student')
-    if not user_to_change.is_superuser:
-        if user_to_change.is_regular_student():
-            user_to_change.user_permissions.remove(perm)
-            ActivityLog.objects.create(
-                log="'Regular student' status has been removed for "
-                "{} {} ({}) by admin user {}".format(
-                    user_to_change.first_name,
-                    user_to_change.last_name,
-                    user_to_change.username,
-                    request.user.username
-                )
-            )
-        else:
-            user_to_change.user_permissions.add(perm)
-            ActivityLog.objects.create(
-                log="{} {} ({}) has been given 'regular student' "
-                "status by admin user {}".format(
-                    user_to_change.first_name,
-                        user_to_change.last_name,
-                        user_to_change.username,
-                        request.user.username
-                    )
-            )
-    # get the user again, otherwise permissions are cached
-    return render(
-        request,
-        "studioadmin/includes/regular_student_button.txt",
-        {"user": User.objects.get(id=user_to_change.id)}
-    )
-
-
-@login_required
-@staff_required
-def toggle_print_disclaimer(request,  user_id):
-    user_to_change = User.objects.get(id=user_id)
-    disclaimer = PrintDisclaimer.objects.filter(user=user_to_change)
-    if disclaimer:
-        disclaimer.delete()
-        cache.set(
-            active_print_disclaimer_cache_key(user_to_change), False, timeout=600
-        )
-        ActivityLog.objects.create(
-            log="Print disclaimer has been removed for "
-            "{} {} ({}) by admin user {}".format(
-                user_to_change.first_name,
-                user_to_change.last_name,
-                user_to_change.username,
-                request.user.username
-            )
-        )
-    else:
-        PrintDisclaimer.objects.create(user=user_to_change)
-        cache.set(
-            active_print_disclaimer_cache_key(user_to_change), True, timeout=600
-        )
-        ActivityLog.objects.create(
-            log="Print disclaimer recorded for {} {} ({}) "
-            "by admin user {}".format(
-                user_to_change.first_name,
-                    user_to_change.last_name,
-                    user_to_change.username,
-                    request.user.username
-                )
-        )
-    return render(
-        request,
-        "studioadmin/includes/print_disclaimer_button.txt",
-        {"user": user_to_change}
-    )
-
-
-@login_required
-@staff_required
 def toggle_subscribed(request,  user_id):
     user_to_change = User.objects.get(id=user_id)
     group, _ = Group.objects.get_or_create(name='subscribed')
@@ -341,7 +278,7 @@ def toggle_subscribed(request,  user_id):
         )
     return render(
         request,
-        "studioadmin/includes/subscribed_button.txt",
+        "studioadmin/includes/subscribed_button.html",
         {"user": user_to_change}
     )
 
@@ -877,3 +814,28 @@ def process_user_booking_updates(form, request):
         messages.info(request, 'No changes made')
 
     return booking
+
+
+@login_required
+@staff_required
+def toggle_permission(request,  user_id, allowed_group_id):
+    user_to_change = get_object_or_404(User, pk=user_id)
+    allowed_group = get_object_or_404(AllowedGroup, pk=allowed_group_id)
+
+    if allowed_group.has_permission(user_to_change):
+        allowed_group.remove_user(user_to_change)
+        ActivityLog.objects.create(
+            log=f"User {user_to_change.username} removed from allowed group '{allowed_group}' by "
+                f"admin user {request.user.username}"
+        )
+    else:
+        allowed_group.add_user(user_to_change)
+        ActivityLog.objects.create(
+            log=f"User {user_to_change.username} added to allowed group {allowed_group} by "
+                f"admin user {request.user.username}"
+        )
+    return render(
+        request,
+        "studioadmin/includes/toggle_permission_button.html",
+        {"user": user_to_change, "allowed_group": allowed_group}
+    )

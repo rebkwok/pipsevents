@@ -22,10 +22,10 @@ from studioadmin.views.ticketed_events import cancel_ticketed_event_view, \
 from studioadmin.views.timetable import timetable_admin_list, \
     TimetableSessionCreateView, TimetableSessionUpdateView, \
     upload_timetable_view
-from studioadmin.views.users import MailingListView, toggle_print_disclaimer, \
-    toggle_regular_student, toggle_subscribed, unsubscribe, \
+from studioadmin.views.users import MailingListView, \
+    toggle_subscribed, unsubscribe, \
     user_bookings_view_old, user_modal_bookings_view, user_blocks_view, UserListView, \
-    BookingEditPastView, BookingEditView, BookingAddView, users_status
+    BookingEditPastView, BookingEditView, BookingAddView, users_status, toggle_permission
 from studioadmin.views.vouchers import BlockVoucherCreateView, \
     BlockVoucherListView, BlockVoucherUpdateView, VoucherCreateView, \
     VoucherListView, VoucherUpdateView, BlockVoucherDetailView, \
@@ -33,6 +33,8 @@ from studioadmin.views.vouchers import BlockVoucherCreateView, \
 from studioadmin.views.waiting_list import event_waiting_list_view, email_waiting_list, \
     ticketed_event_waiting_list_view, email_ticketed_event_waiting_list
 from studioadmin.views.notifications import all_users_banner_view, new_users_banner_view, popup_notification_view
+from studioadmin.views.setup_views import AllowedGroupListView, EventTypeListView
+
 
 __all__ = [
     'ActivityLogListView', 'BlockListView', 'BlockVoucherCreateView',
@@ -54,8 +56,7 @@ __all__ = [
     'TicketedEventAdminCreateView', 'ConfirmTicketBookingRefundView',
     'test_paypal_view',
     'timetable_admin_list', 'TimetableSessionCreateView',
-    'TimetableSessionUpdateView', 'toggle_print_disclaimer',
-    'toggle_regular_student', 'toggle_subscribed', 'unsubscribe',
+    'TimetableSessionUpdateView', 'toggle_subscribed', 'unsubscribe', 'toggle_permission',
     'upload_timetable_view',
     'user_bookings_view_old', 'user_blocks_view', 'user_disclaimer',
     'UserListView', 'user_modal_bookings_view', 'VoucherCreateView',
@@ -66,6 +67,7 @@ __all__ = [
     'clone_event', 'users_status', 'email_waiting_list',
     'all_users_banner_view', 'new_users_banner_view', 'popup_notification_view',
     "InvoiceListView", "stripe_test",
-    "ticketed_event_waiting_list_view", "email_ticketed_event_waiting_list"
+    "ticketed_event_waiting_list_view", "email_ticketed_event_waiting_list",
+    "AllowedGroupListView", "EventTypeListView"
 ]
 

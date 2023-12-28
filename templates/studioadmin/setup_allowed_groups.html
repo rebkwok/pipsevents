@@ -1,0 +1,47 @@
+{% extends "studioadmin/base.html" %}
+{% load static %}
+{% load bookingtags %}
+
+{% block studioadmincontent %}
+
+        <h2>Allowed Groups</h2>
+
+        <p class="small">
+            Allows booking for certain event types or individual events to be restricted to certain users. A group
+            is typically associated with one or more event type (e.g. All Pole practice events may be restricted to the 
+            "regular student" group). This can be overridden on an event-by-event basis by setting an Allowed Group
+            on individual events.
+        </p>
+        <p class="small">
+            Assign groups to users in the Users list.
+        </p>
+        {% if allowed_groups %}
+            <div class="row">
+                    <div class="col-sm-12">
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                    <tr class="success">
+                                        <th class="text-center">Group Name</th>
+                                        <th class="text-center">Description</th>
+                                        <th class="text-center">Event Types</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {% for allowed_group in allowed_groups %}
+                                    <tr>
+                                        <td class="text-center studioadmin-tbl">{{ allowed_group }}</td>
+                                        <td class="text-center studioadmin-tbl">{% if allowed_group.description %}{{ allowed_group.description }}{% endif %}</td>
+                                        <td class="text-center studioadmin-tbl">{{ allowed_group|event_types_for_group }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                        </div>
+                </div>
+
+        {% else %}
+            <p>No groups currently configured</p>
+        {% endif %}
+
+{% endblock studioadmincontent %}

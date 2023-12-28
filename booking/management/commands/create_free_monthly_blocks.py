@@ -8,7 +8,7 @@ from datetime import timezone as dt_timezone
 
 import re
 
-from django.contrib.auth.models import User, Group
+from django.contrib.auth.models import Group
 from django.conf import settings
 from django.core.mail import send_mail
 from django.core.management.base import BaseCommand
@@ -20,28 +20,27 @@ from activitylog.models import ActivityLog
 
 
 class Command(BaseCommand):
-    help = 'create free monthly blocks for selected users'
+    help = 'create free monthly blocks for instructors'
 
     def handle(self, *args, **options):
         event_type = EventType.objects.get(subtype='Pole level class')
-        groups = Group.objects.filter(name__regex=r"free_\d+monthly_blocks")
-        results = {}
-
-        for group in groups:
-            number_of_classes_match = re.findall(r"free_(\d+)monthly_blocks", group.name)
-            number_of_classes = int(number_of_classes_match[0])
+        try:
+            instructors = Group.objects.get(name="instructors")
+        except Group.DoesNotExist:
+            message = "No instructor group found"
+        else:
             free_blocktype, _ = BlockType.objects.get_or_create(
-                identifier=f"Free - {number_of_classes} classes",
+                identifier=f"Free - 5 classes",
                 active=False,
                 cost=0,
                 duration=1,
-                size=number_of_classes,
+                size=5,
                 event_type=event_type
             )
 
             created_users = []
             already_active_users = []
-            users = group.user_set.all()
+            users = instructors.user_set.all()
 
             now = timezone.now()
             _, end_day = calendar.monthrange(now.year, now.month)
@@ -49,7 +48,7 @@ class Command(BaseCommand):
             end = datetime.datetime(now.year, now.month, end_day, tzinfo=dt_timezone.utc)
             end = Block.get_end_of_day(end)
             for user in users:
-                block, created = Block.objects.get_or_create(
+                _, created = Block.objects.get_or_create(
                     block_type=free_blocktype, user=user, start_date=start, extended_expiry_date=end
                 )
                 if not created:
@@ -57,39 +56,33 @@ class Command(BaseCommand):
                 else:
                     created_users.append(user)
 
-            results[group.name] = {"created": created_users, "already_active": already_active_users}
+            results = {"created": created_users, "already_active": already_active_users}
 
-        message = ""
-        for group_name, group_results in results.items():
-            message += f"Group: {group_name}\n"
-            if not any(group_results.values()):
+            message = f"Group: {instructors.name}\n"
+            if not any(results.values()):
                 message += "No users in this group\n"
 
-            if group_results["created"]:
+            if results["created"]:
                 message += 'Free class blocks created for {}\n'.format(
                         ', '.join(
                             ['{} {}'.format(user.first_name, user.last_name)
-                             for user in group_results["created"]]
+                                for user in results["created"]]
                         )
                     )
 
-            if group_results["already_active"]:
+            if results["already_active"]:
                 message += 'Free block for this month already exists for {}\n'.format(
                         ', '.join(
                             ['{} {}'.format(user.first_name, user.last_name)
-                             for user in group_results["already_active"]]
+                                for user in results["already_active"]]
                         )
                     )
 
-            message += "=====================\n\n"
             ActivityLog.objects.create(
-                log=f"Free block creation: Group {group_name}; "
-                    f"created {len(group_results['created'])}, "
-                    f"already_exists {len(group_results['already_active'])}"
+                log=f"Free block creation: Group instructors; "
+                    f"created {len(results['created'])}, "
+                    f"already_exists {len(results['already_active'])}"
             )
-
-        if not message:
-            message = "No free monthly groups found"
 
         self.stdout.write(message)
         send_mail(

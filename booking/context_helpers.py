@@ -81,7 +81,6 @@ def get_event_context(context, event, user, booking=None):
     # booking info text and bookable
     booking_info_text = ""
     context['bookable'] = event.bookable
-    is_regular_student = context['is_regular_student'] = user.has_perm("booking.is_regular_student")
     if event.event_type.subtype == "Online class":
         context["online_class"] = True
         context["show_video_link"] = event.show_video_link
@@ -110,16 +109,14 @@ def get_event_context(context, event, user, booking=None):
                                 "{}.</strong>".format(
                                     reverse('disclaimer_form'), action
                                 )
-    elif event.event_type.subtype == "Pole practice" \
-            and not is_regular_student:
+    elif not event.has_permission_to_book(user):
         context['bookable'] = False
-        context['unbookable_pole_practice'] = True
+        context['needs_permission'] = True
+        description = event.allowed_group_description
+        extra_info = f" ({description})" if description else ""
         booking_info_text = "<span class='cancel-warning'>NOT AVAILABLE FOR BOOKING</br>" \
-                            "Pole practice is " \
-                            "only open to regular students. If " \
-                            "you are seeing this message and you are a regular " \
-                            "student, please contact " \
-                            "<a href='mailto:{}' target=_blank>{}</a> to have your account " \
+                            f"This class requires additional permission{extra_info}. Please contact " \
+                            "<a href='mailto:{}' target=_blank>{}</a> to request to have your account " \
                             "upgraded.</span>".format(event.contact_email, event.contact_email)
     else:
         if auto_cancelled:

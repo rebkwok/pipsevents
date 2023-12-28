@@ -437,3 +437,19 @@ def format_status(booking):
 @register.filter
 def format_categories(event_or_session):
     return mark_safe("<br/>".join(event_or_session.categories.values_list("category", flat=True)))
+
+
+@register.filter
+def has_permission_to_book(event_or_event_type, user):  # pragma: no cover
+    return event_or_event_type.has_permission_to_book(user)
+
+
+
+@register.filter
+def has_permission(allowed_group, user):  # pragma: no cover
+    return allowed_group.has_permission(user)
+
+
+@register.filter
+def event_types_for_group(allowed_group):
+    return mark_safe("<br/>".join([f"{event_type.subtype} ({event_type.readable_name})" for event_type in allowed_group.event_types.all()]))

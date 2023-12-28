@@ -101,9 +101,6 @@ class EventListView(DataPolicyAgreementRequiredMixin, ListView):
             context['booked_events'] = booked_events
             context['auto_cancelled_events'] = auto_cancelled_events
             context['waiting_list_events'] = waiting_list_events
-            context['is_regular_student'] = self.request.user.has_perm(
-                "booking.is_regular_student"
-            )
         context['events_exist'] = all_events.exists()
         context['ev_type_for_url'] = self.kwargs['ev_type']
 

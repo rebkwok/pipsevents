@@ -12,7 +12,7 @@ from unittest.mock import patch
 from model_bakery import baker
 import pytest
 
-from booking.models import Banner, Event, EventType, Block, BlockType, BlockTypeError, \
+from booking.models import AllowedGroup, Banner, Event, EventType, Block, BlockType, BlockTypeError, \
     Booking, TicketBooking, Ticket, TicketBookingError, BlockVoucher, \
     EventVoucher, GiftVoucherType, FilterCategory, UsedBlockVoucher, UsedEventVoucher
 from common.tests.helpers import PatchRequestMixin
@@ -165,6 +165,14 @@ class EventTests(TestCase):
         event.date = timezone.now() + timedelta(minutes=21)
         event.save()
         assert event.show_video_link is False
+
+    def test_allowed_group(self):
+        pp_et = baker.make_recipe("booking.event_type_PP")
+        pp = baker.make_recipe('booking.future_PP', event_type=pp_et, allowed_group=None)
+        assert pp.allowed_group_for_event() == pp_et.allowed_group
+        assert pp.allowed_group_description == pp_et.allowed_group.description
+
+        assert self.event.allowed_group == AllowedGroup.default_group()
 
 
 class BookingTests(PatchRequestMixin, TestCase):
@@ -1855,3 +1863,10 @@ def test_banner_str():
 def test_filter_category_str():
     category = baker.make(FilterCategory, category="test category")
     assert str(category) == "test category"
+
+
+@pytest.mark.django_db
+def test_allowed_group_create():
+    gp = AllowedGroup.create_with_group(group_name="foo", description="foo group")
+    assert gp.description == "foo group"
+    assert Group.objects.filter(name="foo").exists()

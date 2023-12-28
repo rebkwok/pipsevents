@@ -133,7 +133,7 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
         )
         self.assertIn('Scheduled Classes', resp.rendered_content)
 
-    def test_classes_url_shows_room_hire_with_classes(self):
+    def test_room_hire_and_classes(self):
         classes = baker.make_recipe('booking.future_PC', _quantity=5)
         room_hires = baker.make_recipe('booking.future_RH', _quantity=5)
         url = reverse('studioadmin:lessons')
@@ -142,12 +142,21 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
 
         self.assertEqual(
             sorted([ev.id for ev in eventsformset.queryset]),
-            sorted([ev.id for ev in classes + room_hires])
+            sorted([ev.id for ev in classes])
         )
         self.assertEqual(Event.objects.count(), 11)
-        self.assertEqual(eventsformset.queryset.count(), 10)
-
+        self.assertEqual(eventsformset.queryset.count(), 5)
         self.assertIn('Scheduled Classes', resp.rendered_content)
+
+        resp = self._get_response(self.staff_user, ev_type='room_hires', url=url)
+        eventsformset = resp.context_data['eventformset']
+
+        self.assertEqual(
+            sorted([ev.id for ev in eventsformset.queryset]),
+            sorted([ev.id for ev in room_hires])
+        )
+        self.assertEqual(eventsformset.queryset.count(), 5)
+        self.assertIn('Scheduled Room Hire', resp.rendered_content)
 
     def test_past_filter(self):
         past_evs = baker.make_recipe('booking.past_event', _quantity=5)
@@ -260,17 +269,16 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
         button shown instead
         :return:
         """
-        # events are ordered by date and then name, make sure this one is second if the
-        # dates are the same
-        event = baker.make_recipe('booking.future_EV', name="ZZ")
+        # events are ordered by date and then name, make sure this one is second
+        event = baker.make_recipe('booking.future_EV', date=self.event.date + timedelta(1))
         baker.make_recipe('booking.booking', event=event)
-        self.assertEqual(event.bookings.all().count(), 1)
-        self.assertEqual(self.event.bookings.all().count(), 0)
-
-        resp = self._get_response(self.staff_user, 'events')
-        self.assertIn('id="DELETE_0"', resp.rendered_content)
-        self.assertNotIn('id="DELETE_1"', resp.rendered_content)
-        self.assertIn('cancel_button', resp.rendered_content)
+        assert event.bookings.all().count() == 1
+        assert self.event.bookings.all().count() == 0
+        self.client.login(username=self.staff_user.username, password="test")
+        resp = self.client.get(reverse("studioadmin:events"))
+        assert 'id="DELETE_0"' in resp.rendered_content
+        assert 'id="DELETE_1"' not in resp.rendered_content
+        assert 'cancel_button' in resp.rendered_content
 
     def test_can_delete(self):
         self.assertEqual(Event.objects.all().count(), 1)
@@ -422,6 +430,19 @@ class EventAdminUpdateViewTests(TestPermissionMixin, TestCase):
             event.name, str(resp.content), "Content not found"
             )
 
+    def test_edit_class_refers_to_room_hires_on_page_and_menu(self):
+        event = baker.make_recipe('booking.future_RH')
+        resp = self._get_response(
+            self.staff_user, event.slug, 'room_hire',
+            url=reverse('studioadmin:edit_room_hire', kwargs={'slug': event.slug})
+        )
+        self.assertEqual(resp.context_data['sidenav_selection'], 'room_hires')
+        self.assertEqual(resp.context_data['type'], 'room hire')
+        resp.render()
+        self.assertIn(
+            event.name, str(resp.content), "Content not found"
+            )
+        
     def test_submitting_valid_event_form_redirects_back_to_events_list(self):
         form_data = self.form_data(event=self.event)
         resp = self._post_response(
@@ -440,6 +461,17 @@ class EventAdminUpdateViewTests(TestPermissionMixin, TestCase):
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('studioadmin:lessons'))
 
+
+    def test_submitting_valid_room_hire_form_redirects_back_to_room_hires_list(self):
+        event = baker.make_recipe('booking.future_RH')
+        form_data = self.form_data(event=event)
+        resp = self._post_response(
+            self.staff_user, event.slug, 'room_hire', form_data,
+            url=reverse('studioadmin:edit_room_hire', kwargs={'slug': event.slug})
+        )
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('studioadmin:room_hires'))
+
     def test_post_with_events_page(self):
         form_data = self.form_data(event=self.event)
         form_data['from_page'] = '2'
@@ -454,7 +486,8 @@ class EventAdminUpdateViewTests(TestPermissionMixin, TestCase):
             event=self.event, extra_data={
                 'cost': self.event.cost,
                 'booking_open': self.event.booking_open,
-                'visible_on_site': self.event.visible_on_site
+                'visible_on_site': self.event.visible_on_site,
+                'allowed_group': self.event.allowed_group.id,
             }
         )
         self.assertTrue(
@@ -581,6 +614,7 @@ class EventAdminCreateViewTests(TestPermissionMixin, TestCase):
         super(EventAdminCreateViewTests, self).setUp()
         self.event_type_OE = baker.make_recipe('booking.event_type_OE')
         self.event_type_PC = baker.make_recipe('booking.event_type_PC')
+        self.event_type_RH = baker.make_recipe('booking.event_type_RH')
 
     def _get_response(self, user, ev_type, url=None):
         if url is None:
@@ -679,6 +713,17 @@ class EventAdminCreateViewTests(TestPermissionMixin, TestCase):
             'Adding new class', str(resp.content), "Content not found"
         )
 
+    def test_add_room_hire_refers_to_classes_on_page(self):
+        resp = self._get_response(
+            self.staff_user, 'room_hire', url=reverse('studioadmin:add_room_hire')
+        )
+        self.assertEqual(resp.context_data['sidenav_selection'], 'add_room_hire')
+        self.assertEqual(resp.context_data['type'], 'room hire')
+        resp.render()
+        self.assertIn(
+            'Adding new room hire', str(resp.content), "Content not found"
+        )
+
     def test_submitting_valid_event_form_redirects_back_to_events_list(self):
         form_data = self.form_data()
         resp = self._post_response(self.staff_user, 'event', form_data)
@@ -695,6 +740,17 @@ class EventAdminCreateViewTests(TestPermissionMixin, TestCase):
         )
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('studioadmin:lessons'))
+
+    def test_submitting_valid_room_hire_form_redirects_back_to_room_hire_list(self):
+        form_data = self.form_data(
+            extra_data={'event_type': self.event_type_RH.id}
+        )
+        resp = self._post_response(
+            self.staff_user, 'room_hire', form_data,
+            url=reverse('studioadmin:add_room_hire')
+        )
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, reverse('studioadmin:room_hires'))
 
     def test_can_add_event(self):
         self.assertEqual(Event.objects.count(), 0)

@@ -1,3 +1,0 @@
-<button class="btn table-btn perm-btn {% if user.has_print_disclaimer %}btn-wm{% else %}btn-secondary{% endif %}">
-    {% if user.has_print_disclaimer %}Yes{% else %}No{% endif %}
-</button>

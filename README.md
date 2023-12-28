@@ -28,3 +28,9 @@
 - SHOW_DEBUG_TOOLBAR=True
 - HEROKU: set to True if using Heroku to use different log settings
 
+Set up local postgres in psql
+```
+CREATE ROLE pipsevents WITH CREATEDB LOGIN PASSWORD 'pipsevents'
+CREATE DATABASE pipsevents;
+ALTER DATABASE pipsevents OWNER TO pipsevents;
+```

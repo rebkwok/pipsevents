@@ -4,13 +4,14 @@ import pytz
 from datetime import datetime, timedelta
 
 from django.conf import settings
+from django.contrib.auth.models import Group
 from django import forms
 from django.forms.models import modelformset_factory, BaseModelFormSet
 from django.utils.translation import gettext_lazy as _
 
 from ckeditor.widgets import CKEditorWidget
 
-from booking.models import Event, EventType, FilterCategory
+from booking.models import AllowedGroup, Event, EventType, FilterCategory
 
 from studioadmin.forms.utils import cancel_choices
 
@@ -109,12 +110,12 @@ class EventAdminForm(forms.ModelForm):
         self.fields['payment_time_allowed'].widget.attrs = {
             'class': 'form-control'
         }
+        self.fields['payment_time_allowed'].initial = 4
 
         cat_field = self.fields["categories"]
         cat_field.required = False
-
-        if ev_type == "CL":
-            ev_type_qset = EventType.objects.filter(event_type__in=["CL", "RH"])
+        ev_type_qset = EventType.objects.filter(event_type=ev_type)
+        if ev_type in ["CL", "RH"]:
             self.fields["categories"] = forms.ModelMultipleChoiceField(
                 queryset=FilterCategory.objects.all(),
                 widget=forms.CheckboxSelectMultiple(),
@@ -123,15 +124,16 @@ class EventAdminForm(forms.ModelForm):
             )
             self.fields["new_category"].widget = forms.TextInput()
             self.fields["new_category"].label = "Add new filter category"
-        else:
-            ev_type_qset = EventType.objects.filter(event_type=ev_type)
 
         self.fields['event_type'] = forms.ModelChoiceField(
             widget=forms.Select(attrs={'class': "form-control"}),
             queryset=ev_type_qset,
         )
-        ph_type = "event" if ev_type == 'EV' else 'class' if ev_type == "CL" else "online tutorial"
-        ex_name = "Workshop" if ev_type == 'EV' else "Pole Level 1" if ev_type == "CL" else "Spin Combo"
+
+        self.fields['allowed_group'].widget.attrs = {'class': "form-control"}
+
+        ph_type = "event" if ev_type == 'EV' else 'class' if ev_type == "CL" else 'room hire' if ev_type == "RH" else "online tutorial"
+        ex_name = "Workshop" if ev_type == 'EV' else "Pole Level 1" if ev_type == "CL" else "Private Practice" if ev_type == "RH" else "Spin Combo"
         self.fields['name'] = forms.CharField(
             widget=forms.TextInput(
                 attrs={
@@ -160,6 +162,7 @@ class EventAdminForm(forms.ModelForm):
                 )
         else:
             self.fields['paypal_email'].initial = settings.DEFAULT_PAYPAL_EMAIL
+            self.fields['allowed_group'].initial = AllowedGroup.default_group().id
 
     def clean_new_category(self):
         new_category = self.cleaned_data.get("new_category")
@@ -301,7 +304,8 @@ class EventAdminForm(forms.ModelForm):
     class Meta:
         model = Event
         fields = (
-            'name', 'event_type', 'date', 'categories', 'new_category', 
+            'name', 'event_type', 'date', 'categories', 'new_category',
+            'allowed_group',
             'video_link', 'video_link_available_after_class',
             'description', 'location',
             'max_participants', 'contact_person', 'contact_email', 'cost',
@@ -446,20 +450,23 @@ class OnlineTutorialAdminForm(EventAdminForm):
         self.fields["max_participants"].initial = None
         self.fields["payment_due_date"].initial = None
         self.fields["video_link"].required = True
-        self.fields["payment_time_allowed"].initial = 6
+        self.fields["payment_time_allowed"].initial = 4
 
         for field in self.hidden_fields:
             self.fields[field].widget.attrs.update({'class': "hide"})
             self.fields[field].hidden = True
 
     def clean(self):
-        if not self.cleaned_data.get('cost'):
+        super().clean()
+        cost = self.cleaned_data.get('cost', 0)
+        if cost is None or cost <= 0:
             self.cleaned_data["advance_payment_required"] = False
             self.cleaned_data["payment_due_date"] = None
             self.cleaned_data["payment_time_allowed"] = None
             self.cleaned_data["allow_booking_cancellation"] = True
+            self.cleaned_data["cost"] = 0
 
-            for field in ["advance_payment_required", "allow_booking_cancellation", "payment_due_date", "payment_time_allowed"]:
+            for field in ["advance_payment_required", "allow_booking_cancellation", "payment_due_date", "payment_time_allowed", "cost"]:
                 if field in self.errors:
                     del self.errors[field]
-        super().clean()
+        

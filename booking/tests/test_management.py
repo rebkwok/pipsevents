@@ -23,7 +23,7 @@ from paypal.standard.models import ST_PP_COMPLETED
 
 from accounts.models import OnlineDisclaimer
 from activitylog.models import ActivityLog
-from booking.models import Event, Block, Booking, EventType, BlockType, \
+from booking.models import AllowedGroup, Event, Block, Booking, EventType, BlockType, \
     TicketBooking, Ticket
 from common.tests.helpers import _add_user_email_addresses, PatchRequestMixin
 from payments.models import PaypalBookingTransaction
@@ -186,7 +186,10 @@ class ManagementCommandsTests(PatchRequestMixin, TestCase):
     def test_setup_test_data(self):
         self.assertFalse(SocialApp.objects.exists())
         self.assertFalse(User.objects.exists())
-        self.assertFalse(Group.objects.exists())
+        # created in migrations
+        allowed_groups = AllowedGroup.objects.all()
+        assert allowed_groups.count() == 2
+        assert not Group.objects.exclude(id__in=allowed_groups).values_list("id", flat=True).exists()
         self.assertFalse(EventType.objects.exists())
         self.assertFalse(BlockType.objects.exists())
         self.assertFalse(Event.objects.exists())
@@ -197,7 +200,7 @@ class ManagementCommandsTests(PatchRequestMixin, TestCase):
 
         self.assertEqual(SocialApp.objects.count(), 1)
 
-        # create_groups creates instructors, free5 and free7 blocks;
+        # create_groups creates one extra group, instructors
         self.assertEqual(Group.objects.all().count(), 3)
 
         # This command just calls a bunch of othere; their content is tested
@@ -2822,34 +2825,32 @@ class CreateFreeMonthlyBlocksTests(PatchRequestMixin, TestCase):
 
     def test_no_groups_and_blocktypes_created(self):
         assert Block.objects.exists() is False
-        assert Group.objects.exists() is False
+        # created in migrations
+        allowed_groups = AllowedGroup.objects.all()
+        assert allowed_groups.count() == 2
+        assert not Group.objects.exclude(id__in=allowed_groups).values_list("id", flat=True).exists()
         assert BlockType.objects.exists() is False
 
         management.call_command('create_free_monthly_blocks')
         assert Block.objects.exists() is False
-        assert Group.objects.exists() is False
+        assert not Group.objects.exclude(id__in=allowed_groups).values_list("id", flat=True).exists()
         assert BlockType.objects.exists() is False
 
         # One email
         assert len(mail.outbox) == 1
         email = mail.outbox[0]
         assert email.subject == f'{settings.ACCOUNT_EMAIL_SUBJECT_PREFIX} Free monthly blocks creation'
-        assert email.body == "No free monthly groups found"
+        assert email.body == "No instructor group found"
 
     def test_no_users_in_group(self):
-        Group.objects.create(name='free_5monthly_blocks')
-        Group.objects.create(name='free_7monthly_blocks')
+        Group.objects.create(name='instructors')
         management.call_command('create_free_monthly_blocks')
 
         assert len(mail.outbox) == 1
         email = mail.outbox[0]
         assert email.subject == f'{settings.ACCOUNT_EMAIL_SUBJECT_PREFIX} Free monthly blocks creation'
-        assert email.body == "Group: free_5monthly_blocks\n" \
-                             "No users in this group\n" \
-                             "=====================\n\n" \
-                             "Group: free_7monthly_blocks\n" \
-                             "No users in this group\n" \
-                             "=====================\n\n"
+        assert email.body == "Group: instructors\n" \
+                             "No users in this group\n"
         assert Block.objects.exists() is False
 
     @patch("booking.management.commands.create_free_monthly_blocks.timezone.now")
@@ -2857,51 +2858,42 @@ class CreateFreeMonthlyBlocksTests(PatchRequestMixin, TestCase):
         mock_now.return_value = datetime(2020, 6, 7, 10, 30, tzinfo=dt_timezone.utc)
         assert Block.objects.exists() is False
 
-        group5 = Group.objects.create(name='free_5monthly_blocks')
-        group7 = Group.objects.create(name='free_7monthly_blocks')
+        intructor_group = Group.objects.create(name='instructors')
         user1 = baker.make(User, first_name='Test', last_name='User1')
         user2 = baker.make(User, first_name='Test', last_name='User2')
         user3 = baker.make(User, first_name='Test', last_name='User3')
 
-        user1.groups.add(group5)
-        user2.groups.add(group7)
+        user1.groups.add(intructor_group)
+        user2.groups.add(intructor_group)
 
         management.call_command('create_free_monthly_blocks')
         assert Block.objects.count() == 2
 
         user1block = Block.objects.get(user=user1)
         user2block = Block.objects.get(user=user2)
-        assert user1block.block_type.identifier == 'Free - 5 classes'
-        assert user1block.block_type.size == 5
-        assert user1block.block_type.active is False
-        assert user2block.block_type.identifier == 'Free - 7 classes'
-        assert user2block.block_type.size == 7
-        assert user2block.block_type.active is False
-
-        # start/end set to 1st and last of the month
         for block in [user1block, user2block]:
+            assert block.block_type.identifier == 'Free - 5 classes'
+            assert block.block_type.size == 5
+            assert block.block_type.active is False
+
+            # start/end set to 1st and last of the month
             assert block.start_date.date() == date(2020, 6, 1)
             assert block.expiry_date.date() == date(2020, 6, 30)
 
         assert len(mail.outbox) == 1
         email = mail.outbox[0]
         assert email.subject == f'{settings.ACCOUNT_EMAIL_SUBJECT_PREFIX} Free monthly blocks creation'
-        assert email.body == "Group: free_5monthly_blocks\n" \
-                             "Free class blocks created for Test User1\n" \
-                             "=====================\n\n" \
-                             "Group: free_7monthly_blocks\n" \
-                             "Free class blocks created for Test User2\n" \
-                             "=====================\n\n"
+        assert email.body == "Group: instructors\n" \
+                             "Free class blocks created for Test User1, Test User2\n"
 
     def test_dont_create_duplicate_free_blocks(self):
         assert Block.objects.exists() is False
-        group5 = Group.objects.create(name='free_5monthly_blocks')
-        group7 = Group.objects.create(name='free_7monthly_blocks')
+        intructor_group = Group.objects.create(name='instructors')
         user1 = baker.make(User, first_name='Test', last_name='User1')
         user2 = baker.make(User, first_name='Test', last_name='User2')
         user3 = baker.make(User, first_name='Test', last_name='User3')
-        user1.groups.add(group5)
-        user2.groups.add(group7)
+        user1.groups.add(intructor_group)
+        user2.groups.add(intructor_group)
 
         management.call_command('create_free_monthly_blocks')
         assert Block.objects.count() == 2
@@ -2909,19 +2901,11 @@ class CreateFreeMonthlyBlocksTests(PatchRequestMixin, TestCase):
         user1block = Block.objects.get(user=user1)
         user2block = Block.objects.get(user=user2)
 
-        assert user1block.block_type.identifier == 'Free - 5 classes'
-        assert user2block.block_type.identifier == 'Free - 7 classes'
-
         assert len(mail.outbox) == 1
         email = mail.outbox[0]
         assert email.subject == f'{settings.ACCOUNT_EMAIL_SUBJECT_PREFIX} Free monthly blocks creation'
-        assert email.body == "Group: free_5monthly_blocks\n" \
-                             "Free class blocks created for Test User1\n" \
-                             "=====================\n\n" \
-                             "Group: free_7monthly_blocks\n" \
-                             "Free class blocks created for Test User2\n" \
-                             "=====================\n\n"
-
+        assert email.body == "Group: instructors\n" \
+                             "Free class blocks created for Test User1, Test User2\n"
 
         # call again; no new blocks created
         management.call_command('create_free_monthly_blocks')
@@ -2932,25 +2916,19 @@ class CreateFreeMonthlyBlocksTests(PatchRequestMixin, TestCase):
 
         user1block = Block.objects.get(user=user1)
         user2block = Block.objects.get(user=user2)
-        assert user1block.block_type.identifier == 'Free - 5 classes'
-        assert user2block.block_type.identifier == 'Free - 7 classes'
 
         assert len(mail.outbox) == 2
         email = mail.outbox[1]
         assert email.subject == f'{settings.ACCOUNT_EMAIL_SUBJECT_PREFIX} Free monthly blocks creation'
-        assert email.body == "Group: free_5monthly_blocks\n" \
-                             "Free block for this month already exists for Test User1\n" \
-                             "=====================\n\n" \
-                             "Group: free_7monthly_blocks\n" \
-                             "Free block for this month already exists for Test User2\n" \
-                             "=====================\n\n"
+        assert email.body == "Group: instructors\n" \
+                             "Free block for this month already exists for Test User1, Test User2\n" \
 
     def test_blocks_created_with_current_month_start_date(self):
         """
         Check that we can create blocks on 1st of the month, and they will have
         expired on 1st of the next month
         """
-        group = Group.objects.create(name='free_5monthly_blocks')
+        group = Group.objects.create(name='instructors')
         user1 = baker.make(User, first_name='Test', last_name='User1')
         user2 = baker.make(User, first_name='Test', last_name='User2')
         user3 = baker.make(User, first_name='Test', last_name='User3')
@@ -2992,46 +2970,26 @@ class TestDeactivateRegularStudents(TestCase):
         event_type = baker.make_recipe("booking.event_type_PC")
         cls.pole_class = baker.make(Event, event_type=event_type)
         cls.pole_class1 = baker.make(Event, event_type=event_type)
-        pole_practice_event_type = baker.make(EventType, event_type="CL", subtype="Pole practice")
-        cls.pole_practice = baker.make(Event, event_type=pole_practice_event_type)
-        cls.permission, _ = Permission.objects.get_or_create(codename="is_regular_student")
+        cls.pole_practice_event_type = baker.make_recipe("booking.event_type_PP")
+        cls.pole_practice = baker.make(Event, event_type=cls.pole_practice_event_type)
 
     @patch('booking.management.commands.deactivate_regular_students.timezone')
     def test_regular_students_with_class_bookings_more_than_8_months_ago_deactivated(self, mocktz):
         mocktz.now.return_value = datetime(2018, 10, 3, tzinfo=dt_timezone.utc)
         user = baker.make(User)
-        user.user_permissions.add(self.permission)
+        self.pole_practice_event_type.add_permission_to_book(user)
         baker.make(
             Booking, user=user, event=self.pole_class,
             date_booked=datetime(2018, 2, 1, tzinfo=dt_timezone.utc)
         )
         management.call_command("deactivate_regular_students")
-        user.refresh_from_db()
-        self.assertFalse(user.has_perm(f"booking.{self.permission.codename}"))
-
-    @patch('booking.management.commands.deactivate_regular_students.timezone')
-    def test_regular_students_with_only_pole_practice_in_past_8_months_deactivated(self, mocktz):
-        mocktz.now.return_value = datetime(2018, 10, 3, tzinfo=dt_timezone.utc)
-        user = baker.make(User)
-        user.user_permissions.add(self.permission)
-        # pole class 8 months ago, pole practice less than 8 months
-        baker.make(
-            Booking, user=user, event=self.pole_class,
-            date_booked=datetime(2018, 2, 1, tzinfo=dt_timezone.utc)
-        )
-        baker.make(
-            Booking, user=user, event=self.pole_practice,
-            date_booked=datetime(2018, 4, 1, tzinfo=dt_timezone.utc)
-        )
-        management.call_command("deactivate_regular_students")
-        user.refresh_from_db()
-        self.assertFalse(user.has_perm(f"booking.{self.permission.codename}"))
+        assert not self.pole_practice_event_type.has_permission_to_book(user)
 
     @patch('booking.management.commands.deactivate_regular_students.timezone')
     def test_regular_students_with_class_bookings_in_past_8_months_not_deactivated(self, mocktz):
         mocktz.now.return_value = datetime(2018, 10, 3, tzinfo=dt_timezone.utc)
         user = baker.make(User)
-        user.user_permissions.add(self.permission)
+        self.pole_practice_event_type.add_permission_to_book(user)
         # one booking longer ago than 8 months
         baker.make(
             Booking, user=user, event=self.pole_class,
@@ -3042,17 +3000,16 @@ class TestDeactivateRegularStudents(TestCase):
             date_booked=datetime(2018, 4, 1, tzinfo=dt_timezone.utc)
         )
         management.call_command("deactivate_regular_students")
-        user.refresh_from_db()
-        self.assertTrue(user.has_perm(f"booking.{self.permission.codename}"))
+        assert self.pole_practice_event_type.has_permission_to_book(user)
 
     @patch('booking.management.commands.deactivate_regular_students.timezone')
     def test_regular_students_with_no_class_bookings_deactivated(self, mocktz):
         mocktz.now.return_value = datetime(2018, 10, 3, tzinfo=dt_timezone.utc)
         user = baker.make(User)
-        user.user_permissions.add(self.permission)
+        self.pole_practice_event_type.add_permission_to_book(user)
         management.call_command("deactivate_regular_students")
         user.refresh_from_db()
-        self.assertFalse(user.has_perm(f"booking.{self.permission.codename}"))
+        assert not self.pole_practice_event_type.has_permission_to_book(user)
 
     @override_settings(REGULAR_STUDENT_WHITELIST_IDS=[2, 3, 4])
     @patch('booking.management.commands.deactivate_regular_students.timezone')
@@ -3061,12 +3018,10 @@ class TestDeactivateRegularStudents(TestCase):
         whitelist_user = baker.make(User, email='foo@test.com', id=3)
         normal_user = baker.make(User, email='bar@test.com', id=9)
         for user in [whitelist_user, normal_user]:
-            user.user_permissions.add(self.permission)
+            self.pole_practice_event_type.add_permission_to_book(user)
         management.call_command("deactivate_regular_students")
-        whitelist_user.refresh_from_db()
-        normal_user.refresh_from_db()
-        self.assertTrue(whitelist_user.has_perm(f"booking.{self.permission.codename}"))
-        self.assertFalse(normal_user.has_perm(f"booking.{self.permission.codename}"))
+        assert self.pole_practice_event_type.has_permission_to_book(whitelist_user)
+        assert not self.pole_practice_event_type.has_permission_to_book(normal_user)
 
     @patch('booking.management.commands.deactivate_regular_students.timezone')
     def test_do_not_deactivate_superuser(self, mocktz):
@@ -3075,14 +3030,11 @@ class TestDeactivateRegularStudents(TestCase):
         staff_user = baker.make(User, email='staff@test.com', is_staff=True)
         normal_user = baker.make(User, email='normal@test.com')
         for user in [super_user, staff_user, normal_user]:
-            user.user_permissions.add(self.permission)
+            self.pole_practice_event_type.add_permission_to_book(user)
         management.call_command("deactivate_regular_students")
-        super_user.refresh_from_db()
-        staff_user.refresh_from_db()
-        normal_user.refresh_from_db()
-        self.assertTrue(super_user.has_perm(f"booking.{self.permission.codename}"))
-        self.assertTrue(staff_user.has_perm(f"booking.{self.permission.codename}"))
-        self.assertFalse(normal_user.has_perm(f"booking.{self.permission.codename}"))
+        assert self.pole_practice_event_type.has_permission_to_book(super_user)
+        assert self.pole_practice_event_type.has_permission_to_book(staff_user)
+        assert not self.pole_practice_event_type.has_permission_to_book(normal_user)
 
 
 class TestFindNoShows(TestCase):

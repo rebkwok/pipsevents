@@ -24,7 +24,7 @@
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/css/all.min.css" integrity="sha512-1PKOgIY59xJ8Co8+NE6FZ+LOAZKjy+KY8iq0G4B3CyeY6wYHN3yt9PW0XpSriVlkMXe40PTKnXrLnZ9+fkDaog==" crossorigin="anonymous" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/css/bootstrap-datetimepicker.min.css" integrity="sha512-aEe/ZxePawj0+G2R+AaIxgrQuKT68I28qh+wgLrcAJOz3rxCP+TwrK5SPN+E5I+1IQjNtcfvb96HDagwrKRdBw==" crossorigin="anonymous" />
        <!-- Custom styles -->
-        <link href="{% static 'booking/css/custom-v1.14.3.css' %}" rel="stylesheet">
+        <link href="{% static 'booking/css/custom-v1.14.4.css' %}" rel="stylesheet">
          <link rel="stylesheet" href="{% static 'booking/css/print.css' %}"  type="text/css" media="print" />
          <link rel="stylesheet" href="{% static 'notices/css/notices.css' %}"  type="text/css"/>
 
@@ -58,14 +58,16 @@
             {% block left-nav-items %}
             <li class="nav-item"><a class="nav-link" href="{% url 'booking:lessons' %}">Classes</a></li>
             <li class="nav-item"><a class="nav-link" href="{% url 'booking:events' %}">Workshops</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'booking:online_tutorials' %}">Tutorials</a></li>
+            {% if room_hires %}
+            <li class="nav-item"><a class="nav-link" href="{% url 'booking:room_hires' %}">Room Hire</a></li>
+            {% endif %}
             <li class="nav-item d-inline-block d-sm-none"><a class="nav-link" href="{% url 'booking:buy_gift_voucher' %}">Gift Vouchers</a></li>
             <li class="nav-item d-inline-block d-sm-none"><a class="nav-link" href="{% url 'booking:ticketed_events' %}">Tickets</a></li>
             <li class="nav-item d-inline-block d-sm-none"><a class="nav-link" href="{% url 'nonregistered_disclaimer_form' %}">Event Disclaimer</a></li>
             <li class="nav-item dropdown d-none d-sm-block">
                 <a class="nav-link dropdown-toggle " href="#" id="navbarMoreDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">More</a>
                 <div class="dropdown-menu" aria-labelledby="navbarMoreDropdown">
-{#                    <a class="d-none d-sm-block" href="{% url 'booking:room_hires' %}">Room Hire</a>#}
+                    <a class="dropdown-item d-none d-sm-block" href="{% url 'booking:online_tutorials' %}">Tutorials</a>
                     <a class="dropdown-item d-none d-sm-block" href="{% url 'booking:buy_gift_voucher' %}">Gift Vouchers</a>
                     <a class="dropdown-item d-none d-sm-block" href="{% url 'booking:ticketed_events' %}">Tickets</a>
                     <a class="dropdown-item d-none d-sm-block" href="{% url 'nonregistered_disclaimer_form' %}">Event Disclaimer</a>

@@ -1,0 +1,6 @@
+{% load bookingtags %}
+{% if allowed_group|has_permission:user %}
+    <span class="btn table-btn perm-btn btn-wm">{{ allowed_group }}</span></span>
+{% else %}
+    <span class="btn table-btn perm-btn no-perm">{{ allowed_group }}</span>
+{% endif %}

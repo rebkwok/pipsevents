@@ -235,8 +235,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
 
     def test_pole_practice_context_without_permission(self):
         Event.objects.all().delete()
-        pp_event_type = baker.make_recipe('booking.event_type_OC', subtype="Pole practice")
-        baker.make_recipe('booking.future_CL', event_type=pp_event_type)
+        baker.make_recipe('booking.future_PP')
 
         user = User.objects.create_user(username='test1', password='test1')
         baker.make(PrintDisclaimer, user=user)
@@ -251,14 +250,11 @@ class EventListViewTests(TestSetupMixin, TestCase):
 
     def test_pole_practice_context_with_permission(self):
         Event.objects.all().delete()
-        pp_event_type = baker.make_recipe('booking.event_type_OC', subtype="Pole practice")
-        baker.make_recipe('booking.future_CL', event_type=pp_event_type)
+        event = baker.make_recipe('booking.future_PP')
 
         user = User.objects.create_user(username='test1', password='test1')
         make_data_privacy_agreement(user)
-        perm = Permission.objects.get(codename='is_regular_student')
-        user.user_permissions.add(perm)
-        user.save()
+        event.event_type.add_permission_to_book(user)
         baker.make(PrintDisclaimer, user=user)
         self.client.login(username='test1', password='test1')
         response = self.client.get(self.lessons_url)
@@ -700,17 +696,15 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.context_data['booking_info_text'], '')
 
     def test_pole_practice_context_without_permission(self):
-        pp_event_type = baker.make_recipe('booking.event_type_OC', subtype="Pole practice")
-        pole_practice = baker.make_recipe('booking.future_CL', event_type=pp_event_type)
-
+        pole_practice = baker.make_recipe('booking.future_PP')
         user = baker.make_recipe('booking.user')
         make_data_privacy_agreement(user)
         baker.make(PrintDisclaimer, user=user)
 
         response = self._get_response(user, pole_practice, 'lesson')
         response.render()
-        self.assertIn('unbookable_pole_practice', response.context_data)
-        self.assertTrue(response.context_data['unbookable_pole_practice'])
+        self.assertIn('needs_permission', response.context_data)
+        self.assertTrue(response.context_data['needs_permission'])
         self.assertFalse(response.context_data['bookable'])
         self.assertNotIn('book_button_disabled', str(response.content))
         self.assertNotIn('book_button', str(response.content))
@@ -718,19 +712,16 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
         self.assertNotIn('leave_waiting_list_button', str(response.content))
 
     def test_pole_practice_context_with_permission(self):
-        pp_event_type = baker.make_recipe('booking.event_type_OC', subtype="Pole practice")
-        pole_practice = baker.make_recipe('booking.future_CL', event_type=pp_event_type)
+        pole_practice = baker.make_recipe('booking.future_PP')
 
         user = baker.make_recipe('booking.user')
         make_data_privacy_agreement(user)
-        perm = Permission.objects.get(codename='is_regular_student')
-        user.user_permissions.add(perm)
-        user.save()
+        pole_practice.event_type.add_permission_to_book(user)
         baker.make(PrintDisclaimer, user=user)
 
         response = self._get_response(user, pole_practice, 'lesson')
         response.render()
-        self.assertNotIn('unbookable_pole_practice', response.context_data)
+        self.assertNotIn('needs_permission', response.context_data)
         self.assertTrue(response.context_data['bookable'])
         self.assertNotIn('book_button_disabled', str(response.content))
         self.assertIn('book_button', str(response.content))
