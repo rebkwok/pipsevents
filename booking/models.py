@@ -117,24 +117,15 @@ class EventType(models.Model):
         return self.TYPE_VERBOSE_NAME[self.event_type]
 
     def has_permission_to_book(self, user):
-        if not self.allowed_group:
-            return True
         return self.allowed_group.has_permission(user)
 
     def add_permission_to_book(self, user):
-        if not self.allowed_group:
-            return
-        return self.allowed_group.add_user(user)
 
-    def remove_permission_to_book(self, user):
-        if not self.allowed_group:
-            return
-        return self.allowed_group.remove_user(user)
+        return self.allowed_group.add_user(user)
 
     @property
     def allowed_group_description(self):
-        if self.allowed_group:
-            return self.allowed_group.description
+        return self.allowed_group.description
 
     def save(self, *args, **kwargs):
         if not self.allowed_group:
@@ -285,21 +276,12 @@ class Event(models.Model):
     def show_video_link(self):
         return (self.is_online and (timezone.now() > self.date - timedelta(minutes=20)) or self.event_type.event_type == "OT")
 
-    def _has_permission_to_book(self, user):
-        if user.is_superuser:
-            return True
-        return self.allowed_group.has_permission(user)
-
     def has_permission_to_book(self, user):
-        if self.allowed_group:
-            return self._has_permission_to_book(user)
-        return self.event_type.has_permission_to_book(user)
+        return self.allowed_group.has_permission(user)
     
     @property
     def allowed_group_description(self):
-        if self.allowed_group:
-            return self.allowed_group.description
-        return self.event_type.allowed_group_description
+        return self.allowed_group.description
 
     def allowed_group_for_event(self):
         if self.allowed_group == AllowedGroup.default_group():

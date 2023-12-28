@@ -1863,3 +1863,10 @@ def test_banner_str():
 def test_filter_category_str():
     category = baker.make(FilterCategory, category="test category")
     assert str(category) == "test category"
+
+
+@pytest.mark.django_db
+def test_allowed_group_create():
+    gp = AllowedGroup.create_with_group(group_name="foo", description="foo group")
+    assert gp.description == "foo group"
+    assert Group.objects.filter(name="foo").exists()
