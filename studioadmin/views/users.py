@@ -79,9 +79,12 @@ class UserListView(LoginRequiredMixin,  InstructorOrStaffUserMixin,  ListView):
             filter = self.request.GET.get('filter', self.request.GET.get('pfilter'))
             group_name = self.request.GET.get('group_filter', self.request.GET.get('pgroup_filter'))
 
-            if group_name and group_name != 'All' and not reset:
-                group = Group.objects.get(name__iexact=group_name)
-                queryset = group.user_set.all().order_by('first_name')
+            if group_name and group_name.lower() != 'all' and not reset:
+                try:
+                    group = Group.objects.get(name__iexact=group_name)
+                    queryset = group.user_set.all().order_by('first_name')
+                except Group.DoesNotExist:
+                    queryset = User.objects.all().order_by('first_name')
             else:
                 queryset = User.objects.all().order_by('first_name')
 
@@ -92,7 +95,7 @@ class UserListView(LoginRequiredMixin,  InstructorOrStaffUserMixin,  ListView):
                     Q(username__icontains=search_text)
                 )
 
-            if filter and filter != 'All':
+            if filter and filter.lower() != 'all':
                 queryset = queryset.filter(first_name__istartswith=filter)
 
         return queryset
@@ -127,7 +130,7 @@ class UserListView(LoginRequiredMixin,  InstructorOrStaffUserMixin,  ListView):
             context['active_group'] = "All"
         else:
             context['active_filter'] = self.request.GET.get('filter', self.request.GET.get('pfilter', "All"))
-            context['active_group'] = self.request.GET.get('group_filter', self.request.GET.get('pgroup_filter', "all"))
+            context['active_group'] = self.request.GET.get('group_filter', self.request.GET.get('pgroup_filter', "All"))
 
         form = UserListSearchForm(initial={'search': search_text})
         context['form'] = form

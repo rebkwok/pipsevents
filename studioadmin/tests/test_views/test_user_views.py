@@ -272,6 +272,48 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         resp = self.client.get(self.url + "?group_filter=Instructors&pfilter=auser")
         self.assertEqual(len(resp.context_data['users']), 0)
     
+    def testgroup_filter_unknown_group(self):
+        baker.make_recipe(
+            'booking.user', username='FooBar', first_name='AUser',
+            last_name='Bar'
+        )
+        baker.make_recipe(
+            'booking.user', username='Testing1', first_name='aUser',
+            last_name='Bar'
+        )
+        baker.make_recipe(
+            'booking.user', username='Testing2', first_name='BUser',
+            last_name='Bar'
+        )
+
+         # 6 users total, incl self.user, self.instructor_user self.staff_user; 1 instructor doesn't match first name filter
+        self.assertEqual(User.objects.count(), 6)
+        resp = self.client.get(self.url + "?group_filter=foo")
+        self.assertEqual(len(resp.context_data['users']), 6)
+
+    def testgroup_filter_all_groups(self):
+        baker.make_recipe(
+            'booking.user', username='FooBar', first_name='AUser',
+            last_name='Bar'
+        )
+        baker.make_recipe(
+            'booking.user', username='Testing1', first_name='aUser',
+            last_name='Bar'
+        )
+        baker.make_recipe(
+            'booking.user', username='Testing2', first_name='BUser',
+            last_name='Bar'
+        )
+
+         # 6 users total, incl self.user, self.instructor_user self.staff_user
+         # group filter case insensitive
+        self.assertEqual(User.objects.count(), 6)
+        resp = self.client.get(self.url + "?group_filter=all")
+        self.assertEqual(len(resp.context_data['users']), 6)
+
+        resp = self.client.get(self.url + "?group_filter=All")
+        self.assertEqual(len(resp.context_data['users']), 6)
+
     def testgroup_filter_and_previous_filter(self):
         baker.make_recipe(
             'booking.user', username='FooBar', first_name='AUser',
