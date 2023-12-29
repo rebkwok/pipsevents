@@ -302,7 +302,7 @@ class EventAdminForm(forms.ModelForm):
         model = Event
         fields = (
             'name', 'event_type', 'date', 'categories', 'new_category',
-            'allowed_group',
+            'allowed_group_override',
             'video_link', 'video_link_available_after_class',
             'description', 'location',
             'max_participants', 'contact_person', 'contact_email', 'cost',
@@ -390,7 +390,7 @@ class EventAdminForm(forms.ModelForm):
             'paypal_email': forms.EmailInput(
                 attrs={'class': "form-control"}
             ),
-             'allowed_group': forms.Select(
+             'allowed_group_override': forms.Select(
                 attrs={'class': "form-control"}
             ),
             }
@@ -427,8 +427,8 @@ class EventAdminForm(forms.ModelForm):
                 'Check this carefully!  If you enter an incorrect email, '
                 'payments will fail or could be paid to the wrong account!'
             ),
-            'allowed_group': _(
-                "Group allowed to book this event (leave blank to default to same group as the event type)"
+            'allowed_group_override': _(
+                "Override the group allowed to book this event (leave blank to default to same group as the event type)"
             )
         }
 

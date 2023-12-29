@@ -13,9 +13,10 @@ pytestmark = pytest.mark.django_db
 
 @pytest.fixture(autouse=True)
 def cleanup_groups():
-    AllowedGroup.objects.all().delete()
+    default_group = AllowedGroup.default_group()
+    AllowedGroup.objects.exclude(id=default_group.id).delete()
     yield
-    AllowedGroup.objects.all().delete()
+    AllowedGroup.objects.exclude(id=default_group.id).delete()
     
 
 def test_event_types_list_staff_only(client, staff_user, instructor_user):

@@ -168,7 +168,7 @@ class EventTests(TestCase):
 
     def test_allowed_group(self):
         pp_et = baker.make_recipe("booking.event_type_PP")
-        pp = baker.make_recipe('booking.future_PP', event_type=pp_et, allowed_group=None)
+        pp = baker.make_recipe('booking.future_PP', event_type=pp_et, allowed_group_override=None)
         assert pp.allowed_group_for_event() == pp_et.allowed_group
         assert pp.allowed_group_description == pp_et.allowed_group.description
 

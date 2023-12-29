@@ -81,6 +81,14 @@ class AllowedGroup(models.Model):
         return cls.objects.create(group=group, description=description)
 
 
+def get_default_allowed_group():
+    return AllowedGroup.default_group()
+
+
+def get_default_allowed_group_id():
+    return AllowedGroup.default_group().id
+
+
 class EventType(models.Model):
     TYPE_CHOICE = (
         ('CL', 'Class'),
@@ -101,8 +109,11 @@ class EventType(models.Model):
                                          "should match the event type used in "
                                          "the Block Type.")
     allowed_group = models.ForeignKey(
-        AllowedGroup, null=True, blank=True, related_name="event_types",
-        help_text="Group allowed to book this type of event", on_delete=models.SET_NULL
+        AllowedGroup, 
+        default=get_default_allowed_group_id, 
+        related_name="event_types",
+        help_text="Group allowed to book this type of event", 
+        on_delete=models.SET(get_default_allowed_group),
     )
 
     def __str__(self):
@@ -122,11 +133,6 @@ class EventType(models.Model):
     @property
     def allowed_group_description(self):
         return self.allowed_group.description
-
-    def save(self, *args, **kwargs):
-        if not self.allowed_group:
-            self.allowed_group = AllowedGroup.default_group()
-        return super().save(*args, **kwargs)
 
     class Meta:
         unique_together = ('event_type', 'subtype')
@@ -213,7 +219,7 @@ class Event(models.Model):
     visible_on_site = models.BooleanField(default=True)
     categories = models.ManyToManyField(FilterCategory)
 
-    allowed_group = models.ForeignKey(
+    allowed_group_override = models.ForeignKey(
         AllowedGroup, null=True, blank=True, related_name="events", on_delete=models.SET_NULL,
         help_text="Override group allowed to book this event (defaults to same group as the event type)"
     )
@@ -273,6 +279,12 @@ class Event(models.Model):
     def show_video_link(self):
         return (self.is_online and (timezone.now() > self.date - timedelta(minutes=20)) or self.event_type.event_type == "OT")
 
+    @property
+    def allowed_group(self):
+        if self.allowed_group_override:
+            return self.allowed_group_override
+        return self.event_type.allowed_group
+
     def has_permission_to_book(self, user):
         return self.allowed_group.has_permission(user)
     
@@ -283,7 +295,7 @@ class Event(models.Model):
     def allowed_group_for_event(self):
         if self.allowed_group == AllowedGroup.default_group():
             return "-"
-        return self.allowed_group or self.event_type.allowed_group
+        return self.allowed_group
         
     def get_absolute_url(self):
         return reverse("booking:event_detail", kwargs={'slug': self.slug})
@@ -329,9 +341,6 @@ class Event(models.Model):
             # are False
             self.payment_open = False
             self.booking_open = False
-
-        if not self.allowed_group:
-            self.allowed_group = self.event_type.allowed_group
 
         super(Event, self).save(*args, **kwargs)
 
