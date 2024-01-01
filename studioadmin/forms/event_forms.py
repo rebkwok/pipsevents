@@ -114,7 +114,11 @@ class EventAdminForm(forms.ModelForm):
 
         cat_field = self.fields["categories"]
         cat_field.required = False
-        ev_type_qset = EventType.objects.filter(event_type=ev_type)
+
+        ev_type_qset = EventType.objects.visible().filter(event_type=ev_type)
+        if self.instance.id and self.instance.event_type not in ev_type_qset:
+            ev_type_qset = EventType.objects.filter(event_type=ev_type)
+        
         if ev_type in ["CL", "RH"]:
             self.fields["categories"] = forms.ModelMultipleChoiceField(
                 queryset=FilterCategory.objects.all(),

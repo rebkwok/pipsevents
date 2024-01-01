@@ -2,6 +2,7 @@
 
 from collections.abc import Iterable
 import logging
+from django.db.models.query import QuerySet
 import pytz
 import shortuuid
 
@@ -89,6 +90,12 @@ def get_default_allowed_group_id():
     return AllowedGroup.default_group().id
 
 
+class EventTypeManager(models.Manager):
+
+    def visible(self):
+        return self.get_queryset().filter(hide=False)
+
+
 class EventType(models.Model):
     TYPE_CHOICE = (
         ('CL', 'Class'),
@@ -115,6 +122,9 @@ class EventType(models.Model):
         help_text="Group allowed to book this type of event", 
         on_delete=models.SET(get_default_allowed_group),
     )
+    hide = models.BooleanField(default=False, help_text="Hide this event type from admin forms and lists")
+
+    objects = EventTypeManager()
 
     def __str__(self):
         return f'{self.TYPE_VERBOSE_NAME.get(self.event_type, "Unknown")} - {self.subtype}'

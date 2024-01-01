@@ -11,6 +11,10 @@ class EventTypeListView(LoginRequiredMixin, StaffUserMixin, ListView):
     model = EventType
     template_name = 'studioadmin/setup_event_types.html'
     context_object_name = 'event_types'
+    
+    def get_queryset(self):
+        return EventType.objects.visible()
+    
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

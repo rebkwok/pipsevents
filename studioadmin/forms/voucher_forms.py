@@ -6,7 +6,7 @@ from django.db.models import Q
 from django import forms
 from django.core.exceptions import ValidationError
 from booking.models import BlockType, BlockVoucher, EventVoucher, \
-    UsedBlockVoucher, UsedEventVoucher
+    UsedBlockVoucher, UsedEventVoucher, EventType
 
 
 def validate_discount(value):
@@ -96,6 +96,13 @@ class VoucherStudioadminForm(forms.ModelForm):
         self.fields['discount'].validators = [validate_discount]
         self.fields['max_vouchers'].validators = [validate_greater_than_0]
         self.fields['purchaser_email'].disabled = True
+
+        if "event_types" in self.fields:
+            visible_event_types = EventType.objects.visible()
+            if self.instance.id and any((set(self.instance.event_types.all()) - set(visible_event_types))):
+                self.fields['event_types'].queryset = EventType.objects.all()
+            else:
+                self.fields['event_types'].queryset = visible_event_types
 
     def get_uses(self):
         return UsedEventVoucher.objects.filter(voucher=self.instance).count()

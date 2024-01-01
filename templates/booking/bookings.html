@@ -9,14 +9,14 @@
 {% block content %}
 
 <div class="row">
-    <div class="container">
+    <div class="container-fluid">
     {% if history %}
         <h1>My past bookings</h1>
     {% else %}
         <h1>My bookings</h1>
     {% endif %}
     </div>
-    <div class="container">
+    <div class="container-fluid">
         <div class="btn-group btn-group-sm float-right" role="group">
             <a class="btn btn-info-link" href="{% url 'booking:block_list' %}">My blocks</a>
             <a class="btn btn-info-link" href="{% url 'booking:purchased_tutorials' %}">My online tutorials</a>
@@ -27,7 +27,7 @@
     
 {% if bookingformlist %}
 
-        <div class="container">
+        <div class="container-fluid">
             <div class="row font-weight-bold py-2 booking-event-card-item">
                 <div class="col"></div>
                 <div class="col"></div>

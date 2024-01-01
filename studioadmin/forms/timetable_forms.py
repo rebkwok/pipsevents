@@ -97,7 +97,7 @@ class SessionAdminForm(forms.ModelForm):
         super(SessionAdminForm, self).__init__(*args, **kwargs)
         self.fields['event_type'] = forms.ModelChoiceField(
             widget=forms.Select(attrs={'class': "form-control"}),
-            queryset=EventType.objects.exclude(event_type="EV"),
+            queryset=EventType.objects.visible().exclude(event_type="EV"),
         )
         self.fields['payment_time_allowed'].widget.attrs = {
             'class': 'form-control'

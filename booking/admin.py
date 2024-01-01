@@ -562,12 +562,18 @@ class FilterCategoryAdmin(admin.ModelAdmin):
     model = FilterCategory
 
 
+class EventTypeAdmin(admin.ModelAdmin):
+    model = FilterCategory
+    list_display = ("event_type", "subtype", "hide")
+    list_editable = ("hide",)
+
+
 admin.site.site_header = "Watermelon Admin"
 admin.site.register(Event, EventAdmin)
 admin.site.register(Booking, BookingAdmin)
 admin.site.register(Block, BlockAdmin)
 admin.site.register(BlockType, BlockTypeAdmin)
-admin.site.register(EventType)
+admin.site.register(EventType, EventTypeAdmin)
 admin.site.register(AllowedGroup)
 admin.site.register(Banner)
 admin.site.register(WaitingListUser, WaitingListUserAdmin)
