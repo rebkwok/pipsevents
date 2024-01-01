@@ -164,24 +164,16 @@ class DisclaimerCreateView(LoginRequiredMixin, CreateView):
             form = DisclaimerForm(form.data, user=self.request.user)
             return render(self.request, self.template_name, {'form':form})
 
-        if self.request.user.check_password(password):
-            disclaimer.user = self.request.user
-            try:
-                disclaimer.save()
-            except ValidationError as error:
-                if "Active disclaimer already exists" in str(error):
-                    messages.info(self.request, f"You already have a completed disclaimer")
-                    cache.set(active_disclaimer_cache_key(disclaimer.user), True, timeout=600)
-                    return HttpResponseRedirect(reverse("profile:profile"))
-                raise
-        else:
+        if not self.request.user.check_password(password):
             form = DisclaimerForm(form.data, user=self.request.user)
             return render(self.request, self.template_name, {'form':form, 'password_error': 'Password is incorrect'})
-
-        return super(DisclaimerCreateView, self).form_valid(form)
+        disclaimer.user = self.request.user
+        disclaimer.save()
+        return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
         return reverse('profile:profile')
+
 
 class NonRegisteredDisclaimerCreateView(CreateView):
 
@@ -206,8 +198,8 @@ class NonRegisteredDisclaimerCreateView(CreateView):
             html_message=get_template(
                 'account/email/nonregistered_disclaimer_received.html').render(ctx),
             fail_silently=False)
-
-        return super().form_valid(form)
+        disclaimer.save()
+        return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
         return reverse('nonregistered_disclaimer_submitted')
