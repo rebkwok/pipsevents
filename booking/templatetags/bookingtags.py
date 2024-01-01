@@ -453,3 +453,9 @@ def has_permission(allowed_group, user):  # pragma: no cover
 @register.filter
 def event_types_for_group(allowed_group):
     return mark_safe("<br/>".join([f"{event_type.subtype} ({event_type.readable_name})" for event_type in allowed_group.event_types.visible()]))
+
+
+@register.filter
+def active_block_types(event_type):
+    active_bts = event_type.blocktype_set.filter(active=True)
+    return mark_safe("<br/>".join([str(active_bt) for active_bt in active_bts]))

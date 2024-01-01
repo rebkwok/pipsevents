@@ -17,6 +17,7 @@
                                         <th class="text-center">Name (subtype)</th>
                                         <th class="text-center">Event Type</th>
                                         <th class="text-center">Allowed Group</th>
+                                        <th class="text-center">Purchaseable Blocks</th>
                                     </tr>
                                     </thead>
                                     <tbody>
@@ -25,6 +26,7 @@
                                         <td class="text-center studioadmin-tbl">{{ event_type.subtype }}</td>
                                         <td class="text-center studioadmin-tbl">{{ event_type.readable_name }}</td>
                                         <td class="text-center studioadmin-tbl">{% if event_type.allowed_group %}{{ event_type.allowed_group }}{% endif %}</td>
+                                        <td class="text-center studioadmin-tbl">{{ event_type|active_block_types }}</td>
                                     </tr>
                                     {% endfor %}
                                     </tbody>
