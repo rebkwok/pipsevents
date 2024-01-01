@@ -21,7 +21,7 @@ from dateutil.relativedelta import relativedelta
 from booking.models import Block, BlockType, Booking, Event, FilterCategory
 from booking.email_helpers import send_support_email
 from studioadmin.forms import EventFormSet,  EventAdminForm, OnlineTutorialAdminForm
-from studioadmin.views.helpers import staff_required, StaffUserMixin
+from studioadmin.views.helpers import staff_required, StaffUserMixin, set_cloned_name
 from activitylog.models import ActivityLog
 
 
@@ -533,9 +533,11 @@ def cancel_event_view(request, slug):
 @staff_required
 def clone_event(request, slug):
     event = get_object_or_404(Event, slug=slug)
-    event_name = event.name
+    original_id = event.id
     cloned_event = event
     cloned_event.id = None
+    set_cloned_name(Event, event, clone_event)
+
     cloned_event.name = f"[CLONED] {event.name}"
     split_name = cloned_event.name.rsplit("_", 1)
     base_name = split_name[0]
@@ -553,8 +555,11 @@ def clone_event(request, slug):
     cloned_event.booking_open = False
     cloned_event.payment_open = False
     cloned_event.save()
+
+    original_event = Event.objects.get(id=original_id)
+    cloned_event.categories.add(*original_event.categories.all())
     event_type_string, = {event_type["sidenav_plural"] for event_type in EVENT_TYPE_PARAM_MAPPING.values() if event_type["abbr"] == event.event_type.event_type}
-    messages.success(request, f"{event_name} cloned to {cloned_event.name}; booking/payment not open yet")
+    messages.success(request, f"{original_event.name} cloned to {cloned_event.name}; booking/payment not open yet")
     return HttpResponseRedirect(reverse(f"studioadmin:{event_type_string}"))
 
 

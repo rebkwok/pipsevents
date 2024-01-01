@@ -132,7 +132,7 @@
                             </tr>
                         {% endfor %}
                             <tr>
-                                <td class="studioadmin-tbl" {% if type == "lessons" or type == "room_hires" %}colspan=12{% else %}colspan="11"{% endif %}>
+                                <td class="studioadmin-tbl" {% if type == "lessons" or type == "room_hires" %}colspan=15{% else %}colspan="13"{% endif %}>
                                     {% get_pagination_params "admin_events" as pagination_params %}
                                     {% with page_obj=event_page %}
                                         {% include 'booking/includes/pagination.html' %}
@@ -142,12 +142,13 @@
                         <tr>
                             <td class="studioadmin-tbl"
                                 {% if type == "online_tutorials" %}
-                                    {% if location_count > 1 %}colspan="11"{% else %}colspan="10"{% endif %}
+                                    {% if location_count > 1 %}colspan="13"{% else %}colspan="11"{% endif %}
                                 {% elif type == "lessons" or type == "room_hires" %}
-                                {% if location_count > 1 %}colspan="13"{% else %}colspan="12"{% endif %}
+                                    {% if location_count > 1 %}colspan="15"{% else %}colspan="14"{% endif %}
                                 {% else %}
-                                    {% if location_count > 1 %}colspan="12"{% else %}colspan="11"{% endif %}
-                                {% endif %}><input class="btn btn-wm" name="formset_submitted" type="submit" value="Save changes" /></td>
+                                    {% if location_count > 1 %}colspan="14"{% else %}colspan="13"{% endif %}
+                                {% endif %}>
+                                <input class="btn btn-wm" name="formset_submitted" type="submit" value="Save changes" /></td>
                         </tr>
                     </table>
                     </div>

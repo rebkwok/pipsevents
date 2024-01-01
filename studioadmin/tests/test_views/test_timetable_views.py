@@ -787,3 +787,36 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
         assert list(tues.categories.all()) == [cat1, cat2]
         wed = Event.objects.get(name="Wed")
         assert list(wed.categories.all()) == []
+
+
+class CloneEventTests(TestPermissionMixin, TestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.client.login(username=self.staff_user.username, password='test')
+        cat1 = baker.make(FilterCategory, category="cat 1")
+        cat2 = baker.make(FilterCategory, category="cat 2")
+        self.session = baker.make_recipe('booking.mon_session', name="Mon")
+        self.session.categories.add(cat1, cat2)
+        self.url = reverse("studioadmin:clone_timetable_session", args=(self.session.id,))
+
+    def test_clone_session(self):
+        assert Session.objects.count() == 1
+        self.client.get(self.url)
+
+        assert Session.objects.count() == 2
+        cloned = Session.objects.latest("id")
+        assert cloned.name == "[CLONED] Mon"
+
+        self.client.get(self.url)
+        assert Session.objects.count() == 3
+        cloned = Session.objects.latest("id")
+        assert cloned.name == "[CLONED] Mon_1"
+
+        self.client.get(self.url)
+        assert Session.objects.count() == 4
+        cloned = Session.objects.latest("id")
+        assert cloned.name == "[CLONED] Mon_2"
+
+        for session in Session.objects.all():
+            assert list(session.categories.values_list("category", flat=True)) == ["cat 1", "cat 2"]

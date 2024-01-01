@@ -2258,12 +2258,11 @@ class OpenAllClassesTests(TestPermissionMixin, TestCase):
 
 class CloneEventTests(TestPermissionMixin, TestCase):
 
-    @classmethod
-    def setUpTestData(cls):
-        super().setUpTestData()
+    def setUp(self):
+        super().setUp()
+        self.client.login(username=self.staff_user.username, password='test')
 
     def test_clone_event(self):
-        self.client.login(username=self.staff_user.username, password='test')
         event = baker.make_recipe('booking.future_PC', name="Test", booking_open=True, payment_open=True)
         baker.make_recipe('booking.booking', event=event)
         url = reverse("studioadmin:clone_event", args=(event.slug,))
@@ -2298,3 +2297,20 @@ class CloneEventTests(TestPermissionMixin, TestCase):
         assert Event.objects.count() == 5
         cloned = Event.objects.latest("id")
         assert cloned.name == "[CLONED] Test_test_suffix"
+
+    def test_clone_event_with_categories(self):
+        event = baker.make_recipe('booking.future_PC', name="Test", booking_open=True, payment_open=True)
+        baker.make_recipe('booking.booking', event=event)
+        url = reverse("studioadmin:clone_event", args=(event.slug,))
+        category = baker.make(FilterCategory, category="foo")
+        category1 = baker.make(FilterCategory, category="bar")
+        category2 = baker.make(FilterCategory, category="foobar")
+        assert Event.objects.count() == 1
+        assert event.bookings.count() == 1
+        event.categories.add(category, category1)
+        self.client.get(url)
+
+        assert Event.objects.count() == 2
+        cloned = Event.objects.latest("id")
+        
+        assert list(cloned.categories.values_list("category", flat=True)) == ["foo", "bar"]

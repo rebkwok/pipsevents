@@ -125,3 +125,15 @@ class CanViewNonRegisteredDIsclaimersMixin(InstructorOrStaffUserMixin):
 def url_with_querystring(path, **kwargs):
     return path + '?' + urllib.parse.urlencode(kwargs)
 
+
+def set_cloned_name(cloning_cls, event_or_session, cloned_event_or_session):
+    cloned_event_or_session.name = f"[CLONED] {event_or_session.name}"
+    split_name = event_or_session.name.rsplit("_", 1)
+    base_name = split_name[0]
+    try:
+        counter = int(split_name[1])
+    except (ValueError, IndexError):
+        counter = 1
+    while cloning_cls.objects.filter(name=cloned_event_or_session.name).exists():
+        cloned_event_or_session.name = f"{base_name}_{counter}"
+        counter += 1

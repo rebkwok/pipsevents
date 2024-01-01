@@ -21,7 +21,7 @@ from studioadmin.views.ticketed_events import cancel_ticketed_event_view, \
     TicketedEventAdminUpdateView, TicketedEventBookingsListView
 from studioadmin.views.timetable import timetable_admin_list, \
     TimetableSessionCreateView, TimetableSessionUpdateView, \
-    upload_timetable_view
+    upload_timetable_view, clone_timetable_session
 from studioadmin.views.users import MailingListView, \
     toggle_subscribed, unsubscribe, \
     user_bookings_view_old, user_modal_bookings_view, user_blocks_view, UserListView, \
@@ -57,7 +57,7 @@ __all__ = [
     'test_paypal_view',
     'timetable_admin_list', 'TimetableSessionCreateView',
     'TimetableSessionUpdateView', 'toggle_subscribed', 'unsubscribe', 'toggle_permission',
-    'upload_timetable_view',
+    'upload_timetable_view', "clone_timetable_session",
     'user_bookings_view_old', 'user_blocks_view', 'user_disclaimer',
     'UserListView', 'user_modal_bookings_view', 'VoucherCreateView',
     'VoucherListView', 'VoucherUpdateView',

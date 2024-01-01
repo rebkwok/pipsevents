@@ -15,7 +15,7 @@ from booking.models import Event, FilterCategory
 from timetable.models import Session
 from studioadmin.forms import TimetableSessionFormSet, SessionAdminForm, \
     DAY_CHOICES, UploadTimetableForm
-from studioadmin.views.helpers import staff_required, StaffUserMixin
+from studioadmin.views.helpers import staff_required, StaffUserMixin, set_cloned_name
 from activitylog.models import ActivityLog
 
 
@@ -298,3 +298,22 @@ def upload_timetable_view(request,
             'sidenav_selection': 'upload_timetable'
         }
     )
+
+
+@login_required
+@staff_required
+def clone_timetable_session(request, session_id):
+    timetable_session = get_object_or_404(Session, pk=session_id)
+    original_id = timetable_session.id
+    cloned_session = timetable_session
+    cloned_session.id = None
+    # set defaults for cloned event
+    set_cloned_name(Session, timetable_session, cloned_session)
+    cloned_session.slug = None
+    cloned_session.save()
+
+    original_session = Session.objects.get(id=original_id)
+    cloned_session.categories.add(*original_session.categories.all())
+    messages.success(request, f"{original_session.name} cloned to {cloned_session.name}")
+    return HttpResponseRedirect(reverse(f"studioadmin:timetable"))
+
