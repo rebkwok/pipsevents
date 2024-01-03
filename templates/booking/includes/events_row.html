@@ -13,9 +13,9 @@
         {{ event.date|date:"H:i" }} 
         {% if ev_type_for_url == 'events' %}
             <a href="{% url 'booking:event_detail' event.slug %}">{{ event.name }}</a>
-            {% elif ev_type_for_url == 'lessons' %}
+        {% elif ev_type_for_url == 'lessons' %}
             <a href="{% url 'booking:lesson_detail' event.slug %}">{{ event.name }}</a>
-            {% elif ev_type_for_url == 'room_hires' %}
+        {% elif ev_type_for_url == 'room_hires' %}
             <a href="{% url 'booking:room_hire_detail' event.slug %}">{{ event.name }}</a>
         {% endif %}
         {% if booking and booking.status == 'OPEN' and not booking.no_show and booking.paid %}
@@ -74,7 +74,15 @@
                             </a>
                         {% endif %}
                     {% elif not event|has_permission_to_book:user %}
-                        <a class="ext-instructor" href="{% url 'booking:lesson_detail' event.slug %}">N/A - see details</a>
+                        {% if ev_type_for_url == 'lessons' %}
+                            <a class="ext-instructor" href="{% url 'booking:lesson_detail' event.slug %}">N/A - see details</a>
+                        {% elif ev_type_for_url == 'events' %}
+                            <a class="ext-instructor" href="{% url 'booking:event_detail' event.slug %}">N/A - see details</a>
+                        {% elif ev_type_for_url == 'online_tutorials' %}
+                            <a class="ext-instructor" href="{% url 'booking:tutorial_detail' event.slug %}">N/A - see details</a>
+                        {% else %}
+                            <a class="ext-instructor" href="{% url 'booking:room_hire_detail' event.slug %}">N/A - see details</a>
+                        {% endif %}
                     {% elif event.bookable %}
                         {% if  booking and booking.status == "OPEN" and not booking.no_show and not booking.paid %}
                             <a href="{% url 'booking:shopping_basket' %}">
