@@ -28,7 +28,6 @@
                     {% csrf_token %}
 
                     <div class="form-group col-12">
-
                         {% for field in form %}
                             {% if not field.name in form.hidden_fields %}
                                 {% if field.label == "Cost" %}
@@ -42,7 +41,7 @@
                                         </div>
                                     </div>
                                 {% elif field.name  == "categories" %}
-                                    {% if type == "class" %}
+                                    {% if type == "class" or type == "room hire" %}
                                     <div class="form-group cbox">
                                         <label>{% if field.field.required %}*{% endif %}{{ field.label }}</label>   
                                         <div class="form-check {% if field.errors %}ticket-error{% endif %}">
