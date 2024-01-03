@@ -1,0 +1,16 @@
+{% extends 'email_base.html' %}
+
+{% block messagecontent %}
+<div style="font-family: sans-serif;">
+
+<p>
+    Your account has been upgraded. This allows you to book certain reserved sessions, such as Pip Room hire.
+</p>
+<p>
+    Please ensure you have read the following Pip Room hire conditions before booking.
+</p>
+
+{% include 'room_hire_conditions.html' %}
+
+</div>
+{% endblock %}

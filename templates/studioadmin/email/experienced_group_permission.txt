@@ -1,0 +1,6 @@
+{% include "account/email/do_not_reply.txt" %}
+
+Your account has been upgraded. This allows you to book certain reserved sessions, such as Pip Room hire.
+Please ensure you have read the following Pip Room hire conditions before booking.
+
+{% include 'room_hire_conditions.txt' %}

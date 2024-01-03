@@ -834,6 +834,19 @@ def toggle_permission(request,  user_id, allowed_group_id):
             log=f"User {user_to_change.username} added to allowed group {allowed_group} by "
                 f"admin user {request.user.username}"
         )
+        if allowed_group.group.name == "Experienced":
+            send_mail(
+                "Account upgraded: important information",
+                get_template('studioadmin/email/experienced_group_permission.txt').render(),
+                settings.DEFAULT_FROM_EMAIL,
+                [user_to_change],
+                html_message=get_template('studioadmin/email/experienced_group_permission.html').render(),
+                fail_silently=False
+            )
+            ActivityLog.objects.create(
+                log=f"Room hire T&C email send to user {user_to_change.email}"
+            )
+
     return render(
         request,
         "studioadmin/includes/toggle_permission_button.html",

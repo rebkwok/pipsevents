@@ -15,7 +15,7 @@ Your booking has been received for {{ event }}.
         {{ total_blocks }} blocks.</p>
         <p> View your bookings at
         <a href="{{ host }}{% url 'booking:bookings' %}">{{ host }}{% url 'booking:bookings' %}</a>.</p>
-    {% elif not claim_free %}
+    {% else %}
         {% if not event.advance_payment_required %}
             <p>Advance payment is not required for this {{ ev_type }}.  Your space is now confirmed.  If you
                 no longer wish to attend, please delete your booking by visiting your bookings page at
@@ -44,17 +44,17 @@ Your booking has been received for {{ event }}.
             <p> View your bookings at
             <a href="{{ host }}{% url 'booking:bookings' %}">{{ host }}{% url 'booking:bookings' %}</a>.</p>
         {% endif %}
-    {% else %}
-        <p>You have requested this as a free class.  The studio has been notified and
-            your booking will be updated once your request has been reviewed and approved.</p>
-        <p> View your bookings at
-        <a href="{{ host }}{% url 'booking:bookings' %}">{{ host }}{% url 'booking:bookings' %}</a>.</p>
     {% endif %}
-
-    <p><span style="color: red;">PLEASE NOTE: </span> A warm up and cool down is provided for every class.
+    
+    {% if booking.event.event_type.event_type == "RH" %}
+        <p><span style="color: red;">PLEASE ENSURE YOU ARE AWARE OF THE FOLLOWING CONDITIONS OF ROOM HIRE:</span></p>
+        {% include 'room_hire_conditions.html' %}
+    {% else %}
+        <p><span style="color: red;">PLEASE NOTE: </span> A warm up and cool down is provided for every class.
         If you are late and/or miss the warm up, you will not be allowed to attend for safety reasons and to
         avoid disruption to the class.</p>
         <p>Please arrive at least 5 mins before your class to allow time to change.</p>
+    {% endif%}
 
     {% if booking.event.event_type.subtype == "Online class" %}
     <p><span style="color: red;">ONLINE CLASSES: </span>
@@ -63,7 +63,7 @@ Your booking has been received for {{ event }}.
     {% endif %}
 
     {% if booking.user.is_superuser %}
-    <p><a href="{{ host }}{% url 'studioadmin:user_bookings_list' booking.user.id %}">Your admin page</a></p>
+    <p><a href="{{ host }}{% url 'studioadmin:user_upcoming_bookings_list' booking.user.id %}">Your admin page</a></p>
     {% endif %}
 
 {% endif %}
