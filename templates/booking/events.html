@@ -26,21 +26,8 @@
             {% if ev_type_for_url == 'events' %}Workshops & Events{% elif ev_type_for_url == 'lessons' %}Classes{% elif ev_type_for_url == 'room_hires' %}Room Hire{% endif %}<br/>
         </h1>
 
+        {% events_links ev_type_for_url %}
 
-        <h5>    
-        {% if ev_type_for_url == 'lessons' or ev_type_for_url == 'room_hires' %}
-            <a href="{% url 'booking:events' %}">Workshops</a>{% if room_hires_exist or online_tutorials_exists %} | {% endif %} 
-        {% endif %}
-        {% if ev_type_for_url == 'events' or  ev_type_for_url == 'room_hires' %}
-            <a href="{% url 'booking:lessons' %}">Classes</a>{% if room_hires_exist or online_tutorials_exists %} | {% endif %}
-        {% endif %}
-        {% if room_hires_exist and ev_type_for_url != 'room_hires' %}
-            <a href="{% url 'booking:room_hires' %}">Room Hire</a> | 
-        {% endif %}
-        {% if online_tutorials_exist and ev_type_for_url != 'online_tutorials' %}
-            <a href="{% url 'booking:online_tutorials' %}">Online Tutorials</a>
-        {% endif %}
-        </h5>
     </div>
         {% if events_exist %}
             <div class="col-12">

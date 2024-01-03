@@ -10,6 +10,7 @@ from urllib.parse import urlencode
 from django.conf import settings
 from django.contrib.auth.models import Group
 from django import template
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 
@@ -459,3 +460,21 @@ def event_types_for_group(allowed_group):
 def active_block_types(event_type):
     active_bts = event_type.blocktype_set.filter(active=True)
     return mark_safe("<br/>".join([str(active_bt) for active_bt in active_bts]))
+
+
+@register.simple_tag(takes_context=True)
+def events_links(context, event_type):
+    event_types = {
+        "lessons": ["booking:lessons", "Classes"],
+        "events": ["booking:events", "Workshops"],
+    }
+    
+    if context["room_hires_exist"]:
+        event_types.update({"room_hires": ["booking:room_hires", "Room Hires"]})
+    if context["online_tutorials_exist"]:
+        event_types.update({"online_tutorials": ["booking:online_tutorials", "Online Tutorials"]})
+
+    del event_types[event_type]
+    links = [f"<a href='{reverse(url_ref)}'>{title}</a>" for url_ref, title in event_types.values()]
+
+    return mark_safe(f"<h5> {' | '.join(links)}</h5>")
