@@ -18,15 +18,15 @@ class Command(BaseCommand):
         cutoff_date = timezone.now() - relativedelta(months=8)
         allowed_groups = AllowedGroup.objects.all()
 
-        # never deactivate superuser or staff users or specific allowed students
-        users = User.objects.filter(is_superuser=False, is_staff=False).exclude(id__in=[int(user_id) for user_id in settings.REGULAR_STUDENT_WHITELIST_IDS])
-
         for allowed_group in allowed_groups:
-            # never deactivate superuser or staff users
-            for student in users:
-                class_bookings = student.bookings.filter(event__event_type__event_type="CL")
-                last_class_booking_date = class_bookings.latest("date_booked").date_booked if class_bookings.exists() else None
+            # never deactivate superuser or staff users or specific allowed students
+            users_to_check = allowed_group.group.user_set.filter(
+                is_superuser=False, is_staff=False
+                ).exclude(id__in=[int(user_id) for user_id in settings.REGULAR_STUDENT_WHITELIST_IDS])
+            for student in users_to_check:
+                bookings = student.bookings.filter(status="OPEN", no_show=False)
+                last_booking_date = bookings.latest("date_booked").date_booked if bookings.exists() else None
 
-                if last_class_booking_date is None or last_class_booking_date < cutoff_date:
+                if last_booking_date is None or last_booking_date < cutoff_date:
                     allowed_group.remove_user(student)
                     ActivityLog.objects.create(log=f"User {student.username} has been removed from allowed group {allowed_group} due to inactivity")
