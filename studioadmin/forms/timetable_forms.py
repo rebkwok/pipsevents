@@ -99,6 +99,7 @@ class SessionAdminForm(forms.ModelForm):
             widget=forms.Select(attrs={'class': "form-control"}),
             queryset=EventType.objects.visible().exclude(event_type="EV"),
         )
+        self.fields["location"].choices = Event.AVAILABLE_LOCATION_CHOICES
         self.fields['payment_time_allowed'].widget.attrs = {
             'class': 'form-control'
         }

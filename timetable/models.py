@@ -29,9 +29,8 @@ class Session(models.Model):
     description = models.TextField(blank=True, default="")
     location = models.CharField(
         max_length=255, choices=Event.LOCATION_CHOICES,
-        default="Beaverbank Place"
+        default="Main Studio"
     )
-    location_index = models.PositiveIntegerField(default=1)
     max_participants = models.PositiveIntegerField(
         null=True, blank=True, default=10,
         help_text="Leave blank if no max number of participants"
@@ -60,6 +59,10 @@ class Session(models.Model):
                   'Check this carefully!'
     )
     categories = models.ManyToManyField(FilterCategory)
+
+    @property
+    def location_index(self):
+        return Event.LOCATION_INDEX_MAP[self.location]
 
     def __str__(self):
         return "{} - {} - {} ({})".format(

@@ -343,7 +343,7 @@ class UploadTimetableFormTests(TestCase):
 
     def test_form_valid_with_location(self):
         session1 = baker.make_recipe(
-            'booking.mon_session', location="Davidson's Mains"
+            'booking.mon_session', location="Pip Studio"
         )
 
         # no location specified, show all
@@ -355,7 +355,7 @@ class UploadTimetableFormTests(TestCase):
         )
 
         # location specified
-        form = UploadTimetableForm(location="Beaverbank Place")
+        form = UploadTimetableForm(location="Main Studio")
         # location specified, show only sessions for that location
         self.assertCountEqual(
             [sess.id for sess in form.fields['sessions'].queryset],

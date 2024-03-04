@@ -142,7 +142,7 @@ class EventTests(TestCase):
             date=datetime(2015, 1, 1, tzinfo=dt_timezone.utc)
         )
         self.assertEqual(
-            str(event), 'Test event - 01 Jan 2015, 00:00 (Beaverbank Place)'
+            str(event), 'Test event - 01 Jan 2015, 00:00 (Main Studio)'
         )
 
     def test_online_class_show_video_link(self):

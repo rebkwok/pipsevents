@@ -164,23 +164,34 @@ class FilterCategory(models.Model):
 
 class Event(models.Model):
     LOCATION_CHOICES = (
+        ("Main Studio", "Main Studio"),
+        ("Pip Studio", "Pip Studio"),
         ("Beaverbank Place", "The Watermelon Studio - Beaverbank Place"),
         ("Online", "Online"),
         ("Davidson's Mains", "The Watermelon Studio - Davidson's Mains"),
     )
+    # Older choices are maintained for historical events; these are
+    # available for forms
+    AVAILABLE_LOCATION_CHOICES = (
+        ("Main Studio", "Main Studio"),
+        ("Pip Studio", "Pip Studio"),
+        ("Online", "Online"),
+    )
+
     LOCATION_INDEX_MAP = {
-        "Beaverbank Place": 1,
-        "Online": 2,
-        "Davidson's Mains": 3,
+        "Main Studio": 1,
+        "Pip Studio": 2,
+        "Beaverbank Place": 3,
+        "Online": 4,
+        "Davidson's Mains": 5,
     }
     name = models.CharField(max_length=255)
     event_type = models.ForeignKey(EventType, on_delete=models.CASCADE)
     description = models.TextField(blank=True, default="")
     date = models.DateTimeField()
     location = models.CharField(
-        max_length=255, choices=LOCATION_CHOICES, default="Beaverbank Place"
+        max_length=255, choices=LOCATION_CHOICES, default="Main Studio"
     )
-    location_index = models.PositiveIntegerField(default=1)
     max_participants = models.PositiveIntegerField(
         null=True, blank=True,
         help_text="Leave blank if no max number of participants"
@@ -302,6 +313,10 @@ class Event(models.Model):
     def allowed_group_description(self):
         return self.allowed_group.description
 
+    @property
+    def location_index(self):
+        return self.LOCATION_INDEX_MAP[self.location]
+
     def allowed_group_for_event(self):
         if self.allowed_group == AllowedGroup.default_group():
             return "-"
@@ -326,7 +341,6 @@ class Event(models.Model):
         return f"{self.name} - {formatted_date}"
 
     def save(self, *args, **kwargs):
-        self.location_index = self.LOCATION_INDEX_MAP[self.location]
         if not self.cost:
             self.advance_payment_required = False
             self.payment_open = False

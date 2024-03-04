@@ -144,7 +144,7 @@ class EventAdminForm(forms.ModelForm):
                 }
             )
         )
-
+        self.fields["location"].choices = Event.AVAILABLE_LOCATION_CHOICES
         if self.instance.id:
             ev_type_str = ph_type
 

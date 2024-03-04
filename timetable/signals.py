@@ -7,7 +7,6 @@ from timetable.models import Session
 
 @receiver(pre_save, sender=Session)
 def session_pre_save(sender, instance, *args, **kwargs):
-    instance.location_index = Event.LOCATION_INDEX_MAP[instance.location]
     if not instance.cost:
         instance.advance_payment_required = False
         instance.payment_open = False
