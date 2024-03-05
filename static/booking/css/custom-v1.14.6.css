@@ -479,7 +479,7 @@ td {
     padding-bottom: 0;
     padding-left: 0;
     padding-right: 0;
-    width: 8.75em;
+    width: 6.8em;
     color: #fff !important;
     }
 
@@ -496,10 +496,6 @@ td {
   width: 2em;
 }
 
-.table-pay-btn {
-  padding-top: 3px;
-  padding-bottom: 3px;
-}
 
 @media(max-width:950px) {
   .table-btn, .btn, .btn-wm, .table-btn, .btn-group-sm > .btn-info-link, .btn-new-block{
