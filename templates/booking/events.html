@@ -67,12 +67,8 @@
             <div class="col-12">
                 
                 <div class="card with-nav-tabs">
-
-                    {% comment %} 
-                    NOTE: location_events is currently always 1; see event_views.py 
-                    This code is kept in case we need it later
-                    {% endcomment %}
-                    {% comment %} {% if location_events|length > 1 %}
+                    
+                    {% if location_events|length > 1 %}
                     <div class="card-header">
                         <ul class="nav nav-tabs" id="myTab" role="tablist">
                             {% for location_obj in location_events %}
@@ -84,7 +80,7 @@
                             {%  endfor %}
                         </ul>
                     </div>
-                    {% endif %} {% endcomment %}
+                    {% endif %}
 
                     <div class="card-body">
                         <div class="pb-4">

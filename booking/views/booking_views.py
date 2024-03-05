@@ -810,7 +810,7 @@ def ajax_create_booking(request, event_id):
 
     context = {
         "event": event,
-        "location_index": request.GET.get('location_index'),
+        "location_index": int(request.GET.get('location_index', 0)),
         "location_page": request.GET.get('location_page', 1),
         "ref": ref,
     }

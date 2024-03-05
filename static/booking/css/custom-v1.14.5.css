@@ -501,7 +501,7 @@ td {
   padding-bottom: 3px;
 }
 
-@media(max-width:800px) {
+@media(max-width:950px) {
   .table-btn, .btn, .btn-wm, .table-btn, .btn-group-sm > .btn-info-link, .btn-new-block{
     font-size: 75%;
   }
@@ -1000,6 +1000,9 @@ a > span.fa.fa-print {
 		word-wrap: normal !important;
 		white-space: normal !important;
 	}
+  .event-card-item {
+    font-size: 0.8em;
+  }
 
 }
 .wl-table-form {
@@ -1207,6 +1210,15 @@ td span.badge.badge-location{
     text-align:center;
     font-weight: normal;
     font-size: x-small;
+}
+
+.badge.badge-location.badge-location-sm {
+  display:inline-block;
+  text-align:center;
+  font-weight: normal;
+  font-size: 0.7em;
+  padding-top: 3px;
+  padding-bottom: 1px;;
 }
 
 .badge-location-1 {
