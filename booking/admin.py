@@ -178,7 +178,7 @@ class EventAdmin(admin.ModelAdmin):
     fieldsets = [
         ('Event details', {
             'fields': (
-                'name', 'date', 'location', 'location_index', 'event_type',
+                'name', 'date', 'location', 'event_type',
                 'max_participants', 'description', 'video_link', 'cancelled')
         }),
         ('Contacts', {
