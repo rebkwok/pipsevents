@@ -3039,16 +3039,18 @@ class TestDeactivateRegularStudents(TestCase):
         user.refresh_from_db()
         assert not self.pole_practice_event_type.has_permission_to_book(user)
 
-    @override_settings(REGULAR_STUDENT_WHITELIST_IDS=[2, 3, 4])
+    @override_settings(ALLOWED_GROUPS_IGNORE_LIST=[2, 3, 4])
     @patch('booking.management.commands.deactivate_regular_students.timezone')
-    def test_regular_students_whitelist(self, mocktz):
+    def test_regular_students_ignore_list(self, mocktz):
         mocktz.now.return_value = datetime(2018, 10, 3, tzinfo=dt_timezone.utc)
-        whitelist_user = baker.make(User, email='foo@test.com', id=3)
+        ignore_list_user = baker.make(User, email='foo@test.com', id=3)
         normal_user = baker.make(User, email='bar@test.com', id=9)
-        for user in [whitelist_user, normal_user]:
+        for user in [ignore_list_user, normal_user]:
             self.pole_practice_event_type.add_permission_to_book(user)
         management.call_command("deactivate_regular_students")
-        assert self.pole_practice_event_type.has_permission_to_book(whitelist_user)
+        ignore_list_user.refresh_from_db()
+        normal_user.refresh_from_db()
+        assert self.pole_practice_event_type.has_permission_to_book(ignore_list_user)
         assert not self.pole_practice_event_type.has_permission_to_book(normal_user)
 
     @patch('booking.management.commands.deactivate_regular_students.timezone')
@@ -3084,6 +3086,28 @@ class TestDeactivateRegularStudents(TestCase):
         user1.refresh_from_db()
         assert self.pole_practice_event_type.has_permission_to_book(user)
         assert not self.pole_practice_event_type.has_permission_to_book(user1)
+
+    @patch('booking.management.commands.deactivate_regular_students.timezone')
+    @override_settings(ALLOWED_GROUPS_IGNORE_LIST=[2, 3, 4])
+    def test_activate_students_ignore_list(self, mocktz):
+        mocktz.now.return_value = datetime(2018, 10, 3, tzinfo=dt_timezone.utc)
+        ignore_list_user = baker.make(User, email='foo@test.com', id=3)
+        normal_user = baker.make(User, email='bar@test.com', id=9)
+        for user in [ignore_list_user, normal_user]:
+            # neither user has permission
+            assert not self.pole_practice_event_type.has_permission_to_book(user)
+            baker.make(
+                Booking, 
+                event__event_type=self.pole_practice_event_type,
+                user=user, event__date=datetime(2018, 2, 4), _quantity=10, attended=True
+                )
+        management.call_command("deactivate_regular_students")
+        ignore_list_user.refresh_from_db()
+        normal_user.refresh_from_db()
+        # normal user meets criteria, permission added
+        # ignore list user meets criteria, permission not added as they are in ignore list
+        assert not self.pole_practice_event_type.has_permission_to_book(ignore_list_user)
+        assert self.pole_practice_event_type.has_permission_to_book(normal_user)
 
 
 class TestFindNoShows(TestCase):

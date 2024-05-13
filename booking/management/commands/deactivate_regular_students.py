@@ -22,24 +22,25 @@ class Command(BaseCommand):
         cutoff_date = timezone.now() - relativedelta(months=8)
         allowed_groups = AllowedGroup.objects.all()
         
-        excluded = [int(user_id) for user_id in settings.REGULAR_STUDENT_WHITELIST_IDS]
-
+        # check all users that are not superusers, staff users or in the ignore list
         users_to_check = User.objects.filter(
             is_superuser=False, is_staff=False,
-        ).exclude(id__in=[int(user_id) for user_id in settings.REGULAR_STUDENT_WHITELIST_IDS])
+        ).exclude(id__in=settings.ALLOWED_GROUPS_IGNORE_LIST)
         
-        
+        # users who have attended at least one relevant class within the cutoff period (8 months)
+        # OR are in the ignore list
         valid_users = list(
             Booking.objects.filter(
                 status="OPEN", attended=True, event__event_type__event_type="CL",
                 event__date__gt=cutoff_date
             ).distinct("user").values_list("user_id", flat=True)
         )
-        valid_users.extend(excluded)
+        valid_users.extend(settings.ALLOWED_GROUPS_IGNORE_LIST)
+
 
         # Deactivate old students
         for allowed_group in allowed_groups:
-            # never deactivate superuser or staff users or specific allowed students
+            # never deactivate superuser or staff users or specific ignored students
             users_to_deactivate = allowed_group.group.user_set.filter(
                 is_superuser=False, is_staff=False
             ).exclude(id__in=valid_users)
