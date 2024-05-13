@@ -2968,9 +2968,24 @@ class TestDeactivateRegularStudents(TestCase):
     @classmethod
     def setUpTestData(cls):
         event_type = baker.make_recipe("booking.event_type_PC")
-        cls.pole_class = baker.make(Event, event_type=event_type)
-        cls.pole_class1 = baker.make(Event, event_type=event_type)
-        cls.pole_practice_event_type = baker.make_recipe("booking.event_type_PP")
+        other_event_type = baker.make_recipe("booking.event_type_WS")
+        cls.pole_class = baker.make(
+            Event, event_type=event_type, date=datetime(2018, 2, 1, tzinfo=dt_timezone.utc)
+        )
+        cls.pole_class1 = baker.make(
+            Event, event_type=event_type, date=datetime(2018, 4, 1, tzinfo=dt_timezone.utc)
+        )
+        # event within 8 months but not class
+        cls.event = baker.make(
+            Event, event_type=other_event_type, date=datetime(2018, 4, 1, tzinfo=dt_timezone.utc)
+        )
+
+        for group_name in ["regular student", "experienced"]:
+            if not AllowedGroup.objects.filter(group__name=group_name):
+                baker.make(AllowedGroup, group__name=group_name)
+        group = Group.objects.get(name="regular student")
+        allowed_group = AllowedGroup.objects.get(group=group)
+        cls.pole_practice_event_type = baker.make_recipe("booking.event_type_PP", allowed_group=allowed_group)
         cls.pole_practice = baker.make(Event, event_type=cls.pole_practice_event_type)
 
     @patch('booking.management.commands.deactivate_regular_students.timezone')
@@ -2978,11 +2993,24 @@ class TestDeactivateRegularStudents(TestCase):
         mocktz.now.return_value = datetime(2018, 10, 3, tzinfo=dt_timezone.utc)
         user = baker.make(User)
         self.pole_practice_event_type.add_permission_to_book(user)
+        # self.pole_class = 2018-2-1
         baker.make(
-            Booking, user=user, event=self.pole_class,
-            date_booked=datetime(2018, 2, 1, tzinfo=dt_timezone.utc)
+            Booking, user=user, event=self.pole_class, attended=True,
         )
         management.call_command("deactivate_regular_students")
+        user.refresh_from_db()
+        assert not self.pole_practice_event_type.has_permission_to_book(user)
+
+    @patch('booking.management.commands.deactivate_regular_students.timezone')
+    def test_regular_students_with_non_class_bookings_within_8_months_ago_deactivated(self, mocktz):
+        mocktz.now.return_value = datetime(2018, 10, 3, tzinfo=dt_timezone.utc)
+        user = baker.make(User)
+        self.pole_practice_event_type.add_permission_to_book(user)
+        baker.make(
+            Booking, user=user, event=self.event, attended=True,
+        )
+        management.call_command("deactivate_regular_students")
+        user.refresh_from_db()
         assert not self.pole_practice_event_type.has_permission_to_book(user)
 
     @patch('booking.management.commands.deactivate_regular_students.timezone')
@@ -2991,13 +3019,13 @@ class TestDeactivateRegularStudents(TestCase):
         user = baker.make(User)
         self.pole_practice_event_type.add_permission_to_book(user)
         # one booking longer ago than 8 months
+        # self.pole_class = 2018-2-1
+        # self.pole_class = 2018-4-1
         baker.make(
-            Booking, user=user, event=self.pole_class,
-            date_booked=datetime(2018, 2, 1, tzinfo=dt_timezone.utc)
+            Booking, user=user, event=self.pole_class, attended=True,
         )
         baker.make(
-            Booking, user=user, event=self.pole_class1,
-            date_booked=datetime(2018, 4, 1, tzinfo=dt_timezone.utc)
+            Booking, user=user, event=self.pole_class1, attended=True,
         )
         management.call_command("deactivate_regular_students")
         assert self.pole_practice_event_type.has_permission_to_book(user)
@@ -3035,6 +3063,27 @@ class TestDeactivateRegularStudents(TestCase):
         assert self.pole_practice_event_type.has_permission_to_book(super_user)
         assert self.pole_practice_event_type.has_permission_to_book(staff_user)
         assert not self.pole_practice_event_type.has_permission_to_book(normal_user)
+
+    @patch('booking.management.commands.deactivate_regular_students.timezone')
+    def test_activate_students_with_bookings(self, mocktz):
+        mocktz.now.return_value = datetime(2018, 10, 3, tzinfo=dt_timezone.utc)
+        user = baker.make(User)
+        user1 = baker.make(User)
+        baker.make(
+            Booking, 
+            event__event_type=self.pole_practice_event_type,
+            user=user, event__date=datetime(2018, 2, 4), _quantity=10, attended=True
+            )
+        baker.make(
+            Booking, 
+            event__event_type=self.pole_practice_event_type,
+            user=user1, event__date=datetime(2018, 1, 4), _quantity=10, attended=True
+        )
+        management.call_command("deactivate_regular_students")
+        user.refresh_from_db()
+        user1.refresh_from_db()
+        assert self.pole_practice_event_type.has_permission_to_book(user)
+        assert not self.pole_practice_event_type.has_permission_to_book(user1)
 
 
 class TestFindNoShows(TestCase):

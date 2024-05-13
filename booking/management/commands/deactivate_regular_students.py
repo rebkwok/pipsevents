@@ -1,15 +1,19 @@
 """
-Remove specific event type permissions from students if they haven't booked any classes in the past 8 months
+Remove specific event type permissions from students if they haven't booked any
+classes in the past 8 months
+
+ALSO
+Add permissions for students who have booked and attended at least 10 classes
 """
 from dateutil.relativedelta import relativedelta
 
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 from django.utils import timezone
 from django.core.management.base import BaseCommand
 
 from activitylog.models import ActivityLog
-from booking.models import AllowedGroup
+from booking.models import AllowedGroup, Booking
 
 class Command(BaseCommand):
     help = "deactivate permissions for students who have not booked classes in past 8 months"
@@ -17,16 +21,45 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         cutoff_date = timezone.now() - relativedelta(months=8)
         allowed_groups = AllowedGroup.objects.all()
+        
+        excluded = [int(user_id) for user_id in settings.REGULAR_STUDENT_WHITELIST_IDS]
 
+        users_to_check = User.objects.filter(
+            is_superuser=False, is_staff=False,
+        ).exclude(id__in=[int(user_id) for user_id in settings.REGULAR_STUDENT_WHITELIST_IDS])
+        
+        
+        valid_users = list(
+            Booking.objects.filter(
+                status="OPEN", attended=True, event__event_type__event_type="CL",
+                event__date__gt=cutoff_date
+            ).distinct("user").values_list("user_id", flat=True)
+        )
+        valid_users.extend(excluded)
+
+        # Deactivate old students
         for allowed_group in allowed_groups:
             # never deactivate superuser or staff users or specific allowed students
-            users_to_check = allowed_group.group.user_set.filter(
+            users_to_deactivate = allowed_group.group.user_set.filter(
                 is_superuser=False, is_staff=False
-                ).exclude(id__in=[int(user_id) for user_id in settings.REGULAR_STUDENT_WHITELIST_IDS])
-            for student in users_to_check:
-                bookings = student.bookings.filter(status="OPEN", no_show=False)
-                last_booking_date = bookings.latest("date_booked").date_booked if bookings.exists() else None
+            ).exclude(id__in=valid_users)
+            for student in users_to_deactivate:
+                allowed_group.remove_user(student)
+                ActivityLog.objects.create(log=f"User {student.username} has been removed from allowed group {allowed_group} due to inactivity")
 
-                if last_booking_date is None or last_booking_date < cutoff_date:
-                    allowed_group.remove_user(student)
-                    ActivityLog.objects.create(log=f"User {student.username} has been removed from allowed group {allowed_group} due to inactivity")
+        # Activate students with at least 10 classes
+        for user in users_to_check:
+            user_booking_count = None
+            for group_name in ["experienced", "regular student"]:
+                if user_booking_count is not None and user_booking_count < 10:
+                    continue
+                allowed_group = AllowedGroup.objects.get(group__name=group_name)
+                if not allowed_group.has_permission(user):
+                    if user_booking_count is None:
+                        user_booking_count = user.bookings.filter(status="OPEN", attended=True, event__date__gt=cutoff_date).count()
+                        
+                    if user_booking_count >= 10:
+                        allowed_group.add_user(user)
+                        ActivityLog.objects.create(
+                            log=f"User {user.username} has been auto-added to allowed group {allowed_group}."
+                        )
