@@ -13,6 +13,7 @@ from django.conf import settings
 from django.core.mail import send_mail
 from django.core.management.base import BaseCommand
 from django.utils import timezone
+from django.template.loader import get_template
 
 from booking.models import Block, BlockType, EventType
 
@@ -24,6 +25,8 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         event_type = EventType.objects.get(subtype='Pole level class')
+        created_users = []
+        already_active_users = []
         try:
             instructors = Group.objects.get(name="instructors")
         except Group.DoesNotExist:
@@ -38,10 +41,7 @@ class Command(BaseCommand):
                 event_type=event_type
             )
 
-            created_users = []
-            already_active_users = []
-            users = instructors.user_set.all()
-
+            users = instructors.user_set.exclude(id__in=settings.FREE_BLOCK_USERS_IGNORE_LIST)
             now = timezone.now()
             _, end_day = calendar.monthrange(now.year, now.month)
             start = datetime.datetime(now.year, now.month, 1, 0, 0, tzinfo=dt_timezone.utc)
@@ -94,3 +94,12 @@ class Command(BaseCommand):
             [settings.SUPPORT_EMAIL],
             fail_silently=False
         )
+        for user in created_users:
+            send_mail(
+                f'{settings.ACCOUNT_EMAIL_SUBJECT_PREFIX} Your free block',
+                get_template('booking/email/free_instructor_block_created.txt').render(),
+                settings.DEFAULT_FROM_EMAIL,
+                [user.email],
+                fail_silently=False
+            )
+

@@ -2859,9 +2859,9 @@ class CreateFreeMonthlyBlocksTests(PatchRequestMixin, TestCase):
         assert Block.objects.exists() is False
 
         intructor_group = Group.objects.create(name='instructors')
-        user1 = baker.make(User, first_name='Test', last_name='User1')
-        user2 = baker.make(User, first_name='Test', last_name='User2')
-        user3 = baker.make(User, first_name='Test', last_name='User3')
+        user1 = baker.make(User, first_name='Test', last_name='User1', email="test1@test.com")
+        user2 = baker.make(User, first_name='Test', last_name='User2', email="test2@test.com")
+        baker.make(User, first_name='Test', last_name='User3', email="test3@test.com")
 
         user1.groups.add(intructor_group)
         user2.groups.add(intructor_group)
@@ -2880,18 +2880,20 @@ class CreateFreeMonthlyBlocksTests(PatchRequestMixin, TestCase):
             assert block.start_date.date() == date(2020, 6, 1)
             assert block.expiry_date.date() == date(2020, 6, 30)
 
-        assert len(mail.outbox) == 1
+        # admin plus one to each user
+        assert len(mail.outbox) == 3
         email = mail.outbox[0]
         assert email.subject == f'{settings.ACCOUNT_EMAIL_SUBJECT_PREFIX} Free monthly blocks creation'
         assert email.body == "Group: instructors\n" \
                              "Free class blocks created for Test User1, Test User2\n"
-
+        assert sorted(msg.to for msg in mail.outbox[1:]) == sorted([[user1.email], [user2.email]])
+    
     def test_dont_create_duplicate_free_blocks(self):
         assert Block.objects.exists() is False
         intructor_group = Group.objects.create(name='instructors')
-        user1 = baker.make(User, first_name='Test', last_name='User1')
-        user2 = baker.make(User, first_name='Test', last_name='User2')
-        user3 = baker.make(User, first_name='Test', last_name='User3')
+        user1 = baker.make(User, first_name='Test', last_name='User1', email="test1@test.com")
+        user2 = baker.make(User, first_name='Test', last_name='User2', email="test2@test.com")
+        baker.make(User, first_name='Test', last_name='User3', email="test3@test.com")
         user1.groups.add(intructor_group)
         user2.groups.add(intructor_group)
 
@@ -2901,11 +2903,13 @@ class CreateFreeMonthlyBlocksTests(PatchRequestMixin, TestCase):
         user1block = Block.objects.get(user=user1)
         user2block = Block.objects.get(user=user2)
 
-        assert len(mail.outbox) == 1
+        # admin plus one to each user
+        assert len(mail.outbox) == 3
         email = mail.outbox[0]
         assert email.subject == f'{settings.ACCOUNT_EMAIL_SUBJECT_PREFIX} Free monthly blocks creation'
         assert email.body == "Group: instructors\n" \
                              "Free class blocks created for Test User1, Test User2\n"
+        assert sorted(msg.to for msg in mail.outbox[1:]) == sorted([[user1.email], [user2.email]])
 
         # call again; no new blocks created
         management.call_command('create_free_monthly_blocks')
@@ -2917,8 +2921,8 @@ class CreateFreeMonthlyBlocksTests(PatchRequestMixin, TestCase):
         user1block = Block.objects.get(user=user1)
         user2block = Block.objects.get(user=user2)
 
-        assert len(mail.outbox) == 2
-        email = mail.outbox[1]
+        assert len(mail.outbox) == 4
+        email = mail.outbox[-1]
         assert email.subject == f'{settings.ACCOUNT_EMAIL_SUBJECT_PREFIX} Free monthly blocks creation'
         assert email.body == "Group: instructors\n" \
                              "Free block for this month already exists for Test User1, Test User2\n" \
@@ -2929,9 +2933,9 @@ class CreateFreeMonthlyBlocksTests(PatchRequestMixin, TestCase):
         expired on 1st of the next month
         """
         group = Group.objects.create(name='instructors')
-        user1 = baker.make(User, first_name='Test', last_name='User1')
-        user2 = baker.make(User, first_name='Test', last_name='User2')
-        user3 = baker.make(User, first_name='Test', last_name='User3')
+        user1 = baker.make(User, first_name='Test', last_name='User1', email="test1@test.com")
+        user2 = baker.make(User, first_name='Test', last_name='User2', email="test2@test.com")
+        user3 = baker.make(User, first_name='Test', last_name='User3', email="test3@test.com")
 
         for user in [user1, user2, user3]:
             user.groups.add(group)
@@ -2961,6 +2965,36 @@ class CreateFreeMonthlyBlocksTests(PatchRequestMixin, TestCase):
             management.call_command('create_free_monthly_blocks')
         # 3 new blocks created
         assert Block.objects.count() == 6
+
+    @patch("booking.management.commands.create_free_monthly_blocks.timezone.now")
+    @override_settings(FREE_BLOCK_USERS_IGNORE_LIST=[22])
+    def test_create_free_blocks_ignore_list(self, mock_now):
+        mock_now.return_value = datetime(2020, 6, 7, 10, 30, tzinfo=dt_timezone.utc)
+        assert Block.objects.exists() is False
+
+        intructor_group = Group.objects.create(name='instructors')
+        user1 = baker.make(User, first_name='Test', last_name='User1', email="test1@test.com")
+        user2 = baker.make(User, first_name='Test', last_name='User2', email="test2@test.com", id=22)
+
+        user1.groups.add(intructor_group)
+        user2.groups.add(intructor_group)
+
+        management.call_command('create_free_monthly_blocks')
+        assert Block.objects.count() == 1
+
+        block = Block.objects.first()
+        assert block.user == user1
+        assert block.block_type.identifier == 'Free - 5 classes'
+        assert block.block_type.size == 5
+        assert block.block_type.active is False
+
+        # email to admin and each user block was created for
+        assert len(mail.outbox) == 2
+        email = mail.outbox[0]
+        assert email.subject == f'{settings.ACCOUNT_EMAIL_SUBJECT_PREFIX} Free monthly blocks creation'
+        assert email.body == "Group: instructors\n" \
+                             "Free class blocks created for Test User1\n"
+        assert mail.outbox[1].to == [user1.email]
 
 
 class TestDeactivateRegularStudents(TestCase):

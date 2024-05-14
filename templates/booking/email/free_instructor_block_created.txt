@@ -1,0 +1,7 @@
+{% include "account/email/do_not_reply.txt" %}
+
+Your free block of 5 classes has been added to your account and is ready to use.
+
+Thank you for your hard work!
+
+{% include "account/email/footer.txt" %}

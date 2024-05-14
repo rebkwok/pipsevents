@@ -21,7 +21,7 @@ env = environ.Env(DEBUG=(bool, False),
                   CONSOLE_EMAIL=(bool, False),
                   SEND_ALL_STUDIO_EMAILS=(bool, False),
                   AUTO_BOOK_EMAILS=(list, []),
-                  FREE_BLOCK_USERS_TO_IGNORE=(list, []),
+                  FREE_BLOCK_USERS_IGNORE_LIST=(list, []),
                   ALLOWED_GROUPS_IGNORE_LIST=(list, []),
                   WACTHLIST=(list, []),
                   LOCAL=(bool, False),
@@ -455,7 +455,7 @@ if isinstance(WATCHLIST, str):  # pragma: no cover
 # Students who are never automatically activated or deactivated from allowed groups
 ALLOWED_GROUPS_IGNORE_LIST = env('ALLOWED_GROUPS_IGNORE_LIST')
 
-FREE_BLOCK_USERS_TO_IGNORE = env("FREE_BLOCK_USERS_TO_IGNORE")
+FREE_BLOCK_USERS_IGNORE_LIST = env("FREE_BLOCK_USERS_IGNORE_LIST")
 
 ENFORCE_AUTO_CANCELLATION = env("ENFORCE_AUTO_CANCELLATION")
 
