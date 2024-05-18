@@ -201,7 +201,7 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
         self.assertFalse(resp.context_data['bookable'])
 
     @patch('booking.context_helpers.timezone')
-    @patch('booking.models.timezone')
+    @patch('booking.models.booking_models.timezone')
     def test_event_with_payment_due_date(self, models_mock_tz, helpers_mock_tz):
         """
         Test correct context returned for an event with payment due date
@@ -223,7 +223,7 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
                           self.CONTEXT_OPTIONS['booking_info_text_not_booked'])
         self.assertTrue(resp.context_data['bookable'])
 
-    @patch('booking.models.timezone')
+    @patch('booking.models.booking_models.timezone')
     def test_event_with_past_payment_due_date_is_still_bookable(self, mock_tz):
         """
         Test correct context returned for an event with payment due date

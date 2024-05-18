@@ -2085,7 +2085,7 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
             )
         )
 
-    @patch('booking.models.timezone')
+    @patch('booking.models.booking_models.timezone')
     @patch('booking.views.views_utils.timezone')
     def test_update_with_block_if_multiple_blocks_available(self, mock_tz, mock_tz1):
         """
@@ -2141,7 +2141,7 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
         self.assertTrue(booking.paid)
         self.assertTrue(booking.payment_confirmed)
 
-    @patch('booking.models.timezone')
+    @patch('booking.models.booking_models.timezone')
     def test_trying_to_update_block_with_no_available_block(self, mock_tz):
         """
         The template should prevent attempts to block book if no block is
