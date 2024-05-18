@@ -49,7 +49,7 @@ class EventTests(TestCase):
         event = Event.objects.get(id=event.id)
         self.assertFalse(event.bookable)
 
-    @patch('booking.models.timezone')
+    @patch('booking.models.booking_models.timezone')
     def test_bookable_with_payment_dates(self, mock_tz):
         """
         Test that event bookable logic returns correctly for events with
@@ -378,7 +378,7 @@ class BookingTests(PatchRequestMixin, TestCase):
             Booking.objects.filter(event=self.event_with_cost).count(), 4
         )
 
-    @patch('booking.models.timezone')
+    @patch('booking.models.booking_models.timezone')
     def test_reopening_booking_sets_date_reopened(self, mock_tz):
         """
         Test that reopening a cancelled booking for an event with spaces sets
@@ -399,7 +399,7 @@ class BookingTests(PatchRequestMixin, TestCase):
         self.assertEqual(booking.date_rebooked, mock_now)
 
 
-    @patch('booking.models.timezone')
+    @patch('booking.models.booking_models.timezone')
     def test_reopening_booking_again_resets_date_reopened(self, mock_tz):
         """
         Test that reopening a second time resets the rebooking date
@@ -486,7 +486,7 @@ class BookingTests(PatchRequestMixin, TestCase):
         booking.save()
         self.assertFalse(booking.auto_cancelled)
 
-    @patch('booking.models.timezone')
+    @patch('booking.models.booking_models.timezone')
     def test_can_cancel(self, mock_tz):
         mock_now = datetime(2015, 3, 1, tzinfo=dt_timezone.utc)
         mock_tz.now.return_value = mock_now
@@ -641,7 +641,7 @@ class BookingTests(PatchRequestMixin, TestCase):
         ),
     ]
 )
-@patch('booking.models.timezone')
+@patch('booking.models.booking_models.timezone')
 def test_can_cancel_with_daylight_savings_time(mock_tz, now, event_date, can_cancel, cancellation_period):
     mock_tz.now.return_value = now
     event = baker.make_recipe(
@@ -739,7 +739,7 @@ class BlockTests(PatchRequestMixin, TestCase):
             datetime(2015, 2, 1, 23, 59, 59, tzinfo=dt_timezone.utc)
         )
 
-    @patch('booking.models.timezone.now')
+    @patch('booking.models.booking_models.timezone.now')
     def test_block_start_date_reset_on_paid(self, mock_now):
         """
         Test that a block's start date is set to current date on payment
@@ -1741,7 +1741,7 @@ class BlockTypeTests(TestCase):
 
 class VoucherTests(TestCase):
 
-    @patch('booking.models.timezone')
+    @patch('booking.models.booking_models.timezone')
     def test_voucher_dates(self, mock_tz):
         mock_now = datetime(
             2016, 1, 5, 16, 30, 30, 30, tzinfo=dt_timezone.utc
@@ -1762,7 +1762,7 @@ class VoucherTests(TestCase):
             datetime(2016, 1, 6, 23, 59, 59, 0, tzinfo=dt_timezone.utc)
         )
 
-    @patch('booking.models.timezone')
+    @patch('booking.models.booking_models.timezone')
     def test_has_expired(self, mock_tz):
         mock_tz.now.return_value = datetime(
             2016, 1, 5, 12, 30, tzinfo=dt_timezone.utc
@@ -1782,7 +1782,7 @@ class VoucherTests(TestCase):
         voucher = EventVoucher.objects.get(id=voucher.id)
         self.assertFalse(voucher.has_expired)
 
-    @patch('booking.models.timezone')
+    @patch('booking.models.booking_models.timezone')
     def test_has_started(self, mock_tz):
         mock_tz.now.return_value = datetime(
             2016, 1, 5, 12, 30, tzinfo=dt_timezone.utc

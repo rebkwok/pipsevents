@@ -501,7 +501,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
              "contact the studio for further information."
         )
 
-    @patch('booking.models.timezone')
+    @patch('booking.models.booking_models.timezone')
     @patch('booking.views.views_utils.timezone')
     def test_booking_with_transfer_block(self, mock_tz, mock_tz1):
         """
@@ -533,7 +533,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
             "Booked with credit block."
         )
 
-    @patch('booking.models.timezone')
+    @patch('booking.models.booking_models.timezone')
     @patch('booking.views.views_utils.timezone')
     def test_booking_with_block_if_multiple_blocks_available(self, mock_views_tz, mock_tz):
         """
@@ -584,7 +584,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(bookings.count(), 1)
         self.assertEqual(bookings[0].block, block1)
 
-    @patch('booking.models.timezone')
+    @patch('booking.models.booking_models.timezone')
     def test_booking_with_block_if_original_and_free_available(self, mock_tz):
         """
         Usually there will only be an open free block attached to another block
