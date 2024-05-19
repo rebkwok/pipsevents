@@ -413,21 +413,16 @@ class CustomLoginViewTests(TestSetupMixin, TestCase):
         # url is weirdly formatted one way if we run only this test and the
         # other if we run all. Not sure why yet, but it would behave correctly
         # either way
+        # href="/accounts/facebook/login/?process=login&amp;next=%2Faccounts%2Fprofile">Facebook</a>
         self.assertTrue(
-            'href="/accounts/facebook/login/?process=login'
-            '&next=%2Faccounts%2Fprofile"' in resp.rendered_content or
-            'href="/accounts/facebook/login/?next=%2Faccounts%2Fprofile'
-            '&process=login"' in resp.rendered_content
+            '/accounts/facebook/login/?process=login&amp;next=%2Faccounts%2Fprofile' in resp.rendered_content
         )
 
         resp = self.client.get(
             reverse('login') + '?next=/accounts/password/set/'
         )
         self.assertTrue(
-            'href="/accounts/facebook/login/?process=login'
-            '&next=%2Faccounts%2Fprofile"' in resp.rendered_content or
-            'href="/accounts/facebook/login/?next=%2Faccounts%2Fprofile'
-            '&process=login"' in resp.rendered_content
+            '/accounts/facebook/login/?process=login&amp;next=%2Faccounts%2Fprofile' in resp.rendered_content
         )
 
         # post with login username and password overrides next in request

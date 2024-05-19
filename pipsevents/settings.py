@@ -88,6 +88,7 @@ INSTALLED_APPS = (
     'rest_framework',
     'django_extensions',
     'crispy_forms',
+    'crispy_bootstrap4',
     'debug_toolbar',
     'accounts',
     'booking',
@@ -113,6 +114,7 @@ MIDDLEWARE = (
     'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
 )
 
 #  use local cache for tests
@@ -154,7 +156,6 @@ ACCOUNT_AUTHENTICATION_METHOD = "username_email"
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = False
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"
-ACCOUNT_EMAIL_CONFIRMATION_COOLDOWN = 900  # increase cooldown to 15 mins
 ACCOUNT_EMAIL_SUBJECT_PREFIX = "The Watermelon Studio:"
 ACCOUNT_PASSWORD_MIN_LENGTH = 6
 ACCOUNT_SIGNUP_FORM_CLASS = 'accounts.forms.SignupForm'
@@ -503,7 +504,7 @@ SHOW_VAT = env("SHOW_VAT")
 VAT_NUMBER = env("VAT_NUMBER")
 
 # for crispy forms
-# CRISPY_TEMPLATE_PACK = 'bootstrap4'
+CRISPY_TEMPLATE_PACK = 'bootstrap4'
 USE_CRISPY = True
 
 
