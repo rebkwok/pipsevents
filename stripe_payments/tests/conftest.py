@@ -1,5 +1,6 @@
 import pytest
 import os
+import responses
 from unittest.mock import Mock
 
 from django.contrib.auth import get_user_model
@@ -36,6 +37,12 @@ def superuser():
 @pytest.fixture
 def seller():
     yield baker.make(Seller, site=Site.objects.get_current(), stripe_user_id="id123")
+
+
+@pytest.fixture
+def mocked_responses():
+    with responses.RequestsMock() as rsps:
+        yield rsps
 
 
 @pytest.fixture
