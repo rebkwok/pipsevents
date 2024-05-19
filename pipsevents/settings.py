@@ -27,7 +27,7 @@ env = environ.Env(DEBUG=(bool, False),
                   LOCAL=(bool, False),
                   SHOW_VAT=(bool, True),
                   TESTING=(bool, False),
-                  PAYMENT_METHOD=(str, "paypal")  ,
+                  PAYMENT_METHOD=(str, "stripe"),
                   ENFORCE_AUTO_CANCELLATION=(bool, False)       
                   )
 
