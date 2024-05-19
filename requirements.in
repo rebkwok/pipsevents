@@ -37,3 +37,4 @@ pytest-env
 pytest-xdist
 pymemcache
 stripe
+responses

@@ -171,7 +171,6 @@ def test_return_with_matching_invoice_and_ticket_booking(
 
 
 @pytest.mark.usefixtures("seller", "send_all_studio_emails")
-
 @patch("stripe_payments.views.stripe.PaymentIntent")
 def test_return_with_matching_invoice_and_gift_voucher(mock_payment_intent, get_mock_payment_intent, client, configured_user, block_gift_voucher):
     assert StripePaymentIntent.objects.exists() is False
