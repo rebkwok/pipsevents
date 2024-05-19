@@ -1,12 +1,12 @@
 
 import logging
-import uuid
+import re
 
 from django.db import models
 from django.utils.text import slugify
 
 from booking.models import EventType
-from stripe_payments.utils import create_stripe_product, update_stripe_product, get_or_create_stripe_price
+from stripe_payments.utils import StripeConnector
 
 logger = logging.getLogger(__name__)
 
@@ -33,15 +33,17 @@ class Membership(models.Model):
         slug = slugify(self.name)
         counter = 1
         while Membership.objects.filter(stripe_product_id=slug).exists():
-            slug = f"{slug}_{counter}"
+            slug_without_counter = re.sub(r"(_\d+$)", "", slug)
+            slug = f"{slug_without_counter}_{counter}"
             counter += 1
         return slug
 
     def save(self, *args, **kwargs):
+        stripe_client = StripeConnector()
         if not self.id:
             self.stripe_product_id = self.generate_stripe_product_id()
             # create stripe product with price
-            product = create_stripe_product(
+            product = stripe_client.create_stripe_product(
                 product_id=self.stripe_product_id,
                 name=self.name,
                 description=self.description,
@@ -54,19 +56,21 @@ class Membership(models.Model):
             changed = False
             if self.price != presaved.price:
                 # if price has changed, create new Price and update stripe price ID
-                price_id = get_or_create_stripe_price(self.stripe_product_id, self.price)
+                price_id = stripe_client.get_or_create_stripe_price(self.stripe_product_id, self.price)
                 self.stripe_price_id = price_id
                 changed = True
             if self.name != presaved.name or self.description != presaved.description or self.active != presaved.active:
                 changed = True 
             if changed:
-                update_stripe_product(
+                stripe_client.update_stripe_product(
                     product_id=self.stripe_product_id,
                     name=self.name,
                     description=self.description,
                     active=self.active,
                     price_id=self.stripe_price_id,
-                )    
+                )
+            # TODO: If price has changed, update UserMemberships with active subscriptions
+            # beyond this month (with stripe_client.update_subscription_price())
         super().save(*args, **kwargs)
 
 

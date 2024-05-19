@@ -172,7 +172,7 @@ static3==0.7.0
     # via
     #   -r requirements.in
     #   dj-static
-stripe==6.4.0
+stripe==9.7.0
     # via -r requirements.in
 tomli==2.0.1
     # via pytest
