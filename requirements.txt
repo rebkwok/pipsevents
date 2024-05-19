@@ -4,42 +4,42 @@
 #
 #    pip-compile
 #
-asgiref==3.5.2
+asgiref==3.8.1
     # via django
-attrs==22.1.0
-    # via pytest
-beautifulsoup4==4.11.1
+beautifulsoup4==4.12.3
     # via -r requirements.in
-certifi==2022.9.24
+certifi==2024.2.2
     # via requests
-cffi==1.15.1
+cffi==1.16.0
     # via cryptography
-charset-normalizer==2.1.1
+charset-normalizer==3.3.2
     # via requests
-coverage[toml]==6.4.4
+coverage[toml]==7.5.1
     # via
     #   -r requirements.in
     #   coveralls
     #   pytest-cov
-coveralls==3.3.1
+coveralls==4.0.1
     # via -r requirements.in
-cryptography==38.0.1
+crispy-bootstrap4==2024.1
+    # via -r requirements.in
+cryptography==42.0.7
     # via pyjwt
-defusedxml==0.7.1
-    # via python3-openid
-dj-database-url==1.0.0
+dj-database-url==2.1.0
     # via -r requirements.in
 dj-static==0.0.6
     # via -r requirements.in
-django==4.1.1
+django==4.2.13
     # via
     #   -r requirements.in
+    #   crispy-bootstrap4
     #   dj-database-url
     #   django-allauth
     #   django-braces
     #   django-ckeditor
     #   django-classy-tags
     #   django-cookie-law
+    #   django-crispy-forms
     #   django-datetime-widget
     #   django-debug-toolbar
     #   django-extensions
@@ -49,11 +49,11 @@ django==4.1.1
     #   django-paypal
     #   djangorestframework
     #   model-bakery
-django-allauth==0.51.0
+django-allauth[socialaccount]==0.63.1
     # via -r requirements.in
 django-braces==1.15.0
     # via -r requirements.in
-django-ckeditor==6.5.1
+django-ckeditor==6.7.1
     # via -r requirements.in
 django-classy-tags==3.0.1
     # via
@@ -62,93 +62,90 @@ django-classy-tags==3.0.1
     #   django-one-time-notices
 django-cookie-law==2.2.0
     # via -r requirements.in
-django-crispy-forms==1.14.0
-    # via -r requirements.in
+django-crispy-forms==2.1
+    # via
+    #   -r requirements.in
+    #   crispy-bootstrap4
 django-datetime-widget @ git+https://github.com/rebkwok/django-datetime-widget.git@e6167f187f99ea201380337ddf54297ef908a0d5
     # via -r requirements.in
-django-debug-toolbar==3.7.0
+django-debug-toolbar==4.3.0
     # via -r requirements.in
 django-email-obfuscator==0.1.5
     # via -r requirements.in
-django-environ==0.9.0
+django-environ==0.11.2
     # via -r requirements.in
-django-extensions==3.2.1
+django-extensions==3.2.3
     # via -r requirements.in
-django-js-asset==2.0.0
+django-js-asset==2.2.0
     # via django-ckeditor
 django-migration-testcase==0.0.15
     # via -r requirements.in
 django-one-time-notices==0.1.4
     # via -r requirements.in
-django-paypal==2.0
+django-paypal==2.1
     # via -r requirements.in
-djangorestframework==3.14.0
+djangorestframework==3.15.1
     # via -r requirements.in
 docopt==0.6.2
     # via coveralls
-execnet==1.9.0
+execnet==2.1.1
     # via pytest-xdist
-gunicorn==20.1.0
+gunicorn==22.0.0
     # via -r requirements.in
-idna==3.4
+idna==3.7
     # via requests
-iniconfig==1.1.1
+iniconfig==2.0.0
     # via pytest
-mailchimp3==3.0.17
+mailchimp3==3.0.21
     # via -r requirements.in
-model-bakery==1.7.0
+model-bakery==1.18.0
     # via -r requirements.in
-oauthlib==3.2.1
+oauthlib==3.2.2
     # via requests-oauthlib
-packaging==21.3
-    # via pytest
-pillow==9.2.0
+packaging==24.0
+    # via
+    #   gunicorn
+    #   pytest
+pillow==10.3.0
     # via -r requirements.in
-pluggy==1.0.0
+pluggy==1.5.0
     # via pytest
-psycopg2==2.9.3
+psycopg2==2.9.9
     # via -r requirements.in
-py==1.11.0
-    # via pytest
-pycparser==2.21
+pycparser==2.22
     # via cffi
-pycryptodome==3.15.0
+pycryptodome==3.20.0
     # via simple-crypt
-pyjwt[crypto]==2.5.0
+pyjwt[crypto]==2.8.0
     # via django-allauth
 pymemcache==4.0.0
     # via -r requirements.in
-pyparsing==3.0.9
-    # via packaging
-pytest==7.1.3
+pytest==8.2.1
     # via
     #   -r requirements.in
     #   pytest-cov
     #   pytest-django
     #   pytest-env
     #   pytest-xdist
-pytest-cov==3.0.0
+pytest-cov==5.0.0
     # via -r requirements.in
-pytest-django==4.5.2
+pytest-django==4.8.0
     # via -r requirements.in
-pytest-env==0.8.1
+pytest-env==1.1.3
     # via -r requirements.in
-pytest-xdist==3.1.0
+pytest-xdist==3.6.1
     # via -r requirements.in
-python-dateutil==2.8.2
+python-dateutil==2.9.0.post0
     # via -r requirements.in
-python3-openid==3.2.0
-    # via django-allauth
-pytz==2022.2.1
+pytz==2024.1
     # via
     #   django-datetime-widget
     #   django-paypal
-    #   djangorestframework
-pyyaml==6.0
+pyyaml==6.0.1
     # via
     #   -r requirements.in
     #   responses
-requests==2.28.1
+requests==2.31.0
     # via
     #   coveralls
     #   django-allauth
@@ -157,19 +154,19 @@ requests==2.28.1
     #   requests-oauthlib
     #   responses
     #   stripe
-requests-oauthlib==1.3.1
+requests-oauthlib==2.0.0
     # via django-allauth
-responses==0.23.1
+responses==0.25.0
     # via -r requirements.in
-shortuuid==1.0.9
+shortuuid==1.0.13
     # via -r requirements.in
 simple-crypt @ git+https://github.com/KyleKing/simple-crypt.git
     # via -r requirements.in
 six==1.16.0
     # via python-dateutil
-soupsieve==2.3.2.post1
+soupsieve==2.5
     # via beautifulsoup4
-sqlparse==0.4.3
+sqlparse==0.5.0
     # via
     #   django
     #   django-debug-toolbar
@@ -179,18 +176,11 @@ static3==0.7.0
     #   dj-static
 stripe==9.7.0
     # via -r requirements.in
-tomli==2.0.1
-    # via pytest
-types-cryptography==3.3.23
-    # via pyjwt
-types-pyyaml==6.0.12.20240311
-    # via responses
-typing-extensions==4.7.1
-    # via stripe
-urllib3==1.26.12
+typing-extensions==4.11.0
+    # via
+    #   dj-database-url
+    #   stripe
+urllib3==2.2.1
     # via
     #   requests
     #   responses
-
-# The following packages are considered to be unsafe in a requirements file:
-# setuptools
