@@ -7,7 +7,7 @@ import stripe
 from activitylog.models import ActivityLog
 from .emails import send_processed_payment_emails, send_gift_voucher_email
 from .exceptions import StripeProcessingError
-from .models import Invoice, StripePaymentIntent, Seller
+from .models import Invoice, Seller
 
 
 logger = logging.getLogger(__name__)
@@ -79,3 +79,82 @@ def process_invoice_items(invoice, payment_method, request=None):
     ActivityLog.objects.create(
         log=f"Invoice {invoice.invoice_id} (user {invoice.username}) paid by {payment_method}"
     )
+
+
+def get_connected_account_id(request=None):
+    stripe.api_key = settings.STRIPE_SECRET_KEY
+    seller = Seller.objects.filter(site=Site.objects.get_current(request=request)).first()
+    return seller.stripe_user_id
+
+
+def create_stripe_product(product_id, name, description, price, connected_account_id=None):
+    connected_account_id = connected_account_id or get_connected_account_id()
+    price_in_p = int(price * 100)
+    product = stripe.Product.create(
+        stripe_account=connected_account_id,
+        id=product_id,
+        name=name,
+        description=description,
+        default_price_data={
+            "unit_amount": price_in_p,
+            "currency": "gbp",
+            "recurring": {"interval": "month"},
+        },
+    )
+    return product
+
+
+def update_stripe_product(product_id, name, description, active, price_id, connected_account_id=None):
+    connected_account_id = connected_account_id or get_connected_account_id()
+    product = stripe.Product.modify(
+        product_id,
+        stripe_account=connected_account_id,
+        name=name,
+        description=description,
+        active=active,
+        default_price=price_id,
+    )
+    return product
+
+
+def get_or_create_stripe_price(product_id, price, connected_account_id=None):
+    connected_account_id = connected_account_id or get_connected_account_id()
+    price_in_p = int(price * 100)
+    
+    # get existing active Price for this product and amount if one exists
+    matching_prices = stripe.Price.list(
+        product=product_id, 
+        stripe_account=connected_account_id, 
+        unit_amount=price_in_p, 
+        active=True,
+        recurring={"interval": "month"}
+    )
+    if matching_prices.data:
+        return matching_prices.data[0].id
+
+    new_price = stripe.Price.create(
+        product=product_id,
+        stripe_account=connected_account_id,
+        currency="gbp",
+        unit_amount=price_in_p,
+        recurring={"interval": "month"},
+    )
+    return new_price.id
+
+
+def get_or_create_stripe_customer(user, connected_account_id=None, **kwargs):
+    if user.user_profile.stripe_customer_id:
+        return user.user_profile.stripe_customer_id
+    
+    connected_account_id = connected_account_id or get_connected_account_id()
+    try:
+        customer = stripe.Customer.create(
+            name=f"{user.first_name} {user.last_name}",
+            email=f"{user.email}",
+            **kwargs
+        )
+    except Exception as e:
+        import ipdb; ipdb.set_trace()
+        ...
+    return customer
+

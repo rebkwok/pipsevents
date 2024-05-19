@@ -25,6 +25,7 @@ from .ticket_booking_models import (
     TicketedEventWaitingListUser
 )
 from .banner_models import Banner
+from .membership_models import Membership, MembershipItem
 
 
 __all__ = [
