@@ -6,7 +6,7 @@ from django.forms.models import inlineformset_factory, BaseInlineFormSet
 
 from booking.models import (
     BlockVoucher, Event, Block, BlockType, FilterCategory, TicketBooking,
-    Ticket, GiftVoucherType
+    Ticket, GiftVoucherType, Membership
 )
 
 
@@ -356,3 +356,7 @@ class GiftVoucherForm(forms.Form):
         if user_email != user_email1:
             self.add_error("user_email1", "Email addresses do not match")
 
+
+class ChooseMembershipForm(forms.Form):
+    membership = forms.ModelChoiceField(queryset=Membership.objects.all())
+    agree_to_terms = forms.BooleanField(required=True)

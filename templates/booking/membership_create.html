@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<div class="extra-top-margin container-fluid row">
+    <div class="col-sm-12">
+       <div class="card card-wm">
+            <div class="card-header">
+                <h2 class="card-title">Memberships</h2>
+            </div>
+            <div class="card-body">
+                <p>Select a membership to add.</p>
+
+                <h4>Memerships available:</h4>
+                {% for membership in memberships %}
+                    <p>{{ membership.name }}</p>
+                    <p>{{ membership.description }}</p>
+                    <ul>
+                        <li>Cost: £{{ membership.price }}{% if show_vat %} (incl VAT){% endif %}</li>
+                    </ul>
+                {% endfor %}
+
+                <form method="post" action="{% url 'membership_checkout' %}">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <div class="dropdown">
+                            <strong>Choose a membership:</strong> {{ form.membership }}
+                        </div>
+                        {{ form.agree_to_terms }}
+                       <input class="btn btn-wm" type="submit" value="Checkout" />
+                    </div>
+                </form>
+            </div>
+       </div>
+
+</div>
+</div>
+
+{% endblock content %}
