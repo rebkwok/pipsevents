@@ -17,7 +17,6 @@ from booking.views import ajax_create_booking, blocks_modal, \
     toggle_waiting_list, \
     OnlineTutorialListView, PurchasedTutorialsListView, OnlineTutorialDetailView, \
     check_total, toggle_ticketed_event_waiting_list
-
 app_name = 'booking'
 
 

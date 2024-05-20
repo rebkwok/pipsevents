@@ -25,7 +25,7 @@ from .ticket_booking_models import (
     TicketedEventWaitingListUser
 )
 from .banner_models import Banner
-from .membership_models import Membership, MembershipItem
+from .membership_models import Membership, MembershipItem, UserMembership
 
 
 __all__ = [
@@ -55,5 +55,8 @@ __all__ = [
     "TicketedEventWaitingListUser",
     # banner
     "Banner",
-
+    # membership
+    "Membership", 
+    "MembershipItem", 
+    "UserMembership",
 ]

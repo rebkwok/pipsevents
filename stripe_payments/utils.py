@@ -1,6 +1,7 @@
 from datetime import datetime
+from datetime import timezone as dt_timezone
 import logging
-import requests
+import pytz
 from dateutil.relativedelta import relativedelta
 
 from django.conf import settings
@@ -94,7 +95,10 @@ class StripeConnector:
 
     def get_connected_account_id(self, request=None):
         seller = Seller.objects.filter(site=Site.objects.get_current(request=request)).first()
-        return seller.stripe_user_id
+        if seller:
+            return seller.stripe_user_id
+        else:
+            raise Seller.DoesNotExist
 
     def create_stripe_product(self, product_id, name, description, price):
         price_in_p = int(price * 100)
@@ -189,61 +193,43 @@ class StripeConnector:
             stripe_account=self.connected_account_id,
             **kwargs
         )
-    
-    def create_subscription(self, customer_id, price_id):
-        """
-        The stripe python API doesn't accept stripe_account for subscriptions, so we need to 
-        call it directly with the headers
-        https://docs.stripe.com/billing/subscriptions/build-subscriptions?platform=web&ui=elements
 
-        subscription = stripe.Subscription.create(
-            customer=customer_id,
-            items=[{
-                'price': price_id,
-            }],
-            payment_behavior='default_incomplete',  # create subscription as incomplete
-            payment_settings={'save_default_payment_method': 'on_subscription'},   # save customer default payment
-            expand=['latest_invoice.payment_intent'],
+    def get_subscription(self, subscription_id, status=None):
+        kwargs = dict(
+            id=subscription_id, stripe_account=self.connected_account_id, 
+            expand=['latest_invoice.payment_intent', 'pending_setup_intent']
         )
-
-        curl https://api.stripe.com/v1/subscriptions -u : -H "Stripe-Account: acct_1LkrQXBwhuOJbY2i" -d customer=cus_Q8LyvVdwr3AQMg -d "items[0][price]"=price_1PI6o2BwhuOJbY2iLzuO8Vot -d "expand[0]"="latest_invoice.payment_intent"
-        """
-        url = "https://api.stripe.com/v1/subscriptions"
-        headers = {"Stripe-Account": self.connected_account_id}
-        auth = (settings.STRIPE_SECRET_KEY, "")
-        params = {
-            "customer": customer_id,
-            "items[0][price]": price_id,
-            "expand[0]": "latest_invoice.payment_intent"
-        }
-        resp = requests.post(url, headers=headers, auth=auth, params=params)
-        return resp.json()
+        if status:
+            kwargs["status"] = status
+        return stripe.Subscription.retrieve(**kwargs)
 
     def create_subscription(self, customer_id, price_id, backdate=True):
         """
         Create subscription for this customer and price
-        Backdate to 1st of current month if backdate is True
+        Backdate to 1st of current month if backdate is True; proration will generate an invoice from 1st month
         Start from 1st of next month (billing_cycle_anchor)
+        NOTE: If not backdating, will create setup intent; if backdating, creates payment intent
         """
         now = datetime.utcnow()
-        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        backdate_to = int(month_start.timestamp())
-        next_billing_date = int((month_start + relativedelta(months=1)).timestamp())
-        subscription = stripe.Subscription.create(
+        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0, tzinfo=dt_timezone.utc)
+        next_month_start = month_start + relativedelta(months=1)
+        kwargs = dict(
             customer=customer_id,
-            items=[{'price': price_id}],
-            backdate_start_date=backdate_to,
-            billing_cycle_anchor=next_billing_date,
+            items=[{'price': price_id, 'quantity': 1}],
+            billing_cycle_anchor=int(next_month_start.timestamp()),
             payment_behavior='default_incomplete',  # create subscription as incomplete
             payment_settings={'save_default_payment_method': 'on_subscription'},   # save customer default payment
-            expand=['latest_invoice.payment_intent'],
+            expand=['latest_invoice.payment_intent', 'pending_setup_intent'],
             stripe_account=self.connected_account_id,
-            proration_behavior="none"
         )
+        if backdate:
+            kwargs["backdate_start_date"] = int(month_start.timestamp())
+
+        subscription = stripe.Subscription.create(**kwargs)
         return subscription
     
     def get_or_create_subscription_schedule(self, subscription_id):
-        subscription = stripe.Subscription.retrieve(id=subscription_id, stripe_account=self.connected_account_id)
+        subscription = self.get_subscription(subscription_id)
         if subscription.schedule:
             schedule = stripe.SubscriptionSchedule.retrieve(id=subscription.schedule, stripe_account=self.connected_account_id)
         else:
