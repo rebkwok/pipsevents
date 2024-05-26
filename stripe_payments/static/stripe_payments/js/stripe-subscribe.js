@@ -1,69 +1,88 @@
 
-$jq(function () {
-    let elements;
-    let stripe;
-    let stripe_data;
+    const payment_button = document.querySelector('#payment-button');
+    stripe_data = {
+        stripe_account: payment_button.getAttribute("data-stripe_account"),
+        customer_id: payment_button.getAttribute("data-customer_id"),
+        stripe_api_key: payment_button.getAttribute("data-stripe_api_key"),
+        return_url: payment_button.getAttribute("data-return_url"),
+        price_id: payment_button.getAttribute("data-price_id"),
+        amount: payment_button.getAttribute("data-amount"),
+        backdate: payment_button.getAttribute("data-backdate")
+    };
 
-    setupElements();
-    initialize();
-    checkStatus();
+    stripe = Stripe(stripe_data.stripe_api_key, {stripeAccount: stripe_data.stripe_account});
+    const appearance = {
+        theme: 'stripe',
+    };
+    
+    const options = {
+        mode: 'subscription',
+        amount: Number(stripe_data.amount),
+        currency: 'gbp',
+        appearance: appearance,
+    };
+        
+    // Set up Stripe.js and Elements to use in checkout form
+    const elements = stripe.elements(options);
+        
+    // Create and mount the Payment Element
+    const paymentElementOptions = {
+        layout: "accordion",
+    };
+    const paymentElement = elements.create("payment", paymentElementOptions);
+    paymentElement.mount("#payment-element");
+    console.log("Initialise")    
+    console.log(elements)
 
-    document
-    .querySelector("#payment-form")
-    .addEventListener("submit", handleSubmit);
+    const form = document.getElementById('payment-form');
+    const submitBtn = document.getElementById('payment-button');
 
-    async function setupElements() {
-        const payment_button = document.querySelector('#payment-button');
-        stripe_data = {
-            stripe_account: payment_button.getAttribute("data-stripe_account"),
-            client_secret: payment_button.getAttribute("data-client_secret"),
-            stripe_api_key: payment_button.getAttribute("data-stripe_api_key"),
-            return_url: payment_button.getAttribute("data-return_url"),
-            backdate: payment_button.getAttribute("data-backdate")
-        };
+    const handleError = (error) => {
+        const messageContainer = document.querySelector('#error-message');
+        messageContainer.textContent = error.message;
+        submitBtn.disabled = false;
     }
 
-
-    // Fetches a payment intent and captures the client secret
-    async function initialize() {
-        const client_secret = stripe_data.client_secret
-        stripe = Stripe(stripe_data.stripe_api_key, {stripeAccount: stripe_data.stripe_account});
-        console.log(stripe)
-        const appearance = {
-            theme: 'stripe',
-        };
-        elements = stripe.elements(
-            { appearance: appearance, clientSecret: client_secret}
-        );
-
-        const paymentElementOptions = {
-            layout: "accordion",
-        };
-
-        const paymentElement = elements.create("payment", paymentElementOptions);
-        paymentElement.mount("#payment-element");
-        console.log(paymentElement)
-    }
-
-
-    async function handleSubmit(e) {
-        e.preventDefault();
+    form.addEventListener('submit', async (event) => {
+        // We don't want to let default form submission happen here,
+        // which would refresh the page.
+        event.preventDefault();
         setLoading(true);
-        if (stripe_data.backdate === "1") {
-            const { error } = await stripe.confirmPayment({
-                elements,
-                confirmParams: {
-                return_url: stripe_data.return_url,
-                },
-            });
-        } else {
-            const { error } = await stripe.confirmSetup({
-                elements,
-                confirmParams: {
-                return_url: stripe_data.return_url,
-                },
-            });
+
+        const {error: submitError} = await elements.submit();
+        if (submitError) {
+            handleError(submitError);
+            return;
         }
+
+        // Create the subscription
+        console.log(stripe_data.backdate)
+        const res = await fetch('/membership/subscription/create/', {
+            method: "POST",
+            body: JSON.stringify({
+                customer_id: stripe_data.customer_id, 
+                price_id: stripe_data.price_id, 
+                backdate: stripe_data.backdate,
+            }),
+            headers: {
+                'Content-Type': 'application/json',
+                "X-CSRFToken": CSRF_TOKEN
+            }
+        });
+        const {type, clientSecret} = await res.json();
+        console.log("!!!")
+        console.log(clientSecret)
+        const confirmIntent = type === "setup" ? stripe.confirmSetup : stripe.confirmPayment;
+
+        // Confirm the Intent using the details collected by the Payment Element
+        const {error} = await confirmIntent({
+            elements,
+            clientSecret,
+            confirmParams: {
+            return_url: stripe_data.return_url,
+            },
+        });
+
         console.log(error)
         // This point will only be reached if there is an immediate error when
         // confirming the payment. Otherwise, your customer will be redirected to
@@ -76,50 +95,9 @@ $jq(function () {
             showError("An unexpected error occurred.");
         }
         setLoading(false);
-    }
-    
-
-    // Fetches the payment intent status after payment submission
-    async function checkStatus() {
-        const clientSecret = new URLSearchParams(window.location.search).get(
-            "payment_intent_client_secret"
-        );
-
-        if (!clientSecret) {
-            return;
-        }
-
-        const { paymentIntent } = await stripe.retrievePaymentIntent(clientSecret);
-
-        switch (paymentIntent.status) {
-            case "succeeded":
-            showMessage("Payment succeeded!");
-            break;
-            case "processing":
-            showMessage("Your payment is processing.");
-            break;
-            case "requires_payment_method":
-            showError("Your payment was not successful, please try again.");
-            break;
-            default:
-            showError("Something went wrong.");
-            break;
-        }
-    }
+    });
 
     // ------- UI helpers -------
-
-    function showMessage(messageText) {
-        const messageContainer = document.querySelector("#payment-message");
-
-        messageContainer.classList.remove("hidden");
-        messageContainer.textContent = messageText;
-
-        setTimeout(function () {
-            messageContainer.classList.add("hidden");
-            messageContainer.textContent = "";
-        }, 5000);
-        }
 
     function showError(messageText) {
         const messageContainer = document.querySelector("#payment-error");
@@ -136,13 +114,13 @@ $jq(function () {
     function setLoading(isLoading) {
         if (isLoading) {
             // Disable the button and show a spinner
-            document.querySelector("#payment-button").disabled = true;
+            submitBtn.disabled = true;
             document.querySelector("#spinner").classList.remove("hidden");
             document.querySelector("#button-text").classList.add("hidden");
         } else {
-            document.querySelector("#payment-button").disabled = false;
+            submitBtn.disabled = false;
             document.querySelector("#spinner").classList.add("hidden");
             document.querySelector("#button-text").classList.remove("hidden");
         }
     }
-});
+

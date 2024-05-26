@@ -243,9 +243,9 @@ SUPPORT_EMAIL = 'rebkwok@gmail.com'
 SEND_ALL_STUDIO_EMAILS = env('SEND_ALL_STUDIO_EMAILS')
 
 # #####LOGGING######
+
 if not TESTING and not LOCAL:  # pragma: no cover
     LOG_FOLDER = env('LOG_FOLDER')
-
     LOGGING = {
         'version': 1,
         'disable_existing_loggers': False,
@@ -318,6 +318,45 @@ if not TESTING and not LOCAL:  # pragma: no cover
             },
         },
     }
+else:
+    LOGGING = {
+        'version': 1,
+        'disable_existing_loggers': False,
+        'handlers': {
+            'console': {
+                'level': 'DEBUG',
+                'class': 'logging.StreamHandler',
+            }
+        },
+        'loggers': {
+            'django.request': {
+                'handlers': ['console'],
+                'level': 'INFO',
+                'propagate': True,
+            },
+            'booking': {
+                'handlers': ['console'],
+                'level': 'INFO',
+                'propogate': True,
+            },
+            'payments': {
+                'handlers': ['console'],
+                'level': 'INFO',
+                'propogate': True,
+            },
+            'studioadmin': {
+                'handlers': ['console'],
+                'level': 'INFO',
+                'propogate': True,
+            },
+            'timetable': {
+                'handlers': ['console'],
+                'level': 'INFO',
+                'propogate': True,
+            },
+        },
+    }
+
 
 ADMINS = [("Becky Smith", SUPPORT_EMAIL)]
 
@@ -380,47 +419,6 @@ if env('USE_MAILCATCHER'):  # pragma: no cover
 # DJANGO-PAYPAL
 DEFAULT_PAYPAL_EMAIL = env('DEFAULT_PAYPAL_EMAIL')
 PAYPAL_TEST = env('PAYPAL_TEST')
-
-
-# TESTING logging
-if TESTING:  # pragma: no cover
-    LOGGING = {
-        'version': 1,
-        'disable_existing_loggers': False,
-        'handlers': {
-            'console': {
-                'level': 'DEBUG',
-                'class': 'logging.StreamHandler',
-            }
-        },
-        'loggers': {
-            'django.request': {
-                'handlers': ['console'],
-                'level': 'INFO',
-                'propagate': True,
-            },
-            'booking': {
-                'handlers': ['console'],
-                'level': 'INFO',
-                'propogate': True,
-            },
-            'payments': {
-                'handlers': ['console'],
-                'level': 'INFO',
-                'propogate': True,
-            },
-            'studioadmin': {
-                'handlers': ['console'],
-                'level': 'INFO',
-                'propogate': True,
-            },
-            'timetable': {
-                'handlers': ['console'],
-                'level': 'INFO',
-                'propogate': True,
-            },
-        },
-    }
 
 
 # Session cookies

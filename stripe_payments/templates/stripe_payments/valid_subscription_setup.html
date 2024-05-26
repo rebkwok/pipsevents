@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% load accounttags bookingtags static %}
+
+
+{% block content %}
+
+<div class="row">
+    <div class="col-12 mt-5">
+    <div class="card">
+        <div class="card-header text-center">
+            <i class="font-weight-lighter text-success far fa-check-circle fa-5x"></i>
+        </div>
+        <div class="card-body">
+            <h4 class="card-title">Membership setup succeeded</h4>
+            {% if payment %}
+                <p class="card-text">
+                    Thank you for setting up your membership. Your transaction for your first month's membership has been completed and you'll receive confirmation by email shortly.
+                </p>
+            {% elif setup %}
+                <p class="card-text">
+                    Thank you for setting up your membership. You'll receive confirmation by email shortly. Your first payment will be taken on the 25th of the month.
+                </p>
+            {% endif %}
+            <p>View  <a href="#">your membership</a>.</p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+

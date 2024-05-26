@@ -1,4 +1,5 @@
 
+from datetime import datetime
 import logging
 import re
 
@@ -27,8 +28,10 @@ class Membership(models.Model):
     price = models.DecimalField(max_digits=8, decimal_places=2)
     stripe_price_id = models.TextField(null=True)
     active = models.BooleanField(default=True, help_text="Visible and available for purchase on site")
-    # first month discount (changeable, temporarily set first phase of Sub schedule with discount)
 
+    def __str__(self) -> str:
+        return f"{self.name} - £{self.price}"
+    
     def generate_stripe_product_id(self):
         slug = slugify(self.name)
         counter = 1
@@ -85,48 +88,100 @@ class MembershipItem(models.Model):
     class Meta:
         unique_together = ("membership", "event_type")
 
+    def __str__(self) -> str:
+        return f"{self.membership.name} - {self.event_type.subtype} - {self.quantity}"
+    
 
 class UserMembership(models.Model):
     """
-    Holds info about current user membership
+    Holds info about user memberships
+
+    Created in the stripe webhook when a customer.subscription.create event is received
+
+    Subscription ID, Membership and User should never change after initial creation
+    (MembershipPrice could change on a Membership)
+    A change of membership plan sets the end date on the current one and creates a new
+    UserMembership with the start of the next one.
+
+    Start date and end date refer to the MEMBERSHIP (not to the stripe subscription) and
+    are used to determine whether a UserMembership with an active stripe subscription is
+    valid for use for a class on a particular date.  (Membership is used to verify that
+    it is valid for the class event_type.) They will always be the 1st of a month.
+
+    A user can have at most 1 active UserMemberships for any one period
+    start date now or 1st of next month; pricing charges on 25th
+    Note that there may be multiple UserMemberships with the same subscription_id (
+    if membership plan changes)
+    status refers to current status on Stripe of subscription
+    To verify if this membership is valid, check start/end dates as well as subscription status
+
+    eg. 1) User buys membership A on 12th April; to start this month
+    Create UserMembership with start date 1st April
+    end date = None
+    status = incomplete; once paid, updates to active
+     
+    e.g. 2) User buys membership A on 12th April; to start next month
+    Create UserMembership with start date 1st May
+    end date = None
+    status = incomplete; once setup intent succeeds, updates to active
+
+    e.g. 3) User upgrades to Membership B
+    Creates/updates a schedule for this subscription ID
+    Set end date of this UserMembership to to 1st of next month (checks on class date will check it is < end date (exclusive))
+    Create new UserMembership with same subscripiton ID and user, for Membership B, start 1st next month
+    Move all bookings for next both from previous UserMembership to new one. 
+    Check for unpaid bookings for next month and apply new UserMembership
+    
+    e.g. 4) User downgrades to Membership C
+    Creates/updates a schedule for this subscription ID
+    Set end date of this UserMembership to 1st of next month
+    Create new UserMembership with same subscripiton ID and user, for Membership C, start 1st next month
+    Move all bookings for next both from previous UserMembership to new one where possible. Mark any that
+    can't be applied (due to reduced usage) to unpaid (ordered by event date).
+    
+    e.g. 5) User cancels membership
+    Create schedule to run the rest of this month and then cancel subscription. 
+    Set end date of this UserMembership to to 1st of next month
+    (webhook will set status when it actually changes)
     """
     membership = models.ForeignKey(Membership, on_delete=models.CASCADE)
     user = models.ForeignKey("auth.User", on_delete=models.CASCADE)
 
+    # Membership dates. End date is None for ongoing memberships.
+    start_date = models.DateTimeField()
+    end_date = models.DateTimeField(null=True)
+
     # stripe data
     subscription_id = models.TextField(null=True)
     subscription_status = models.TextField(null=True)  # active (paid), overdue, cancelled
-    customer_id = models.TextField(null=True)
+
+    def __str__(self) -> str:
+        return f"{self.user} - {self.membership.name}"
+
+    def is_active(self):
+        # Note active doesn't mean valid for a particular class and date
+        if self.subscription_status == "active":
+            return True
+        if self.subscription_status == "past_due":
+            # past_due is allowed until the 28th of the month (after which past due subscriptions get cancelled)
+            return datetime.now().day <= 28
+        return False
     
-    start_date = models.DateField()
-    end_date = models.DateField(null=True)
-
-    #?
-    # Create subscription without payment
-    # Then create a schedule from it? https://www.youtube.com/watch?v=7z8mncrjq24
-    # THEN process payment
-
-    # A user can have at most 1 active UserMemberships
-    # start date now or 1st of next month
-    # User buys membership on 12th; backdate to 1st, charge monthly, set start date to 1st of this month, end date to None
-    # User buys membership on 12th for next month, set start_date to 1st of next month, end_date to None
-    # User changes membership plan to a higher tier one, immediately
-    # - change membership on current UserMembership
-    # - charge one off fee for difference in price from amount paid this month to current new membership price
-    # User changes membership plan to a higher tier one, from next month
-    # - update subscription schedule with phase starting from next month
-    # - when next month's payment is received, update the membership
-    # User changes membership plan to a lower tier one, from next month
-    # - update subscription schedule with phase starting from next month
-    # - reset any extra bookings after current month
-    # - when next month's payment is received, update the membership
-    # User cancels membership; cancel subscription. 
-
-
-    # options for user to change
-    # cancel membership - cancel on stripe, set end_date to end of month, remove from bookings if necessary
-    # upgrade membership (from next month or immediately; if immediately, charge one-off for difference)
-    # downgrade membership (from next month; remove bookings if necessary)
-
-    # This is created when the stripe event is received by the webhook
-    # User can only have one active membership at a time
+    def valid_for_event(self, event):
+        if not self.is_active():
+            return False
+        
+        membership_item = self.membership.membership_items.filter(event_type=event.event_type).first()
+        if not membership_item:
+            return False
+        
+        if event.date < self.start_date:
+            return False
+        
+        if self.end_date and self.end_date < event.date:
+            return False
+        
+        # check quantities of classes already booked with this membership for this event type
+        allowed_numbers = membership_item.quantity
+        open_booking_count = self.bookings.filter(event__event_type=event.event_type, status="OPEN").count()
+        return open_booking_count < allowed_numbers

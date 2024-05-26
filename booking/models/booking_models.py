@@ -670,6 +670,10 @@ class Booking(models.Model):
         Block, related_name='bookings', null=True, blank=True,
         on_delete=models.SET_NULL
         )
+    membership = models.ForeignKey(
+        "booking.UserMembership", related_name='bookings', null=True, blank=True,
+        on_delete=models.SET_NULL
+    )
     status = models.CharField(
         max_length=255, choices=STATUS_CHOICES, default='OPEN'
     )

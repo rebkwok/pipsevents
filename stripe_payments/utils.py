@@ -18,26 +18,30 @@ from .models import Invoice, Seller
 logger = logging.getLogger(__name__)
 
 
-def get_invoice_from_payment_intent(payment_intent, raise_immediately=False):
+def get_first_of_next_month_from_timestamp(timestamp):
+    next_month = datetime.fromtimestamp(timestamp) + relativedelta(months=1)
+    return next_month.replace(day=1, minute=0, second=0, microsecond=0)
+
+
+def get_invoice_from_event_metadata(event_object, raise_immediately=False):
     # Don't raise the exception here so we don't expose it to the user; leave it for the webhook
-    invoice_id = payment_intent.metadata.get("invoice_id")
+    invoice_id = event_object.metadata.get("invoice_id")
     if not invoice_id:
-        if raise_immediately:
-            raise StripeProcessingError(f"Error processing stripe payment intent {payment_intent.id}; no invoice id")
+        # don't raise exception here, it may validly not have an invoice id (e.g. subscriptions)
         return None
     try:
         invoice = Invoice.objects.get(invoice_id=invoice_id)
         if not invoice.username:
             # if there's no username on the invoice, it's from a guest checkout
             # Add the username from the billing email
-            billing_email = payment_intent.charges.data[0]["billing_details"]["email"]
+            billing_email = event_object.charges.data[0]["billing_details"]["email"]
             invoice.username = billing_email
             invoice.save()
         return invoice
     except Invoice.DoesNotExist:
-        logger.error("Error processing stripe payment intent %s; could not find invoice", payment_intent.id)
+        logger.error("Error processing stripe %s %s; could not find invoice", event_object.object, event_object.id)
         if raise_immediately:
-            raise StripeProcessingError(f"Error processing stripe payment intent {payment_intent.id}; could not find invoice")
+            raise StripeProcessingError(f"Error processing stripe {event_object.object} {event_object.id}; could not find invoice")
         return None
 
 
@@ -91,12 +95,13 @@ class StripeConnector:
     def __init__(self, request=None):
         stripe.api_key = settings.STRIPE_SECRET_KEY
         stripe.max_network_retries = 3
+        self.connected_account = None
         self.connected_account_id = self.get_connected_account_id(request)
 
     def get_connected_account_id(self, request=None):
-        seller = Seller.objects.filter(site=Site.objects.get_current(request=request)).first()
-        if seller:
-            return seller.stripe_user_id
+        self.connected_account = Seller.objects.filter(site=Site.objects.get_current(request=request)).first()
+        if self.connected_account:
+            return self.connected_account.stripe_user_id
         else:
             raise Seller.DoesNotExist
 
@@ -194,38 +199,88 @@ class StripeConnector:
             **kwargs
         )
 
-    def get_subscription(self, subscription_id, status=None):
+    def get_subscription(self, subscription_id):
         kwargs = dict(
             id=subscription_id, stripe_account=self.connected_account_id, 
             expand=['latest_invoice.payment_intent', 'pending_setup_intent']
         )
-        if status:
-            kwargs["status"] = status
         return stripe.Subscription.retrieve(**kwargs)
+
+    def get_subscription_cycle_start_dates(self, reference_date=None):
+        """
+        Return tuple of current start date, next start date and a boolean indicating whether backdating is required for the 
+        NEXT month's membership.
+        Memberships start on 1st; billing subscription starts on the 25th of the month before.
+        If it's currently the 25th or later in the month, we have to backdate in order to subscribe to a membership for the
+        next month (and backdating to the previous month is not allowed)  
+        reference_date is a datetime and will usually be now
+        """
+        reference_date = reference_date or datetime.now()
+        reference_day = reference_date.day
+        if reference_day >= 25:
+            # 25th of this month or later
+            current_cycle_start_date = reference_date.replace(day=25, hour=0, minute=0, second=0, microsecond=0, tzinfo=dt_timezone.utc)
+            next_cycle_start_date = current_cycle_start_date + relativedelta(months=1)
+            backdate_for_next_month = True
+        else:
+            next_cycle_start_date = reference_date.replace(day=25, hour=0, minute=0, second=0, microsecond=0, tzinfo=dt_timezone.utc)
+            current_cycle_start_date = next_cycle_start_date - relativedelta(months=1)
+            backdate_for_next_month = False
+        return current_cycle_start_date, next_cycle_start_date, backdate_for_next_month
 
     def create_subscription(self, customer_id, price_id, backdate=True):
         """
         Create subscription for this customer and price
-        Backdate to 1st of current month if backdate is True; proration will generate an invoice from 1st month
-        Start from 1st of next month (billing_cycle_anchor)
+
+        Memberships run for 1 calendar month from 1st month
+        Subscriptions run from 25th of the previous month
+        i.e. a subscription running from 25th April - 25th May is valid for a membership in May
+
+        Backdate:
+        Can only backdate if the current date is < 25th of the month
+        Backdate to 25th of previous month if backdate is True; proration will generate an invoice from 25th of previous
+        month to 25th of this month (i.e.)
+        Start billing_cycle_anchor to 25th of this month (always in the future)
+
+        e.g. now is 20th April. User chooses to backdate.
+        Payment taken immediately for one full month from 25th March (for April Membership)
+        Payment will be taken again on 25th April (for May membership) - billing_cycle_anchor = 25th April
+
+        e.g. now is 20th April. User chooses NOT to backdate.
+        No payment immediately
+        Payment will be taken on 25th April (for May membership) - billing_cycle_anchor = 25th April
+
+        e.g. now is 27th April. User cannot choose to backdate for April, but we need to backdate to 25th April
+        to take May payment.
+        Payment taken immediately for one full month from 25th April (for May Membership)
+        Payment will be taken again on 25th May (for June membership) - billing_cycle_anchor = 25th May
+        This scenario applies until 1st May. After 1st May (up to 25th), user gets option to start subscription in May or June
+
         NOTE: If not backdating, will create setup intent; if backdating, creates payment intent
         """
-        now = datetime.utcnow()
-        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0, tzinfo=dt_timezone.utc)
-        next_month_start = month_start + relativedelta(months=1)
+        current_cycle_start_date, next_cycle_start_date, backdate_for_next_month = self.get_subscription_cycle_start_dates()
+        
         kwargs = dict(
             customer=customer_id,
             items=[{'price': price_id, 'quantity': 1}],
-            billing_cycle_anchor=int(next_month_start.timestamp()),
+            billing_cycle_anchor=int(next_cycle_start_date.timestamp()),
             payment_behavior='default_incomplete',  # create subscription as incomplete
             payment_settings={'save_default_payment_method': 'on_subscription'},   # save customer default payment
             expand=['latest_invoice.payment_intent', 'pending_setup_intent'],
             stripe_account=self.connected_account_id,
         )
-        if backdate:
-            kwargs["backdate_start_date"] = int(month_start.timestamp())
+        if backdate_for_next_month or backdate:
+            # backdating: backdate to start of current cycle
+            # proration invoice will be for the full month
+            kwargs["backdate_start_date"] = int(current_cycle_start_date.timestamp())
+            kwargs["proration_behavior"] = "create_prorations"
+        else:
+            # no backdating; set proration to none so stripe doesn't try to collect
+            # prorated payment for now to end of cycle
+            kwargs["proration_behavior"] = "none"
 
         subscription = stripe.Subscription.create(**kwargs)
+
         return subscription
     
     def get_or_create_subscription_schedule(self, subscription_id):
@@ -241,7 +296,8 @@ class StripeConnector:
 
     def update_subscription_price(self, subscription_id, new_price_id):
         """
-        For when a Membership price changes
+        For when a Membership price changes (apply to every subscription with
+        the membership), or when a user changes their plan
         Create a subscription schedule for each subscription
         Phases = current phase to end of billing period, then new phase with 
         new price
@@ -304,6 +360,16 @@ class StripeConnector:
             ],
             stripe_account=self.connected_account_id
         )
+
+    def add_discount_to_subscription(self, subscription_id):
+        # TODO
+        # for an existing suscription, add a discount
+        # it will be applied to the next X months, as specified in the stripe discount object
+        # check if subscription already has the discount applied
+
+        # Also add option to apply a discount when a subscription is created
+        # check what happens when the subscription has a schedule (e.g. if price is changing)
+        ...
 
     def customer_portal_configuration(self):
         """
