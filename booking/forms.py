@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import calendar
+from datetime import datetime
 from django import forms
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -358,5 +360,42 @@ class GiftVoucherForm(forms.Form):
 
 
 class ChooseMembershipForm(forms.Form):
-    membership = forms.ModelChoiceField(queryset=Membership.objects.all())
-    agree_to_terms = forms.BooleanField(required=True)
+    membership = forms.ModelChoiceField(
+        queryset=Membership.objects.all(),
+        widget=forms.RadioSelect,    
+    )
+    agree_to_terms = forms.BooleanField(required=True, label="Please tick to confirm that you understand and agree that by setting up a membership, your payment details will be held by Stripe and collected on a recurring basis")
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # if current date is <25th, give option to start membership from this month as well as next monht
+        today = datetime.today()
+        if today.day < 25: 
+            # choice values refer to whether to backdate or not
+            choices = ((1, calendar.month_name[today.month]), (0, calendar.month_name[today.month + 1]))
+            initial = None
+            help_text = (
+                f"Note that if you choose to start your membership in the current month ({calendar.month_name[today.month]}), "
+                f"you will be billed immediately, and you will have the entire {calendar.month_name[today.month]} membership allowance to "
+                f"use until the end of the month. You will be billed again on the 25th {calendar.month_name[today.month]} "
+                f"for {calendar.month_name[today.month + 1]}'s membership. Memberships for subsequent months will be billed on the 25th of "
+                "the preceding month."
+            )
+        else:
+            # no option to backdate if it's 25th or later in the month, only show option for next month
+            choices = ((0, calendar.month_name[today.month + 1]),)
+            initial = 0
+            help_text = (
+                f"You will be billed immediately for {calendar.month_name[today.month + 1]}. You will be able to use this membership "
+                f"immediately to book for classes scheduled in {calendar.month_name[today.month + 1]}. Memberships for subsequent months "
+                "will be billed on the 25th of the preceding month."
+            )
+
+        self.fields["backdate"] = forms.ChoiceField(
+            choices=choices, label="When do you want the membership to start?",
+            required=True,
+            widget=forms.RadioSelect,  
+            initial=initial,  
+            help_text=help_text
+        )
