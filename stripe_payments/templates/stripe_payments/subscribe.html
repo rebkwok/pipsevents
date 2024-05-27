@@ -9,7 +9,11 @@
 {% endblock %}
 
 {% block content %}
-    <h1 class="mt-2">Set up Membership Subscription</h1>
+    {% if creating %}
+      <h1 class="mt-2">Set up Membership Subscription</h1>
+    {% else %}
+      <h1 class="mt-2">Update Membership Subscription</h1>
+    {% endif %}
     <hr>
 
     <div>
@@ -24,9 +28,12 @@
 
       {% else %}
 
-
-      <div id="subscription-checkout-summary">  
-        <p>You are subscribing to {{membership.name}}.</p>
+      <div id="subscription-checkout-summary">
+        {% if creating %}
+          <p>You are subscribing to {{membership.name}}.</p>
+        {% else %}
+          <p>You are updating your subscription for {{membership.name}}.</p>
+        {% endif %}
       </div>
 
       <div>
@@ -41,14 +48,14 @@
                 data-client_secret="{{ client_secret }}"
                 data-customer_id="{{ customer_id }}"
                 data-price_id="{{ membership.stripe_price_id}}"
-                data-amount={{ amount }}
+                data-amount="{{ amount }}"
                 data-stripe_account="{{ stripe_account }}"
                 data-stripe_api_key="{{ stripe_api_key }}"
                 data-return_url="{{ stripe_return_url }}"
                 data-backdate={% if backdate %}"1"{% else %}"0"{% endif %}
               >
                 <div class="spinner hidden" id="spinner"></div>
-                <span id="button-text">Subscribe Now </span>
+                <span id="button-text">Submit</span>
               </button>
               <div id="payment-message" class="hidden"></div>
               <div id="payment-error" class="Error hidden"></div>

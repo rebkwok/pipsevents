@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<div class="extra-top-margin container-fluid row">
+    <div class="col-sm-12">
+       <div class="card card-wm">
+            <div class="card-header">
+                <h2 class="card-title">Your Membership</h2>
+            </div>
+            <div class="card-body">
+                <dl>
+                    <dt>Membership</dt>
+                    <dd>{{ user_membership.membership }}</dd>
+                </dl>
+                <dl>
+                    <dt>Status</dt>
+                    <dd>{{ user_membership.hr_status }} 
+                        {% if user_membership.subscription_status != "active" %}
+                        <form method="post" action="{% url 'membership_checkout' %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="subscription_id" value="{{ user_membership.subscription_id }}"/>
+                            <div class="form-group">
+                               <input class="btn btn-wm" type="submit" value="Complete payment" />
+                            </div>
+                        </form>
+                        {% endif %}
+                    </dd>
+                </dl>
+                <dl>
+                    <dt>Next payment due</dt>
+                    <dd>{{ next_due|date:"d M Y" }}</dd>
+                </dl>
+                <dl>
+                    <dt>Start date</dt>
+                    <dd>{{ user_membership.start_date|date:"d M Y" }}</dd>
+                </dl>
+                <dl>
+                    <dt>End date</dt>
+                    <dd>{% if user_membership.end_date %}{{ user_membership.end_date|date:"d M Y" }}{% else %}-{% endif %}</dd>
+                </dl>
+                <dl>
+                    <dt>Bookings this month ({{this_month}})</dt>
+                    <dd>
+                        {% if user_membership.bookings_this_month %}
+                            {% for booking in user_membership.bookings_this_month %}
+                                {{ booking.event }}
+                            {% endfor %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </dd>
+                </dl>
+                <dl>
+                    <dt>Bookings next month ({{next_month}})</dt>
+                    <dd>
+                        {% if user_membership.bookings_next_month %}
+                            {% for booking in user_membership.bookings_next_month %}
+                                {{ booking.event }}
+                            {% endfor %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </dd>
+                </dl>
+            </div>
+       </div>
+
+</div>
+</div>
+
+{% endblock content %}

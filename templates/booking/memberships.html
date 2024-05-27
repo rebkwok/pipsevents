@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% load static %}
+{% load bookingtags %}
+
+{% block content %}
+
+
+<div class="row">
+
+
+        <h1>My Memberships</h1>
+        <div class="col-12">
+            <div class="btn-group btn-group-sm float-right">
+                <a class="btn btn-info-link" href="{% url 'booking:bookings' %}">My bookings</a>
+                <a class="btn btn-info-link" href="{% url 'booking:lessons' %}">All Classes</a> 
+            </div>
+        </div>
+
+    <div class="col-12">
+        {% if memberships %}
+            <div class="card card-wm">
+                <div class="table-responsive">
+                    <table class="table">
+                        <tr class="success">
+                            <th>Membership</th>
+                            <th>Status</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                        </tr>
+                        {% for user_membership in memberships %}
+                            <tr {% if user_membership.subscription_status in "past_due,unpaid" %}class="not_paid_block"{% elif user_membership.is_active %}class="active_block"{% else %}class="expired_block"{% endif %}>
+                                <td>{{ user_membership.membership }}<br/><a class="studioadmin-help" href="{% url 'subscription_status' user_membership.subscription_id %}">View details and update</a></td>
+                                <td>{{ user_membership.hr_status }} </td>
+                                <td>{{ user_membership.start_date|date:"d M Y"}}</td>
+                                <td>{% if user_membership.end_date %}{{ user_membership.end_date|date:"d M Y"}}{% endif %}</td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                    {% include 'booking/includes/pagination.html' %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+
+{% endblock content %}

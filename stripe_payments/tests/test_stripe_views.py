@@ -491,7 +491,7 @@ def test_webhook_exceptions(mock_webhook, client):
 
 
 @patch("stripe_payments.views.stripe.Webhook")
-def test_webhook_exception_invalid_invoice_signature(
+def test_webhook_exception_retrieving_invoice(
     mock_webhook, get_mock_webhook_event, client, invoice
 ):
     block = baker.make(Block, paid=False, block_type__cost=10, invoice=invoice)
@@ -515,7 +515,7 @@ def test_webhook_exception_invalid_invoice_signature(
 
 
 @patch("stripe_payments.views.stripe.Webhook")
-def test_webhook_exception_retrieving_invoice(
+def test_webhook_exception_invalid_invoice_signature(
     mock_webhook, get_mock_webhook_event, client, invoice
 ):
     block = baker.make(Block, paid=False, block_type__cost=10, invoice=invoice)
@@ -547,7 +547,7 @@ def test_webhook_exception_no_invoice(
 ):
     block = baker.make(Block, paid=False, block_type__cost=10, invoice=invoice)
 
-    # invalid invoice signature
+    # no invoice id or signature in metadata
     metadata = invoice.items_metadata()
     mock_webhook.construct_event.return_value = get_mock_webhook_event(metadata=metadata)
     resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
@@ -557,11 +557,8 @@ def test_webhook_exception_no_invoice(
     assert block.paid is False
     assert invoice.paid is False
 
-    # assert len(mail.outbox) == 1
-    # assert mail.outbox[0].to == [settings.SUPPORT_EMAIL]
-    # assert "WARNING: Something went wrong with a payment!" in mail.outbox[0].subject
-    # assert "Error: Error processing stripe payment intent mock-intent-id; no invoice id" \
-    #         in mail.outbox[0].body
+    assert len(mail.outbox) == 0
+    # No error emails sent as this is assumed to be a subscription (no invoice info in metadata)
 
 
 @patch("stripe_payments.views.stripe.Webhook")
@@ -584,11 +581,9 @@ def test_webhook_payment_failed(
     # invoice and block is still unpaid
     assert block.paid is False
     assert invoice.paid is False
-
-    assert len(mail.outbox) == 1
-    assert mail.outbox[0].to == [settings.SUPPORT_EMAIL]
-    assert "WARNING: Something went wrong with a payment!" in mail.outbox[0].subject
-    assert "Failed payment intent id: mock-intent-id; invoice id foo" in mail.outbox[0].body
+    # no emails sent; payment failed for a one-off invoice is due to synchronous user data entry and
+    # will be reported to the user to try again
+    assert len(mail.outbox) == 0
 
 
 @patch("stripe_payments.views.stripe.Webhook")

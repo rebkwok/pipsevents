@@ -145,7 +145,7 @@ class UserMembership(models.Model):
     (webhook will set status when it actually changes)
     """
     membership = models.ForeignKey(Membership, on_delete=models.CASCADE)
-    user = models.ForeignKey("auth.User", on_delete=models.CASCADE)
+    user = models.ForeignKey("auth.User", related_name="memberships", on_delete=models.CASCADE)
 
     # Membership dates. End date is None for ongoing memberships.
     start_date = models.DateTimeField()
@@ -155,6 +155,15 @@ class UserMembership(models.Model):
     subscription_id = models.TextField(null=True)
     subscription_status = models.TextField(null=True)  # active (paid), overdue, cancelled
 
+    # stripe status to user-friendly format
+    HR_STATUS = {
+        "incomplete": "Incomplete",
+        "incomplete_expired": "Expired",
+        "active": "Active",
+        "past_due": "Overdue",
+        "canceled": "Cancelled",
+        "unpaid": "Unpaid",
+    }
     def __str__(self) -> str:
         return f"{self.user} - {self.membership.name}"
 
@@ -185,3 +194,13 @@ class UserMembership(models.Model):
         allowed_numbers = membership_item.quantity
         open_booking_count = self.bookings.filter(event__event_type=event.event_type, status="OPEN").count()
         return open_booking_count < allowed_numbers
+
+    def hr_status(self):
+        return self.HR_STATUS.get(self.subscription_status, self.subscription_status.title())
+
+    def bookings_this_month(self):
+        return self.bookings.filter(status="OPEN", event__date__month=datetime.now().month)
+    
+    def bookings_next_month(self):
+        next_month = (datetime.now().month - 12) % 12
+        return self.bookings.filter(status="OPEN", event__date__month=next_month)
