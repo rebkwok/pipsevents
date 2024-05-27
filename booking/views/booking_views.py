@@ -52,6 +52,7 @@ from common.views import _set_pagination_context
 from payments.helpers import create_booking_paypal_transaction
 from activitylog.models import ActivityLog
 
+
 logger = logging.getLogger(__name__)
 
 

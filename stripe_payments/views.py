@@ -91,6 +91,7 @@ def stripe_payment_complete(request):
 def stripe_subscribe_complete(request):
     subscribe_type = None
     intent_id = request.GET.get("payment_intent")
+    updating = request.GET.get("updating", False)
     if intent_id:
         subscribe_type = "payment"
     else:
@@ -134,7 +135,7 @@ def stripe_subscribe_complete(request):
         if intent.status == "succeeded":
             # create Invoice and StripePaymentIntent?
             # _process_completed_stripe_subscription(intent, client.connected_account, subscribe_type=subscribe_type, request=request)
-            return render(request, 'stripe_payments/valid_subscription_setup.html', {"payment": True})
+            return render(request, 'stripe_payments/valid_subscription_setup.html', {"payment": True, "updating": updating})
         elif intent.status == "processing":
             error = f"Payment intent {intent.id} still processing."
             logger.error(error)
@@ -149,7 +150,7 @@ def stripe_subscribe_complete(request):
     assert subscribe_type == "setup"
     if intent.status == "succeeded":
         # _process_completed_stripe_subscription(intent, client.connected_account, subscribe_type=subscribe_type, request=request)
-        return render(request, 'stripe_payments/valid_subscription_setup.html', {"setup": True})
+        return render(request, 'stripe_payments/valid_subscription_setup.html', {"setup": True, "updating": updating})
     elif intent.status == "processing":
         error = f"Setup intent {intent.id} still processing."
         logger.error(error)
@@ -220,7 +221,6 @@ def stripe_webhook(request):
         # processing already:
         # - payment_intent.succeeded
         # - payment_intent.payment_failed (update to not email for every card error)
-        # - payment_intent.processing
         # - account.application.authorized
         # - account.application.deauthorized
         # charge.refund.updated
@@ -261,31 +261,41 @@ def stripe_webhook(request):
         # event related to a payment for an immediate checkout (booking, block, ticket_booking) and not for a subscription
         # Handle the payment intent and refund events
         # This raises an error if there is an invoice id in the metadata but no associated local Invoice object in the db
-        invoice = get_invoice_from_event_metadata(event_object, raise_immediately=True)
+        try:    
+            invoice = get_invoice_from_event_metadata(event_object, raise_immediately=True)
+        except StripeProcessingError as e:
+            # capture known errors, log and acknowledge. We only want to return 400s to stripe for unexpected
+            # errors
+            logger.error(str(e))
+            send_failed_payment_emails(error=str(e))
+            return HttpResponse(str(e), status=200)
         if invoice is not None:
-            error = None
             if event.type == "payment_intent.succeeded":
-                _process_completed_stripe_payment(event_object, invoice, request=request)
-            elif event.type == "payment_intent.processing":
-                error = f"Payment intent {event_object.id} still processing."
+                try:
+                    _process_completed_stripe_payment(event_object, invoice, request=request)
+                except StripeProcessingError as e:
+                    # capture known errors, log and acknowledge. We only want to return 400s to stripe for unexpected
+                    # errors
+                    logger.error(str(e))
+                    send_failed_payment_emails(error=str(e))
+                    return HttpResponse(str(e), status=200)
             elif event.type in ["charge.refund.updated", "charge.refunded"]:
                 # No automatic refunds from the system; if a payment is refunded, just send the
                 # support emails for checking
                 send_processed_refund_emails(invoice)
             elif event.type == "payment_intent.payment_failed":
-                error = f"Failed payment intent id: {event_object.id}; invoice id {invoice.invoice_id}; " \
-                        f"error {event_object.last_payment_error}"
-            if error:
-                logger.error(error)
-                send_failed_payment_emails(error=error)
-                return HttpResponse(error, status=200)
+                # payment failed for a one-off item; acknowledge but don't email
+                logger.info(
+                    f"Failed payment intent id: {event_object.id}; invoice id {invoice.invoice_id}; " \
+                    f"error {event_object.last_payment_error}"
+                )
         else:
             if event.type == "customer.subscription.created":
                 # calculate membership start from subscription start timestamp (should be 25th month, membership
                 # start is 1st of the next month)
                 membership_start = get_first_of_next_month_from_timestamp(event_object.start_date)
                 user = User.objects.get(userprofile__stripe_customer_id=event_object.customer)
-                UserMembership.objects.create(
+                user_membership = UserMembership.objects.create(
                     user=user,
                     membership=Membership.objects.get(stripe_price_id=event_object["items"].data[0].price.id),
                     subscription_id=event_object.id,
@@ -293,10 +303,54 @@ def stripe_webhook(request):
                     start_date=membership_start
                 )
                 ActivityLog.objects.create(
-                    log=f"Membership {Membership.name} set up for {user} (stripe subscription id {event_object.id}, status {event_object.status})"
+                    log=f"Membership {user_membership.membership.name} set up for {user} (stripe subscription id {event_object.id}, status {event_object.status})"
                 )
+            elif event.type == "customer.subscription.deleted":
+                # Should already be done on user request?
+                # In case cancelled from stripe account, check that the subscription is already cancelled from the
+                # next month; if not, cancel and send emails
+                ...
+            elif event.type == "customer.subscription.updated":
+                user_membership = UserMembership.objects.get(subscription_id=event_object.id)
+                if user_membership.subscription_status != event_object.status:
+                    ActivityLog.objects.create(
+                        log=f"Membership for user {user_membership.user} updated from {user_membership.subscription_status} "
+                        f"to {event_object.status}"
+                    )
+                    user_membership.subscription_status = event_object.status
+                    user_membership.save()
+                if event_object.status == "past_due":
+                    # email user with link to subscription status page for updating payment
+                    ...
+
+                # Should already be done on user request or when membership price changes
+                # In case changed from stripe account, check that the subscription is already changed from the
+                # next month; if not, update and send emails
+                ...
+            elif event.type == "customer.source.expiring":
+                # send user emails to remind to update
+                ...
+            elif event.type == "payment_intent.succeeded":
+                # subscription PI succeeded; check charges.data.0 description is "Subscription created" or "Subscription updated"
+                # if not, send email to support
+                # return 200 to acknowledge, nothing to process, handled in invoice
+                ...
+            elif event.type == "payment_intent.payment_failed":
+                # subscription PI succeeded; check charges.data.0 description is "Subscription created" or "Subscription updated"
+                # if not, send email to support
+                # return 200 to acknowledge, nothing to process, handled in invoice
+                ...
+            elif event.type == "invoice.paid":
+                # subscription invoice succeeded; look for subscription
+                ...
+            elif event.type == "invoice.payment_failed":
+                ...
+            elif event.type == "invoice.upcoming":
+                # send warning email to user that subscription will recur soon
+                ...
+
+            
             # handle all the other things related to subscriptions (including payment intents and refunds)
-            ...
             # payment_intent and charge
             # fetch invoice using id from event_object.invoice (if not None), with expand=['subscription']
             # invoice.subscription will have subscription details, look up UserMembership
@@ -309,8 +363,8 @@ def stripe_webhook(request):
             #
             # invoice.paid/payment_failed/upcoming
             
-    except Exception as e:  # log anything else
+    except Exception as e:  # log anything else; return 400 so stripe tries again
         logger.error(e)
         send_failed_payment_emails(error=e)
-        return HttpResponse(str(e), status=200)
+        return HttpResponse(str(e), status=400)
     return HttpResponse(status=200)
