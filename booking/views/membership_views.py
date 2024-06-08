@@ -39,7 +39,10 @@ def membership_create(request):
     has_membership = request.user.memberships.filter(subscription_status__in=["active", "past_due"]).exists()
     form = ChooseMembershipForm()
     # TODO add discount voucher option
-    return TemplateResponse(request, "booking/membership_create.html", {"form": form, "has_membership": has_membership})
+    return TemplateResponse(
+        request, 
+        "booking/membership_create.html", 
+        {"form": form, "has_membership": has_membership, "memberships": Membership.objects.filter(active=True)})
 
 
 @require_http_methods(['POST'])
@@ -87,9 +90,9 @@ def stripe_subscription_checkout(request):
         "stripe_account": client.connected_account_id,
         "stripe_api_key": settings.STRIPE_PUBLISHABLE_KEY,
         "stripe_return_url": request.build_absolute_uri(reverse("stripe_payments:stripe_subscribe_complete")),
-        "client_secret": None,
-        "backdate": None,
-        "amount": None,
+        "client_secret": "",
+        "backdate": 0,
+        "amount": "",
     }
     subscription_id = request.POST.get("subscription_id")
     if subscription_id:
@@ -125,6 +128,7 @@ def stripe_subscription_checkout(request):
             amount_to_charge_now = 0
 
         context.update({
+            "creating": True,
             "membership": membership,
             "customer_id": customer_id,
             "backdate": backdate,
@@ -138,6 +142,14 @@ def stripe_subscription_checkout(request):
 @require_http_methods(['GET'])
 def subscription_status(request, subscription_id):
     user_membership = get_object_or_404(UserMembership, user=request.user, subscription_id=subscription_id)
+    client = StripeConnector()
+    subscription = client.get_subscription(subscription_id)
+    if subscription.status != user_membership.subscription_status:
+        user_membership.subscription_status = subscription.status
+    if subscription.cancel_at:
+        user_membership.end_date = datetime.fromtimestamp(subscription.cancel_at)
+    user_membership.save()
+
     this_month = datetime.now().month
     next_month = (this_month + 1 - 12) % 12
 

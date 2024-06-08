@@ -117,6 +117,132 @@ def test_membership_change_price(mocked_responses, seller):
     assert membership.stripe_price_id == "price_2"
 
 
+def test_membership_change_price_with_user_memberships(mocked_responses, seller):
+    # created initial product
+    mocked_responses.post(
+        "https://api.stripe.com/v1/products",
+        body=json.dumps(
+            {
+                "object": "product",
+                "url": "/v1/product",
+                "id": "memb-1",
+                "name": "membership 1",
+                "description": "a membership",
+                "default_price": "price_1"
+            }
+        ),
+        status=200,
+        content_type="application/json",
+    )
+    # gets list of matching product prices
+    mocked_responses.get(
+        "https://api.stripe.com/v1/prices",
+        body=json.dumps(
+            {
+                "object": "list",
+                "url": "/v1/prices",
+                "data": [],
+            }
+        ),
+        status=200,
+        content_type="application/json",
+    )
+    # create new price
+    mocked_responses.post(
+        "https://api.stripe.com/v1/prices",
+        body=json.dumps(
+            {
+                "object": "price",
+                "url": "/v1/prices",
+                "id": "price_2",
+            }
+        ),
+        status=200,
+        content_type="application/json",
+    )
+    # update product to set price as default
+    mocked_responses.post(
+        "https://api.stripe.com/v1/products/memb-1",
+        body=json.dumps(
+            {
+                "object": "product",
+                "url": "/v1/product",
+                "id": "memb-1",
+                "name": "membership 1",
+                "description": "a membership",
+                "default_price": "price_2"
+            }
+        ),
+        status=200,
+        content_type="application/json",
+    )
+
+    # update subscriptions to add schedule to change price
+    # get the subscription to check if it has a schedule
+    mocked_responses.get(
+        "https://api.stripe.com/v1/subscriptions/subsc-1",
+        body=json.dumps(
+            {
+                "object": "subscription",
+                "url": "/v1/subscription",
+                "id": "subsc-1",
+                "schedule": None,
+            }
+        ),
+        status=200,
+        content_type="application/json",
+    )
+
+    # create the schedule
+    mocked_responses.post(
+        "https://api.stripe.com/v1/subscription_schedules",
+        body=json.dumps(
+            {
+                "object": "subscription_schedule",
+                "url": "/v1/subscription_schedules",
+                "id": "sub_sched-1",
+                "subscription": "subsc-1",
+                "end_behavior": "release",
+                "phases": [
+                     {    
+                          "start_date": datetime(2024, 6, 25).timestamp(),
+                          "end_date": datetime(2024, 7, 25).timestamp(),  
+                          "items": [{"price": 2000, "quantity": 1}]
+                     }
+                ]
+            }
+        ),
+        status=200,
+        content_type="application/json",
+    )
+    # update the schedule
+    mocked_responses.post(
+        "https://api.stripe.com/v1/subscription_schedules/sub_sched-1",
+        body=json.dumps(
+            {
+                "object": "subscription_schedule",
+                "url": "/v1/subscription_schedules",
+                "id": "sub_sched-1",
+                "subscription": "subsc-1"
+            }
+        ),
+        status=200,
+        content_type="application/json",
+    )
+   
+
+    membership = baker.make(Membership, name="memb 1", description="a membership", price=10)
+    assert membership.stripe_product_id == "memb-1"
+    assert membership.stripe_price_id == "price_1"
+
+    baker.make(UserMembership, membership=membership, subscription_status="active", subscription_id="subsc-1")
+    membership.price = 20
+    membership.save()
+
+    assert membership.stripe_product_id == "memb-1"
+    assert membership.stripe_price_id == "price_2"
+
+
 def test_membership_change_name(mocked_responses, seller):
     # created initial product
     mocked_responses.post(

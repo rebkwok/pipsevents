@@ -361,7 +361,7 @@ class GiftVoucherForm(forms.Form):
 
 class ChooseMembershipForm(forms.Form):
     membership = forms.ModelChoiceField(
-        queryset=Membership.objects.all(),
+        queryset=Membership.objects.filter(active=True),
         widget=forms.RadioSelect,    
     )
     agree_to_terms = forms.BooleanField(required=True, label="Please tick to confirm that you understand and agree that by setting up a membership, your payment details will be held by Stripe and collected on a recurring basis")

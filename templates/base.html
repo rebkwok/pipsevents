@@ -72,6 +72,7 @@
                     <a class="dropdown-item d-none d-sm-block" href="{% url 'booking:ticketed_events' %}">Tickets</a>
                     <a class="dropdown-item d-none d-sm-block" href="{% url 'nonregistered_disclaimer_form' %}">Event Disclaimer</a>
             </li>
+
             {% if request.user.is_authenticated %}
                 <li class="pl-1 pt-2 nav-item d-none d-sm-block"><span id="shopping-basket-menu">{% show_shopping_basket_menu request.user %}</span></li>
                 <li id="blocks-menu" class="pt-2 ml-4 mr-2 nav-item d-none d-sm-block" title="View available blocks">{% include 'booking/includes/blocks_modal.html' %}</li>
@@ -107,6 +108,7 @@
                         <a class="dropdown-item active-nav-login" href="{% url 'booking:booking_history' %}">Booking history</a>
                         <a class="dropdown-item active-nav-login" href="{% url 'booking:purchased_tutorials' %}">Tutorials</a>
                         <a class="dropdown-item active-nav-login" href="{% url 'booking:block_list' %}">Blocks</a>
+                        <a class="dropdown-item d-none d-sm-block" href="{% url 'membership_list' %}">Memberships</a>
                         <a class="dropdown-item active-nav-login" href="{% url 'booking:ticket_bookings' %}">Tickets</a>
                         <a class="dropdown-item active-nav-login" href="{% url 'booking:ticket_booking_history' %}">Ticket history</a>
                         
