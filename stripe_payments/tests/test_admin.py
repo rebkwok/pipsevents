@@ -8,6 +8,7 @@ from django.urls import reverse
 from model_bakery import baker
 
 from stripe_payments.models import Invoice, StripePaymentIntent
+from conftest import get_mock_payment_intent
 
 from ..admin import StripePaymentIntentAdmin, InvoiceAdmin
 
@@ -28,7 +29,7 @@ def test_invoice_display_no_payment_intent_or_items():
     assert invoice_admin.pi(invoice) == ""
 
 
-def test_invoice_display_payment_intent(get_mock_payment_intent):
+def test_invoice_display_payment_intent():
     invoice = baker.make(
         Invoice, invoice_id="foo123", username="test@test.com", amount=10
     )
@@ -40,7 +41,7 @@ def test_invoice_display_payment_intent(get_mock_payment_intent):
     assert invoice_admin.pi(invoice) == f'<a href="{pi_admin_url}">mock-intent-id</a>'
 
 
-def test_invoice_display_items(get_mock_payment_intent):
+def test_invoice_display_items():
     invoice = baker.make(
         Invoice, invoice_id="foo123", username="test@test.com", amount=10
     )
@@ -52,7 +53,7 @@ def test_invoice_display_items(get_mock_payment_intent):
     assert invoice_admin.items(invoice) == f"<ul><li>{booking.event.str_no_location()}</li></ul>"
 
 
-def test_payment_intent_admin_display(get_mock_payment_intent, block_gift_voucher):
+def test_payment_intent_admin_display(block_gift_voucher):
     invoice = baker.make(
         Invoice, invoice_id="foo123", username="test@test.com", amount=10
     )

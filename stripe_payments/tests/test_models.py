@@ -7,6 +7,7 @@ import pytest
 
 from model_bakery import baker
 
+from conftest import get_mock_payment_intent
 from booking.models import Booking, Block, TicketBooking, Ticket
 from ..models import Invoice, Seller, StripePaymentIntent
 
@@ -141,7 +142,7 @@ def test_seller_str():
     assert str(seller) == "testuser@test.com"
 
 
-def test_invoice_payment_intent_ids(get_mock_payment_intent):
+def test_invoice_payment_intent_ids():
     invoice = baker.make(Invoice, invoice_id="foo123")
     stripe_pi, _ = StripePaymentIntent.update_or_create_payment_intent_instance(
         get_mock_payment_intent(), invoice
@@ -149,7 +150,7 @@ def test_invoice_payment_intent_ids(get_mock_payment_intent):
     assert invoice.payment_intent_ids == "mock-intent-id"
 
 
-def test_create_stripe_payment_intent_instance_from_pi(get_mock_payment_intent):
+def test_create_stripe_payment_intent_instance_from_pi():
     payment_intent = get_mock_payment_intent()
     invoice = baker.make(Invoice, invoice_id="foo123")
     assert not StripePaymentIntent.objects.exists()
@@ -167,7 +168,7 @@ def test_create_stripe_payment_intent_instance_from_pi(get_mock_payment_intent):
     assert pi.seller == seller
 
 
-def test_stripe_payment_intent_str(get_mock_payment_intent):
+def test_stripe_payment_intent_str():
     payment_intent = get_mock_payment_intent()
     invoice = baker.make(Invoice, invoice_id="foo123", username="user@test.com")
     pi, _ = StripePaymentIntent.update_or_create_payment_intent_instance(payment_intent, invoice)
