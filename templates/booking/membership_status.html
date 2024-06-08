@@ -16,15 +16,19 @@
                 </dl>
                 <dl>
                     <dt>Status</dt>
-                    <dd>{{ user_membership.hr_status }} 
-                        {% if user_membership.subscription_status != "active" %}
+                    <dd>{{ user_membership.hr_status }} </dd>
+                    <dd>
+                        {% if user_membership.subscription_status == "past_due" %}
                         <form method="post" action="{% url 'membership_checkout' %}">
                             {% csrf_token %}
                             <input type="hidden" name="subscription_id" value="{{ user_membership.subscription_id }}"/>
                             <div class="form-group">
-                               <input class="btn btn-wm" type="submit" value="Complete payment" />
+                               <input class="btn btn-sm btn-wm" type="submit" value="Complete payment" />
                             </div>
                         </form>
+                        {% else %}
+                            <a href="{% url 'stripe_payments:stripe_portal' user_membership.user.userprofile.stripe_customer_id %}" class="btn btn-sm btn-wm">Update payment method</a><br/>
+                            <span class="studioadmin-help">Note: this will open a Stripe portal where you can update the payment method associated with your subscription.</span>
                         {% endif %}
                     </dd>
                 </dl>

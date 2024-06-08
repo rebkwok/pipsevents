@@ -5,6 +5,7 @@ import re
 
 from django.db import models
 from django.utils.text import slugify
+from django.utils import timezone
 
 from booking.models import EventType
 from stripe_payments.utils import StripeConnector
@@ -43,6 +44,7 @@ class Membership(models.Model):
 
     def save(self, *args, **kwargs):
         stripe_client = StripeConnector()
+        price_changed = False
         if not self.id:
             self.stripe_product_id = self.generate_stripe_product_id()
             # create stripe product with price
@@ -62,6 +64,7 @@ class Membership(models.Model):
                 price_id = stripe_client.get_or_create_stripe_price(self.stripe_product_id, self.price)
                 self.stripe_price_id = price_id
                 changed = True
+                price_changed = True
             if self.name != presaved.name or self.description != presaved.description or self.active != presaved.active:
                 changed = True 
             if changed:
@@ -75,6 +78,14 @@ class Membership(models.Model):
             # TODO: If price has changed, update UserMemberships with active subscriptions
             # beyond this month (with stripe_client.update_subscription_price())
         super().save(*args, **kwargs)
+
+        if price_changed:
+            for user_membership in self.user_memberships.filter(end_date__isnull=True):
+                if user_membership.is_active():
+                    stripe_client.update_subscription_price(
+                        subscription_id=user_membership.subscription_id, new_price_id=self.stripe_price_id
+                    )
+
 
 
 class MembershipItem(models.Model):
@@ -110,8 +121,13 @@ class UserMembership(models.Model):
 
     A user can have at most 1 active UserMemberships for any one period
     start date now or 1st of next month; pricing charges on 25th
-    Note that there may be multiple UserMemberships with the same subscription_id (
-    if membership plan changes)
+    A user can have more than one UserMembership, but only one that is current at any one time
+    There should only be one UserMembershp
+                    
+    subscription_id should be unique on UserMembership. If plan (membership) changes (on user request), the current
+    subscription is cancelled and a new subscription is created. Changes to the price of a membership will
+    result in a subscription update webhook event, but don't change anything on the UserMembership.
+
     status refers to current status on Stripe of subscription
     To verify if this membership is valid, check start/end dates as well as subscription status
 
@@ -126,25 +142,23 @@ class UserMembership(models.Model):
     status = incomplete; once setup intent succeeds, updates to active
 
     e.g. 3) User upgrades to Membership B
-    Creates/updates a schedule for this subscription ID
-    Set end date of this UserMembership to to 1st of next month (checks on class date will check it is < end date (exclusive))
-    Create new UserMembership with same subscripiton ID and user, for Membership B, start 1st next month
-    Move all bookings for next both from previous UserMembership to new one. 
+    Cancel this subscription from end of current period, set end date to 1st of next month (checks on class date will check it is < end date (exclusive))
+    Create new UserMembership and a new stripe subscription (using the payment method from the previous one), for Membership B, start 1st next month
+    Move all bookings for next month from previous UserMembership to new one. 
     Check for unpaid bookings for next month and apply new UserMembership
     
     e.g. 4) User downgrades to Membership C
-    Creates/updates a schedule for this subscription ID
-    Set end date of this UserMembership to 1st of next month
-    Create new UserMembership with same subscripiton ID and user, for Membership C, start 1st next month
+    Cancel this subscription from end of current period, set end date to 1st of next month (checks on class date will check it is < end date (exclusive))
+    Create new UserMembership and a new stripe subscription (using the payment method from the previous one), for Membership C, start 1st next month
     Move all bookings for next both from previous UserMembership to new one where possible. Mark any that
     can't be applied (due to reduced usage) to unpaid (ordered by event date).
     
     e.g. 5) User cancels membership
-    Create schedule to run the rest of this month and then cancel subscription. 
+    Cancel subscription from end of period. 
     Set end date of this UserMembership to to 1st of next month
     (webhook will set status when it actually changes)
     """
-    membership = models.ForeignKey(Membership, on_delete=models.CASCADE)
+    membership = models.ForeignKey(Membership, related_name="user_memberships", on_delete=models.CASCADE)
     user = models.ForeignKey("auth.User", related_name="memberships", on_delete=models.CASCADE)
 
     # Membership dates. End date is None for ongoing memberships.
@@ -164,6 +178,10 @@ class UserMembership(models.Model):
         "canceled": "Cancelled",
         "unpaid": "Unpaid",
     }
+
+    class Meta:
+        ordering = ("-start_date",)
+
     def __str__(self) -> str:
         return f"{self.user} - {self.membership.name}"
 
@@ -174,6 +192,9 @@ class UserMembership(models.Model):
         if self.subscription_status == "past_due":
             # past_due is allowed until the 28th of the month (after which past due subscriptions get cancelled)
             return datetime.now().day <= 28
+        # Subscription can be in cancelled state but still active until the end of the month
+        if self.subscription_status == "canceled" and self.end_date is not None and timezone.now() < self.end_date:
+            return True
         return False
     
     def valid_for_event(self, event):

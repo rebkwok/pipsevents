@@ -39,6 +39,8 @@
                     {% include 'booking/includes/pagination.html' %}
                 </div>
             </div>
+        {% else %}
+        <p><a href={% url 'membership_create' %}>Set up a membership</a></p> 
         {% endif %}
     </div>
 
