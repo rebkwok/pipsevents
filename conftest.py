@@ -1,3 +1,4 @@
+from datetime import datetime
 import pytest
 import os
 import responses
@@ -8,9 +9,11 @@ from django.contrib.sites.models import Site
 
 from model_bakery import baker
 from stripe_payments.models import Invoice, Seller
+from stripe_payments.tests.mock_connector import MockConnector
 
 
 User = get_user_model()
+
 @pytest.fixture
 def configured_user():
     user = User.objects.create_user(
@@ -20,6 +23,20 @@ def configured_user():
             email='test@test.com', 
             password='test'
         )
+    yield user
+
+
+@pytest.fixture
+def configured_stripe_user():
+    user = User.objects.create_user(
+            username='stripe_customer', 
+            first_name="Test", 
+            last_name="User", 
+            email='stripetest@test.com', 
+            password='test'
+        )
+    user.userprofile.stripe_customer_id = "cus-1"
+    user.userprofile.save()
     yield user
 
 
@@ -69,34 +86,60 @@ def invoice(configured_user):
     )
 
 
-@pytest.fixture
-def get_mock_payment_intent():
-    def payment_intent(webhook_event_type=None, **params):
-        defaults = {
-            "id": "mock-intent-id",
-            "amount": 1000,
-            "description": "",
-            "status": "succeeded",
-            "metadata": {},
-            "currency": "gbp",
-            "client_secret": "secret",
-            "charges": Mock(data=[{"billing_details": {"email": "stripe-payer@test.com"}}])
-        }
-        options = {**defaults, **params}
-        if webhook_event_type == "payment_intent.payment_failed":
-            options["last_payment_error"] = {'error': 'an error'}
-        return Mock(**options)
-    return payment_intent
+def get_mock_payment_intent(webhook_event_type=None, **params):
+    defaults = {
+        "id": "mock-intent-id",
+        "amount": 1000,
+        "description": "",
+        "status": "succeeded",
+        "metadata": {},
+        "currency": "gbp",
+        "client_secret": "secret",
+        "charges": Mock(data=[{"billing_details": {"email": "stripe-payer@test.com"}}])
+    }
+    options = {**defaults, **params}
+    if webhook_event_type == "payment_intent.payment_failed":
+        options["last_payment_error"] = {'error': 'an error'}
+    return Mock(**options)
+    
+
+class MockSubscription:
+    def __init__(self, **init_dict):
+        for k, v in init_dict.items():
+            setattr(self, k, v)
+    
+    def __getitem__(self, item):
+        return getattr(self, item)
+
+
+def get_mock_subscription(webhook_event_type, **params):
+    defaults = {
+        "id": "id",
+        "status": "active",
+        "items": Mock(data=[Mock(price=Mock(id="price_1234"))]),  # matches the id returned by the MockStripeConnector
+        "customer": "cus-1",
+        "start_date": datetime(2024, 6, 25).timestamp(),
+        "metadata": {},
+    }
+    options = {**defaults, **params}
+    return MockSubscription(**options)
 
 
 @pytest.fixture
-def get_mock_webhook_event(seller, get_mock_payment_intent):
+def get_mock_webhook_event(seller):
     def mock_webhook_event(**params):
         webhook_event_type = params.pop("webhook_event_type", "payment_intent.succeeded")
         seller_id = params.pop("seller_id", seller.stripe_user_id)
+        if webhook_event_type in ["payment_intent.succeeded", "payment_intent.payment_failed"]:
+            object = get_mock_payment_intent(webhook_event_type, **params)
+        elif webhook_event_type == "customer.subscription.created":
+            object = get_mock_subscription(webhook_event_type, **params)
+        else:
+            object = Mock(**params)
         mock_event = Mock(
             account=seller_id,
-            data=Mock(object=get_mock_payment_intent(webhook_event_type, **params)), type=webhook_event_type
+            data=Mock(object=object), 
+            type=webhook_event_type,
         )
         return mock_event
     return mock_webhook_event

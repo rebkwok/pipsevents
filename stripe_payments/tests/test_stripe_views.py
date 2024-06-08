@@ -1,5 +1,5 @@
+from datetime import datetime
 from unittest.mock import patch, Mock
-import json
 import pytest
 
 from django.conf import settings
@@ -10,7 +10,8 @@ from django.shortcuts import reverse
 import stripe
 from model_bakery import baker
 
-from booking.models import Block, Booking, TicketBooking, Ticket
+from conftest import get_mock_payment_intent
+from booking.models import Block, Booking, TicketBooking, Ticket, Membership
 from ..models import Invoice, Seller, StripePaymentIntent
 from .mock_connector import MockConnector
 
@@ -42,7 +43,7 @@ def test_return_with_unknown_payment_intent(mock_payment_intent_retrieve, client
 @pytest.mark.usefixtures("seller", "send_all_studio_emails")
 @patch("stripe_payments.views.stripe.PaymentIntent")
 def test_return_with_no_matching_invoice(
-    mock_payment_intent, get_mock_payment_intent, client
+    mock_payment_intent, client
 ):
     mock_payment_intent.retrieve.return_value = get_mock_payment_intent()
     resp = client.get(complete_url)
@@ -58,7 +59,7 @@ def test_return_with_no_matching_invoice(
 @pytest.mark.usefixtures("seller", "send_all_studio_emails")
 @patch("stripe_payments.views.stripe.PaymentIntent")
 def test_return_with_matching_invoice_and_block(
-    mock_payment_intent, get_mock_payment_intent, client, configured_user
+    mock_payment_intent, client, configured_user
 ):
     assert StripePaymentIntent.objects.exists() is False
     invoice = baker.make(
@@ -91,7 +92,7 @@ def test_return_with_matching_invoice_and_block(
 @pytest.mark.usefixtures("seller", "send_all_studio_emails")
 @patch("stripe_payments.views.stripe.PaymentIntent")
 def test_return_with_matching_invoice_and_booking(
-    mock_payment_intent, get_mock_payment_intent, client, configured_user
+    mock_payment_intent, client, configured_user
 ):
     assert StripePaymentIntent.objects.exists() is False
     invoice = baker.make(
@@ -124,7 +125,7 @@ def test_return_with_matching_invoice_and_booking(
 
 @patch("stripe_payments.views.stripe.PaymentIntent")
 def test_return_with_matching_invoice_and_ticket_booking(
-    mock_payment_intent, get_mock_payment_intent, client, configured_user, seller
+    mock_payment_intent, client, configured_user, seller
 ):
     assert StripePaymentIntent.objects.exists() is False
     invoice = baker.make(
@@ -160,7 +161,7 @@ def test_return_with_matching_invoice_and_ticket_booking(
 
 @pytest.mark.usefixtures("seller", "send_all_studio_emails")
 @patch("stripe_payments.views.stripe.PaymentIntent")
-def test_return_with_matching_invoice_and_gift_voucher(mock_payment_intent, get_mock_payment_intent, client, configured_user, block_gift_voucher):
+def test_return_with_matching_invoice_and_gift_voucher(mock_payment_intent, client, configured_user, block_gift_voucher):
     assert StripePaymentIntent.objects.exists() is False
     invoice = baker.make(
         Invoice, invoice_id="foo", amount=10,
@@ -199,7 +200,7 @@ def test_return_with_matching_invoice_and_gift_voucher(mock_payment_intent, get_
 @pytest.mark.usefixtures("seller", "send_all_studio_emails")
 @patch("stripe_payments.views.stripe.PaymentIntent")
 def test_return_with_matching_invoice_and_gift_voucher_anon_user(
-    mock_payment_intent, get_mock_payment_intent, client, block_gift_voucher
+    mock_payment_intent, client, block_gift_voucher
 ):
     assert StripePaymentIntent.objects.exists() is False
     invoice = baker.make(
@@ -241,7 +242,7 @@ def test_return_with_matching_invoice_and_gift_voucher_anon_user(
 
 @pytest.mark.usefixtures("seller", "send_all_studio_emails")
 @patch("stripe_payments.views.stripe.PaymentIntent")
-def test_return_with_invalid_invoice(mock_payment_intent, get_mock_payment_intent, client, configured_user):
+def test_return_with_invalid_invoice(mock_payment_intent, client, configured_user):
     invoice = baker.make(
         Invoice, invoice_id="", amount=10,
         username=configured_user.email, stripe_payment_intent_id="mock-intent-id"
@@ -264,7 +265,7 @@ def test_return_with_invalid_invoice(mock_payment_intent, get_mock_payment_inten
 
 @pytest.mark.usefixtures("seller", "send_all_studio_emails")
 @patch("stripe_payments.views.stripe.PaymentIntent")
-def test_return_with_matching_invoice_multiple_bookingss(mock_payment_intent, get_mock_payment_intent, client, configured_user):
+def test_return_with_matching_invoice_multiple_bookingss(mock_payment_intent, client, configured_user):
     invoice = baker.make(
         Invoice, invoice_id="foo", amount=10,
         username=configured_user.email, stripe_payment_intent_id="mock-intent-id"
@@ -292,7 +293,7 @@ def test_return_with_matching_invoice_multiple_bookingss(mock_payment_intent, ge
 
 @pytest.mark.usefixtures("seller", "send_all_studio_emails")
 @patch("stripe_payments.views.stripe.PaymentIntent")
-def test_return_with_matching_invoice_invalid_amount(mock_payment_intent, get_mock_payment_intent, client, configured_user):
+def test_return_with_matching_invoice_invalid_amount(mock_payment_intent, client, configured_user):
     invoice = baker.make(
         Invoice, invoice_id="foo", username=configured_user.email, amount=50,
         stripe_payment_intent_id="mock-intent-id"
@@ -311,7 +312,7 @@ def test_return_with_matching_invoice_invalid_amount(mock_payment_intent, get_mo
 
 @pytest.mark.usefixtures("seller", "send_all_studio_emails")
 @patch("stripe_payments.views.stripe.PaymentIntent")
-def test_return_with_matching_invoice_invalid_signature(mock_payment_intent, get_mock_payment_intent, client, configured_user):
+def test_return_with_matching_invoice_invalid_signature(mock_payment_intent, client, configured_user):
     invoice = baker.make(
         Invoice, invoice_id="foo", username=configured_user.email, amount=50,
         stripe_payment_intent_id="mock-intent-id"
@@ -330,7 +331,7 @@ def test_return_with_matching_invoice_invalid_signature(mock_payment_intent, get
 
 @pytest.mark.usefixtures("seller", "send_all_studio_emails")
 @patch("stripe_payments.views.stripe.PaymentIntent")
-def test_return_with_matching_invoice_block_already_processed(mock_payment_intent, get_mock_payment_intent, client, configured_user):
+def test_return_with_matching_invoice_block_already_processed(mock_payment_intent, client, configured_user):
     invoice = baker.make(
         Invoice, invoice_id="foo", amount=10,
         username=configured_user.email, stripe_payment_intent_id="mock-intent-id",
@@ -353,7 +354,7 @@ def test_return_with_matching_invoice_block_already_processed(mock_payment_inten
 
 @pytest.mark.usefixtures("seller", "send_all_studio_emails")
 @patch("stripe_payments.views.stripe.PaymentIntent")
-def test_return_with_failed_payment_intent(mock_payment_intent, get_mock_payment_intent, client, configured_user):
+def test_return_with_failed_payment_intent(mock_payment_intent, client, configured_user):
     invoice = baker.make(
         Invoice, invoice_id="foo", username=configured_user.email, amount=50,
         stripe_payment_intent_id="mock-intent-id"
@@ -372,7 +373,7 @@ def test_return_with_failed_payment_intent(mock_payment_intent, get_mock_payment
 
 @pytest.mark.usefixtures("seller", "send_all_studio_emails")
 @patch("stripe_payments.views.stripe.PaymentIntent")
-def test_return_with_processing_payment_intent(mock_payment_intent, get_mock_payment_intent, client, configured_user):
+def test_return_with_processing_payment_intent(mock_payment_intent, client, configured_user):
     invoice = baker.make(
         Invoice, invoice_id="foo", username=configured_user.email, amount=50,
         stripe_payment_intent_id="mock-intent-id"
@@ -673,16 +674,24 @@ def test_webhook_deauthorized_account(
 
 
 # Memberships
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
 @patch("stripe_payments.views.stripe.Webhook")
 def test_webhook_subscription_created(
-    mock_webhook, get_mock_webhook_event, client
+    mock_webhook, get_mock_webhook_event, client, configured_stripe_user
 ):
+    membership = baker.make(Membership, name="membership1")
+    assert not membership.user_memberships.exists()
     mock_webhook.construct_event.return_value = get_mock_webhook_event(
-        webhook_event_type="customer.subscription.created", metadata={}
+        webhook_event_type="customer.subscription.created",
+        start_date = datetime(2024, 6, 25).timestamp()
     )
     resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
     assert resp.status_code == 200
+    # email sent to user
     assert len(mail.outbox) == 1
+    # membership created, with start date as first of next month
+    assert membership.user_memberships.count() == 1
+    assert membership.user_memberships.first().start_date.date() == datetime(2024, 7, 1).date()
 
 
 @patch("stripe_payments.views.stripe.Webhook")

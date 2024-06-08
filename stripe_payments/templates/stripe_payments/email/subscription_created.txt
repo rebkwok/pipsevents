@@ -4,7 +4,7 @@
 Thank you for setting up your new membership!
 
 Your membership: {{ user_membership.membership.name }}
-Start date: {{ user_membership.start_date|date 'd M Y' }}
+Start date: {{ user_membership.start_date|date:'d M Y' }}
 
 View your membership details:
 https://{{ domain }}/memberships/

@@ -57,6 +57,7 @@ def send_processed_refund_emails(invoice, event_object):
         user, user_membership = _get_user_from_membership(event_object)
     else:
         user = _get_user_from_invoice(invoice)
+        user_membership = None
     ctx = {
         'host': f"https://{Site.objects.get_current().domain}",
         'user': user,
