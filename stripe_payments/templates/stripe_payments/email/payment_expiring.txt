@@ -1,0 +1,12 @@
+{% include "account/email/do_not_reply.txt" %}
+
+
+Your membership payment method is about to expire
+-------------------------------------------------
+Your membership: {{ user_membership.membership.name }}
+
+The payment method you use for this membership is expiring soon. Visit your memberships page in your account to
+update your payment method and ensure that your membership is not interrupted.
+
+https://{{ domain }}/memberships/
+
