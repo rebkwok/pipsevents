@@ -10,7 +10,7 @@ from django.shortcuts import reverse
 import stripe
 from model_bakery import baker
 
-from booking.models import Block, Booking, TicketBooking, Ticket, GiftVoucherType
+from booking.models import Block, Booking, TicketBooking, Ticket
 from ..models import Invoice, Seller, StripePaymentIntent
 from .mock_connector import MockConnector
 
@@ -670,3 +670,119 @@ def test_webhook_deauthorized_account(
     assert resp.status_code == 200
     seller.refresh_from_db()
     assert seller.site is None
+
+
+# Memberships
+@patch("stripe_payments.views.stripe.Webhook")
+def test_webhook_subscription_created(
+    mock_webhook, get_mock_webhook_event, client
+):
+    mock_webhook.construct_event.return_value = get_mock_webhook_event(
+        webhook_event_type="customer.subscription.created", metadata={}
+    )
+    resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
+    assert resp.status_code == 200
+    assert len(mail.outbox) == 1
+
+
+@patch("stripe_payments.views.stripe.Webhook")
+def test_webhook_subscription_deleted(
+    mock_webhook, get_mock_webhook_event, client
+):
+    mock_webhook.construct_event.return_value = get_mock_webhook_event(
+        webhook_event_type="customer.subscription.deleted", metadata={}
+    )
+    # sets UserMembership to cancelled; end date is end of the month
+    
+
+@patch("stripe_payments.views.stripe.Webhook")
+def test_webhook_subscription_updated(
+    mock_webhook, get_mock_webhook_event, client
+):
+    mock_webhook.construct_event.return_value = get_mock_webhook_event(
+        webhook_event_type="customer.subscription.updated", metadata={}
+    )
+    # status changed to cancelled
+    # status active, cancelled in future
+    # status changed to active from cancelled
+    # status changed to past_due
+    # price changed (only if changed from stripe) - sends emails to support and changes membersip
+
+
+@patch("stripe_payments.views.stripe.Webhook")
+def test_webhook_source_expiring(
+    mock_webhook, get_mock_webhook_event, client
+):
+    mock_webhook.construct_event.return_value = get_mock_webhook_event(
+       webhook_event_type="customer.source.expiring", metadata={}
+    )
+     # sends email to user with link to membership page to update payment method
+
+
+@patch("stripe_payments.views.stripe.Webhook")
+def test_webhook_invoice_upcoming(
+    mock_webhook, get_mock_webhook_event, client
+):
+    mock_webhook.construct_event.return_value = get_mock_webhook_event(
+       webhook_event_type="invoice.upcoming", metadata={}
+    )
+     # sends email to user
+
+
+@patch("stripe_payments.views.stripe.Webhook")
+def test_webhook_invoice_finalised(
+    mock_webhook, get_mock_webhook_event, client
+):
+    mock_webhook.construct_event.return_value = get_mock_webhook_event(
+       webhook_event_type="invoice.finalized", metadata={}
+    )
+    # creates StripeSubscriptionInvoice
+
+
+@patch("stripe_payments.views.stripe.Webhook")
+def test_webhook_invoice_paid(
+    mock_webhook, get_mock_webhook_event, client
+):
+    mock_webhook.construct_event.return_value = get_mock_webhook_event(
+       webhook_event_type="invoice.paid", metadata={}
+    )
+    # updates StripeSubscriptionInvoice
+
+
+@patch("stripe_payments.views.stripe.Webhook")
+def test_webhook_payment_intent_succeeded_for_subscription(
+    mock_webhook, get_mock_webhook_event, client
+):
+    mock_webhook.construct_event.return_value = get_mock_webhook_event(
+       webhook_event_type="payment_intent.succeeded", metadata={}
+    )
+    # no emails, returns 200
+
+
+@patch("stripe_payments.views.stripe.Webhook")
+def test_webhook_payment_intent_failed_for_subscription(
+    mock_webhook, get_mock_webhook_event, client
+):
+    mock_webhook.construct_event.return_value = get_mock_webhook_event(
+       webhook_event_type="payment_intent.payment_failed", metadata={}
+    )
+    # no emails, returns 200
+
+@patch("stripe_payments.views.stripe.Webhook")
+def test_webhook_payment_intent_refunded_for_subscription(
+    mock_webhook, get_mock_webhook_event, client
+):
+    mock_webhook.construct_event.return_value = get_mock_webhook_event(
+       webhook_event_type="charge.refunded", metadata={}
+    )
+    # no emails, returns 200
+
+
+@patch("stripe_payments.views.stripe.Webhook")
+def test_webhook_payment_intent_refund_updated_for_subscription(
+    mock_webhook, get_mock_webhook_event, client
+):
+    mock_webhook.construct_event.return_value = get_mock_webhook_event(
+       webhook_event_type="charge.refund.updated", metadata={}
+    )
+    # no emails, returns 200

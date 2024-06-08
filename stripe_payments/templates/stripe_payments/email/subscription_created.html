@@ -1,0 +1,8 @@
+{% extends 'email_base.html' %}
+
+{% block messagecontent %}
+<p>Thank you for setting up your new membership!</p>
+<p><strong>Your membership:</strong> {{ user_membership.membership.name }}</p>
+<p><strong>Start date:</strong> {{ user_membership.start_date|date 'd M Y' }}</p>
+<p>View your membership details <a href="https://{{ domain }}/memberships/">here</a></p>
+{% endblock %}

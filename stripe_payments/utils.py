@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 def get_first_of_next_month_from_timestamp(timestamp):
     next_month = datetime.fromtimestamp(timestamp) + relativedelta(months=1)
-    return next_month.replace(day=1, minute=0, second=0, microsecond=0)
+    return next_month.replace(day=1, minute=0, second=0, microsecond=0, tzinfo=dt_timezone.utc)
 
 
 def get_invoice_from_event_metadata(event_object, raise_immediately=False):
@@ -305,12 +305,12 @@ class StripeConnector:
         """
         # retrieve or create schedule from subscription id
         schedule = self.get_or_create_subscription_schedule(subscription_id)
-        # check schedule for end_behvavior
+        # check schedule for end_behavior
         # if end_behavior is cancel, don't update, it's going to cancel at the end of the current billing period
         if schedule.end_behavior == "release":
             schedule = stripe.SubscriptionSchedule.modify(
                 schedule.id,
-                end_behvavior="release",
+                end_behavior="release",
                 phases=[
                         {
                             'items': [
@@ -331,6 +331,7 @@ class StripeConnector:
                             ],
                         },
                     ],
+                stripe_account=self.connected_account_id,
             )
 
         return schedule

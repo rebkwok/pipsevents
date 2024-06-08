@@ -52,7 +52,7 @@
                 data-stripe_account="{{ stripe_account }}"
                 data-stripe_api_key="{{ stripe_api_key }}"
                 data-return_url="{{ stripe_return_url }}"
-                data-backdate={% if backdate %}"1"{% else %}"0"{% endif %}
+                data-backdate="{{ backdate }}"
               >
                 <div class="spinner hidden" id="spinner"></div>
                 <span id="button-text">Submit</span>

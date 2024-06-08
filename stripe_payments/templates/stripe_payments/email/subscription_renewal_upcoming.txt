@@ -1,0 +1,14 @@
+{% include "account/email/do_not_reply.txt" %}
+
+
+Your membership will renew soon
+-------------------------------
+Your membership: {{ user_membership.membership.name }}
+
+This is a reminder that your membership will automatically renew on the 25th of this
+month. You do not need to take any action (but you may want to review your payment
+method and check it is up to date.)
+
+View your membership here:
+https://{{ domain }}/memberships/
+

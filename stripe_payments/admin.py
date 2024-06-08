@@ -3,14 +3,14 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe 
 
 from booking.models import Booking, Block
-from stripe_payments.models import Invoice, StripePaymentIntent, Seller
+from stripe_payments.models import Invoice, StripePaymentIntent, Seller, StripeSubscriptionInvoice
 
 
 from django.contrib import admin
 from django.urls import reverse
 from django.utils.safestring import mark_safe 
 
-from booking.models import Booking, Block, TicketBooking, BlockVoucher, EventVoucher, TicketBooking
+from booking.models import Booking, Block, TicketBooking, BlockVoucher, EventVoucher, TicketBooking, UserMembership
 from stripe_payments.models import Invoice, StripePaymentIntent
 
 
@@ -125,6 +125,20 @@ def _inv_items(invoice):
         items = [f"<li>{item}</li>" for item in items]
         return mark_safe(f"<ul>{''.join(items)}</ul>")
     return ""
+
+
+@admin.register(StripeSubscriptionInvoice)
+class StripeSubscriptionInvoiceAdmin(admin.ModelAdmin):
+    list_display = (
+        "subscription_id", "user_membership", "invoice_id", "status", "total", "invoice_date"
+    )
+    readonly_fields = ("subscription_id", "invoice_id", "status", "total", "invoice_date")
+
+    def user_membership(self, obj):
+        try:
+            return str(UserMembership.objects.get(subscription_id=obj.subscription_id))
+        except UserMembership.DoesNotExist:
+            return None
 
 
 admin.site.register(Seller)
