@@ -1,4 +1,5 @@
-from datetime import datetime, timedelta
+from datetime import datetime
+from datetime import timezone as datetime_tz
 from decimal import Decimal
 import json
 import logging
@@ -25,7 +26,15 @@ from .emails import (
 )
 from .exceptions import StripeProcessingError
 from .models import Seller, StripePaymentIntent, StripeSubscriptionInvoice
-from .utils import get_invoice_from_event_metadata, check_stripe_data, process_invoice_items, StripeConnector, get_first_of_next_month_from_timestamp
+from .utils import (
+    get_invoice_from_event_metadata, 
+    check_stripe_data, 
+    process_invoice_items, 
+    StripeConnector, 
+    get_first_of_next_month_from_timestamp,
+    get_utcdate_from_timestamp
+)
+
 
 logger = logging.getLogger(__name__)
 
@@ -275,9 +284,11 @@ def stripe_webhook(request):
             user_membership = UserMembership.objects.create(
                 user=user,
                 membership=Membership.objects.get(stripe_price_id=event_object["items"].data[0].price.id),
+                start_date=membership_start,
                 subscription_id=event_object.id,
                 subscription_status=event_object.status,
-                start_date=membership_start
+                subscription_start_date=get_utcdate_from_timestamp(event_object.start_date),
+                subscription_billing_cycle_anchor=get_utcdate_from_timestamp(event_object.billing_cycle_anchor),
             )
             ActivityLog.objects.create(
                 log=f"Stripe webhook: Membership {user_membership.membership.name} set up for {user} (stripe subscription id {event_object.id}, status {event_object.status})"
@@ -290,14 +301,14 @@ def stripe_webhook(request):
             # This event is sent when the cancellation actually happens (i.e. not on user demand)
             # Set the subscription_status to cancelled
             user_membership = UserMembership.objects.get(subscription_id=event_object.id)
-            # the end date for the membership should be the first of the next month; cancelled at will be the 25th
-            subscription_end_date = datetime.fromtimestamp(event_object.canceled_at)
-            membership_end_date = get_first_of_next_month_from_timestamp(event_object.canceled_at)
+            # the end date for the membership is the stripe subscription end; cancelled at will be the 25th
+            # the actual membership ends at the end of the month
             user_membership.subscription_status = event_object.status
-            user_membership.end_date = membership_end_date
+            user_membership.subscription_end_date = get_utcdate_from_timestamp(event_object.canceled_at)
+            user_membership.end_date = user_membership.calculate_membership_end_date()
             user_membership.save()
             ActivityLog.objects.create(
-                log=f"Stripe webhook: Membership {user_membership.membership.name} for {user_membership.user} (stripe subscription id {event_object.id}, cancelled on {subscription_end_date})"
+                log=f"Stripe webhook: Membership {user_membership.membership.name} for {user_membership.user} (stripe subscription id {event_object.id}, cancelled on {user_membership.subscription_end_date})"
             )
         elif event.type == "customer.subscription.updated":
             user_membership = UserMembership.objects.get(subscription_id=event_object.id)
@@ -327,8 +338,8 @@ def stripe_webhook(request):
                 # Has the price changed?
                 
                 # If user changes their membership type, it should cancel this subscription from the end of the period and create
-                # a new membership and subscription that starts on the next month. User changes to memberships do not trigger
-                # a stripe subscription.updated event
+                # a new membership and subscription that starts on the next month. User changes to memberships do trigger
+                # a stripe subscription.updated event, but only to add the schedule
                 
                 # If the price of a membership type is changed, it creates a subscription schedule and price changes from the next subscription
                 # The membership instance should stay the same on the UserMembership, but in case it's changed from the
@@ -364,6 +375,6 @@ def stripe_webhook(request):
         
     except Exception as e:  # log anything else; return 400 so stripe tries again
         logger.error(e)
-        send_failed_payment_emails(error=e)
+        send_failed_payment_emails(error=e, event_type=event.type, event_object=event_object)
         return HttpResponse(str(e), status=400)
     return HttpResponse(status=200)

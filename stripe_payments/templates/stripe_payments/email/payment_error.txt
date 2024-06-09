@@ -1,6 +1,15 @@
-ACTION REQUIRED: CHECK STATUS OF ERROR TRANSACTION
+ACTION REQUIRED: CHECK STATUS OF ERROR TRANSACTION/EVENT
+{% if payment_intent %}
 Payment Error
------------------------------
+-------------
 Stripe payment intent id: {{ payment_intent.id }}
 payment status: {{ payment_intent.status }}
+{% endif %}
+{% if event_type %}
+Webhook Error
+-------------
+Webhook event type: {{ event_type }}
+object: {{ event_object.object }}
+id: {{ event_object.id }}
+{% endif %}
 {% autoescape off %}{% if error %}Error: {{ error }} {% endif %}{% endautoescape %}

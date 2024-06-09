@@ -18,9 +18,13 @@ from .models import Invoice, Seller
 logger = logging.getLogger(__name__)
 
 
+def get_utcdate_from_timestamp(timestamp):
+    return datetime.fromtimestamp(timestamp).replace(tzinfo=dt_timezone.utc)
+
+
 def get_first_of_next_month_from_timestamp(timestamp):
-    next_month = datetime.fromtimestamp(timestamp) + relativedelta(months=1)
-    return next_month.replace(day=1, minute=0, second=0, microsecond=0, tzinfo=dt_timezone.utc)
+    next_month = get_utcdate_from_timestamp(timestamp) + relativedelta(months=1)
+    return next_month.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
 
 def get_invoice_from_event_metadata(event_object, raise_immediately=False):
@@ -202,9 +206,15 @@ class StripeConnector:
     def get_subscription(self, subscription_id):
         kwargs = dict(
             id=subscription_id, stripe_account=self.connected_account_id, 
-            expand=['latest_invoice.payment_intent', 'pending_setup_intent']
+            expand=['latest_invoice']
         )
         return stripe.Subscription.retrieve(**kwargs)
+
+    def get_subscriptions_for_customer(self, customer_id):
+        return {
+            sub["id"]: sub for sub in 
+            stripe.Subscription.list(status="all", customer=customer_id, stripe_account=self.connected_account_id).data  
+        }
 
     def get_subscription_cycle_start_dates(self, reference_date=None):
         """
@@ -228,7 +238,7 @@ class StripeConnector:
             backdate_for_next_month = False
         return current_cycle_start_date, next_cycle_start_date, backdate_for_next_month
 
-    def create_subscription(self, customer_id, price_id, backdate=True):
+    def create_subscription(self, customer_id, price_id, backdate=True, default_payment_method=None):
         """
         Create subscription for this customer and price
 
@@ -263,6 +273,7 @@ class StripeConnector:
         kwargs = dict(
             customer=customer_id,
             items=[{'price': price_id, 'quantity': 1}],
+            default_payment_method=default_payment_method,
             billing_cycle_anchor=int(next_cycle_start_date.timestamp()),
             payment_behavior='default_incomplete',  # create subscription as incomplete
             payment_settings={'save_default_payment_method': 'on_subscription'},   # save customer default payment
@@ -336,14 +347,17 @@ class StripeConnector:
 
         return schedule
     
-    def cancel_subscription(self, subscription_id):
+    def cancel_subscription(self, subscription_id, cancel_immediately=False):
         """
-        Always cancel from end of period
+        Usually we cancel from end of period
         Update schedule to contain only the current phase, and to cancel at the end
+        Subscriptions that start in the future are cancelled immediately
         """
+        if cancel_immediately:
+            return stripe.Subscription.delete(subscription_id, stripe_account=self.connected_account_id)
         # retrieve or create schedule from subscription id
         schedule = self.get_or_create_subscription_schedule(subscription_id)
-        stripe.SubscriptionSchedule.modify(
+        schedule = stripe.SubscriptionSchedule.modify(
             schedule.id,
             end_behavior="cancel",
             phases=[
@@ -359,8 +373,11 @@ class StripeConnector:
                     "proration_behavior": "none"
                 }
             ],
+            expand=['subscription'],
             stripe_account=self.connected_account_id
         )
+        return schedule.subscription
+
 
     def add_discount_to_subscription(self, subscription_id):
         # TODO

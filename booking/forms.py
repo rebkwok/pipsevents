@@ -8,7 +8,7 @@ from django.forms.models import inlineformset_factory, BaseInlineFormSet
 
 from booking.models import (
     BlockVoucher, Event, Block, BlockType, FilterCategory, TicketBooking,
-    Ticket, GiftVoucherType, Membership
+    Ticket, GiftVoucherType, Membership, UserMembership
 )
 
 
@@ -367,11 +367,12 @@ class ChooseMembershipForm(forms.Form):
     agree_to_terms = forms.BooleanField(required=True, label="Please tick to confirm that you understand and agree that by setting up a membership, your payment details will be held by Stripe and collected on a recurring basis")
     
     def __init__(self, *args, **kwargs):
+        has_cancelled_current_membership = kwargs.pop("has_cancelled_current_membership")
         super().__init__(*args, **kwargs)
-        
+
         # if current date is <25th, give option to start membership from this month as well as next monht
         today = datetime.today()
-        if today.day < 25: 
+        if today.day < 25 and not has_cancelled_current_membership: 
             # choice values refer to whether to backdate or not
             choices = ((1, calendar.month_name[today.month]), (0, calendar.month_name[today.month + 1]))
             initial = None
@@ -398,4 +399,15 @@ class ChooseMembershipForm(forms.Form):
             widget=forms.RadioSelect,  
             initial=initial,  
             help_text=help_text
+        )
+
+
+class ChangeMembershipForm(forms.Form):
+
+    def __init__(self, *args, **kwargs):
+        current_membership_id = kwargs.pop("current_membership_id")
+        super().__init__(*args, **kwargs)
+        self.fields["membership"] = forms.ModelChoiceField(
+            queryset=Membership.objects.filter(active=True).exclude(id=current_membership_id),
+            widget=forms.RadioSelect,    
         )

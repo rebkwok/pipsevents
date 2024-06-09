@@ -35,7 +35,7 @@ def test_return_with_unknown_payment_intent(mock_payment_intent_retrieve, client
 
     # No invoice matching PI value, send failed emails
     assert len(mail.outbox) == 1
-    assert mail.outbox[0].subject == "WARNING: Something went wrong with a payment!"
+    assert mail.outbox[0].subject == "WARNING: Something went wrong processing a stripe event!"
     assert "No payment intent found" in mail.outbox[0].body
 
 
@@ -52,7 +52,7 @@ def test_return_with_no_matching_invoice(
 
     # No invoice matching PI value, send failed emails
     assert len(mail.outbox) == 1
-    assert mail.outbox[0].subject == "WARNING: Something went wrong with a payment!"
+    assert mail.outbox[0].subject == "WARNING: Something went wrong processing a stripe event!"
     assert "No invoice could be retrieved from succeeded payment intent mock-intent-id" in mail.outbox[0].body
 
 
@@ -259,7 +259,7 @@ def test_return_with_invalid_invoice(mock_payment_intent, client, configured_use
     assert invoice.paid is False
     # send failed emails
     assert len(mail.outbox) == 1
-    assert mail.outbox[0].subject == "WARNING: Something went wrong with a payment!"
+    assert mail.outbox[0].subject == "WARNING: Something went wrong processing a stripe event!"
     assert "No invoice could be retrieved from succeeded payment intent mock-intent-id" in mail.outbox[0].body
 
 
@@ -511,7 +511,7 @@ def test_webhook_exception_retrieving_invoice(
 
     assert len(mail.outbox) == 1
     assert mail.outbox[0].to == [settings.SUPPORT_EMAIL]
-    assert "WARNING: Something went wrong with a payment!" in mail.outbox[0].subject
+    assert "WARNING: Something went wrong processing a stripe event!" in mail.outbox[0].subject
     assert "could not find invoice" in mail.outbox[0].body
 
 
@@ -537,7 +537,7 @@ def test_webhook_exception_invalid_invoice_signature(
 
     assert len(mail.outbox) == 1
     assert mail.outbox[0].to == [settings.SUPPORT_EMAIL]
-    assert "WARNING: Something went wrong with a payment!" in mail.outbox[0].subject
+    assert "WARNING: Something went wrong processing a stripe event!" in mail.outbox[0].subject
     assert "Error: Could not verify invoice signature: payment intent mock-intent-id; invoice id foo" \
             in mail.outbox[0].body
 

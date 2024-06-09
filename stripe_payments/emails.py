@@ -78,12 +78,12 @@ def send_processed_refund_emails(invoice, event_object):
     )
 
 
-def send_failed_payment_emails(payment_intent=None, error=None):
+def send_failed_payment_emails(payment_intent=None, error=None, event_type=None, event_object=None):
     # send email to support only for checking;
     send_mail(
-        'WARNING: Something went wrong with a payment!',
+        'WARNING: Something went wrong processing a stripe event!',
         get_template('stripe_payments/email/payment_error.txt').render(
-            {"payment_intent": payment_intent, "error": error}
+            {"payment_intent": payment_intent, "error": error, "event_type": event_type, "event_object": event_object}
         ),
         settings.DEFAULT_FROM_EMAIL,
         [settings.SUPPORT_EMAIL],

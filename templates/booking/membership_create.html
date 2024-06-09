@@ -17,10 +17,15 @@
                         £{{ membership.price }}{% if show_vat %} (incl VAT){% endif %}
                         <dd>
                     {% endfor %}
-
-                {% if has_membership %}
+                
+                {% if has_ongoing_membership %}
                     <p>You already have an active membership. View <a href="{% url 'membership_list' %}">your memberships</a> to update or cancel.</p>
-                {% else %}
+                {% elif has_cancelled_current_membership %}
+                    <p>You already have an active membership which ends after this month. You can create a new membership to 
+                        start from next month.</p>  
+                {% endif %}
+
+                {% if not has_ongoing_membership %}
                     <p>Select a membership to add.</p>
 
                     <form method="post" action="{% url 'membership_checkout' %}">

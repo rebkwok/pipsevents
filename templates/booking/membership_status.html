@@ -7,41 +7,51 @@
     <div class="col-sm-12">
        <div class="card card-wm">
             <div class="card-header">
-                <h2 class="card-title">Your Membership</h2>
+                <h2 class="card-title">Membership</h2>
             </div>
             <div class="card-body">
                 <dl>
-                    <dt>Membership</dt>
-                    <dd>{{ user_membership.membership }}</dd>
+                    <dt>Membership Plan</dt>
+                    <dd>{{ user_membership.membership }}{% if not user_membership.end_date %}<br/><a class="btn btn-sm btn-wm" href="{% url 'membership_change' user_membership.subscription_id %}">Change membership</a>{% endif %}
+                    </dd>
                 </dl>
                 <dl>
                     <dt>Status</dt>
-                    <dd>{{ user_membership.hr_status }} </dd>
+                    <dd>{{ user_membership.hr_status }} {% if user_membership.subscription_status == "active" and user_membership.end_date %}(cancels on {{ user_membership.end_date|date:"d M Y"}}){% endif %}</dd>
                     <dd>
                         {% if user_membership.subscription_status == "past_due" %}
-                        <form method="post" action="{% url 'membership_checkout' %}">
-                            {% csrf_token %}
-                            <input type="hidden" name="subscription_id" value="{{ user_membership.subscription_id }}"/>
-                            <div class="form-group">
-                               <input class="btn btn-sm btn-wm" type="submit" value="Complete payment" />
-                            </div>
-                        </form>
-                        {% else %}
-                            <a href="{% url 'stripe_payments:stripe_portal' user_membership.user.userprofile.stripe_customer_id %}" class="btn btn-sm btn-wm">Update payment method</a><br/>
-                            <span class="studioadmin-help">Note: this will open a Stripe portal where you can update the payment method associated with your subscription.</span>
+                            <strong class="text-danger">Your membership is over due; complete payment now to avoid your membership lapsing!</strong>
+                            <form method="post" action="{% url 'membership_checkout' %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="subscription_id" value="{{ user_membership.subscription_id }}"/>
+                                <div class="form-group">
+                                <input class="btn btn-sm btn-wm" type="submit" value="Complete payment" />
+                                </div>
+                            </form>
                         {% endif %}
+                        {% if not user_membership.end_date %}
+                            <a class="btn btn-sm btn-secondary" href="{% url 'subscription_cancel' user_membership.subscription_id %}">Cancel membership</a><br/>
+                        {% endif %}
+                    </dd>
+                    <dt>Payment Methods</dt>
+                        <a href="{% url 'stripe_payments:stripe_portal' user_membership.user.userprofile.stripe_customer_id %}" class="btn btn-sm btn-wm">View/update payment methods</a><br/>
+                        <span class="studioadmin-help">Note: this will open a Stripe portal where you can update the payment method associated with your subscription. Payment information is not held on this site.</span>                        
                     </dd>
                 </dl>
                 <dl>
                     <dt>Next payment due</dt>
-                    <dd>{{ next_due|date:"d M Y" }}</dd>
+                    <dd>{% if next_due %}{{ next_due|date:"d M Y" }}{% else %}-{% endif %}</dd>
+                </dl>
+                <dl>
+                    <dt>Latest payment</dt>
+                    <dd>{% if last_invoice %}{{ last_invoice|date:"d M Y" }}{% else %}-{% endif %}</dd>
                 </dl>
                 <dl>
                     <dt>Start date</dt>
                     <dd>{{ user_membership.start_date|date:"d M Y" }}</dd>
                 </dl>
                 <dl>
-                    <dt>End date</dt>
+                    <dt>End date (exclusive)</dt>
                     <dd>{% if user_membership.end_date %}{{ user_membership.end_date|date:"d M Y" }}{% else %}-{% endif %}</dd>
                 </dl>
                 <dl>

@@ -119,6 +119,7 @@ def get_mock_subscription(webhook_event_type, **params):
         "items": Mock(data=[Mock(price=Mock(id="price_1234"))]),  # matches the id returned by the MockStripeConnector
         "customer": "cus-1",
         "start_date": datetime(2024, 6, 25).timestamp(),
+        "billing_cycle_anchor": datetime(2024, 7, 25).timestamp(),
         "metadata": {},
     }
     options = {**defaults, **params}
