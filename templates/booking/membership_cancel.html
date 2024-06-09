@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<div class="extra-top-margin container-fluid row">
+    <div class="col-sm-12">
+       <div class="card card-wm">
+            <div class="card-header">
+                <h2 class="card-title">Cancel Membership</h2>
+            </div>
+            <div class="card-body">
+                <p>You are cancelling your membership for {{ user_membership.membership.name }}.</p>
+                <p>Any bookings made against this
+                    membership will be set to unpaid and you will need to use an alternative method of payment if you wish
+                    to keep the bookings.
+                </p>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <input class="btn btn-wm btn-sm" type="submit" value="Yes, cancel my membership" />
+                    <a class="btn btn-dark btn-sm" href={% url 'membership_status' user_membership.subscription_id %}>Go back</a>
+                </form>
+               
+            </div>
+       </div>
+    </div>
+</div>
+
+{% endblock content %}

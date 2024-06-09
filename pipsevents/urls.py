@@ -8,7 +8,7 @@ from accounts.views import custom_email_view, CustomLoginView, \
     DisclaimerCreateView, data_privacy_policy, cookie_policy, subscribe_view, \
     NonRegisteredDisclaimerCreateView, nonregistered_disclaimer_submitted
 from booking.views import stripe_checkout, membership_create, stripe_subscription_checkout, \
-    subscription_create, subscription_status, MembershipListView
+    subscription_create, membership_status, membership_change, MembershipListView, subscription_cancel
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -43,11 +43,14 @@ urlpatterns = [
     path('payments/', include('payments.urls')),
     path('stripe/', include('stripe_payments.urls')),
     path('checkout/', stripe_checkout, name='stripe_checkout'),
-    path('membership/create/', membership_create, name='membership_create'),
+    # memberships
     path('membership/checkout/', stripe_subscription_checkout, name='membership_checkout'),
+    path('membership/create/', membership_create, name='membership_create'),
+    path('membership/<str:subscription_id>/change/', membership_change, name='membership_change'),
+    path('membership/<str:subscription_id>/', membership_status, name='membership_status'),
     path('membership/subscription/create/', subscription_create, name='subscription_create'),
-    path('membership/subscription/<str:subscription_id>/', subscription_status, name='subscription_status'),
-     path('memberships/', MembershipListView.as_view(), name='membership_list'),
+    path('membership/subscription/<str:subscription_id>/cancel/', subscription_cancel, name='subscription_cancel'),
+    path('memberships/', MembershipListView.as_view(), name='membership_list'),
     path('favicon.ico/',
         RedirectView.as_view(url=settings.STATIC_URL+'favicon.ico',
                              permanent=False)),

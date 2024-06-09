@@ -19,7 +19,7 @@ from booking.views.ticketed_views import TicketBookingListView, \
     TicketBookingView, TicketBookingCancelView, ticket_purchase_expired, \
     toggle_ticketed_event_waiting_list
 from booking.views.membership_views import membership_create, stripe_subscription_checkout, \
-    subscription_create, subscription_status, MembershipListView
+    subscription_create, membership_status, MembershipListView, membership_change, subscription_cancel
 
 __all__ = [
     'ajax_create_booking', 'already_cancelled', 'already_paid',
@@ -40,7 +40,7 @@ __all__ = [
     "OnlineTutorialListView", "PurchasedTutorialsListView", "OnlineTutorialDetailView",
     "stripe_checkout", "check_total", "toggle_ticketed_event_waiting_list",
     "membership_create", "stripe_subscription_checkout", "subscription_create",
-    "subscription_status", "MembershipListView"
+    "membership_status", "MembershipListView", "membership_change", "subscription_cancel"
 ]
 
 

@@ -1,5 +1,6 @@
 
 from datetime import datetime
+from datetime import timezone as datetime_tz
 import logging
 import re
 
@@ -8,7 +9,7 @@ from django.utils.text import slugify
 from django.utils import timezone
 
 from booking.models import EventType
-from stripe_payments.utils import StripeConnector
+from stripe_payments.utils import StripeConnector, get_first_of_next_month_from_timestamp
 
 logger = logging.getLogger(__name__)
 
@@ -161,13 +162,19 @@ class UserMembership(models.Model):
     membership = models.ForeignKey(Membership, related_name="user_memberships", on_delete=models.CASCADE)
     user = models.ForeignKey("auth.User", related_name="memberships", on_delete=models.CASCADE)
 
-    # Membership dates. End date is None for ongoing memberships.
+    # Membership dates (always the 1st). End date is None for ongoing memberships.
     start_date = models.DateTimeField()
     end_date = models.DateTimeField(null=True)
 
     # stripe data
     subscription_id = models.TextField(null=True)
     subscription_status = models.TextField(null=True)  # active (paid), overdue, cancelled
+    # This are the start/end dates of the Stripe subscription end date (usually 25th)
+    # start date may be < 25th if a subscription was set up to start in the future
+    # in this case the billing_cycle_anchor is the start date for payment purposes
+    subscription_start_date = models.DateTimeField()
+    subscription_end_date = models.DateTimeField(null=True)
+    subscription_billing_cycle_anchor = models.DateTimeField()
 
     # stripe status to user-friendly format
     HR_STATUS = {
@@ -180,21 +187,25 @@ class UserMembership(models.Model):
     }
 
     class Meta:
-        ordering = ("-start_date",)
+        ordering = ("subscription_status", "-start_date",)
 
     def __str__(self) -> str:
         return f"{self.user} - {self.membership.name}"
 
     def is_active(self):
         # Note active doesn't mean valid for a particular class and date
+        # A subscription that hasn't started yet is considered active
         if self.subscription_status == "active":
             return True
         if self.subscription_status == "past_due":
             # past_due is allowed until the 28th of the month (after which past due subscriptions get cancelled)
             return datetime.now().day <= 28
         # Subscription can be in cancelled state but still active until the end of the month
-        if self.subscription_status == "canceled" and self.end_date is not None and timezone.now() < self.end_date:
-            return True
+        # They can also be created to start in the future and then cancelled before they billed - in this case
+        # start and end date are the same and it's not active
+        if self.subscription_status == "canceled":
+            now = timezone.now()
+            return self.end_date is not None and self.start_date < now < self.end_date
         return False
     
     def valid_for_event(self, event):
@@ -225,3 +236,9 @@ class UserMembership(models.Model):
     def bookings_next_month(self):
         next_month = (datetime.now().month - 12) % 12
         return self.bookings.filter(status="OPEN", event__date__month=next_month)
+    
+    @classmethod
+    def calculate_membership_end_date(cls, end_date=None):
+        if not end_date:
+            return
+        return get_first_of_next_month_from_timestamp(end_date.timestamp())
