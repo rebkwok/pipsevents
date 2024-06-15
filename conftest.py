@@ -88,6 +88,7 @@ def invoice(configured_user):
 
 def get_mock_payment_intent(webhook_event_type=None, **params):
     defaults = {
+        "object": "payment_intent",
         "id": "mock-intent-id",
         "amount": 1000,
         "description": "",
@@ -114,6 +115,7 @@ class MockSubscription:
 
 def get_mock_subscription(webhook_event_type, **params):
     defaults = {
+        "object": "subscription",
         "id": "id",
         "status": "active",
         "items": Mock(data=[Mock(price=Mock(id="price_1234"))]),  # matches the id returned by the MockStripeConnector
@@ -133,10 +135,10 @@ def get_mock_webhook_event(seller):
         seller_id = params.pop("seller_id", seller.stripe_user_id)
         if webhook_event_type in ["payment_intent.succeeded", "payment_intent.payment_failed"]:
             object = get_mock_payment_intent(webhook_event_type, **params)
-        elif webhook_event_type == "customer.subscription.created":
+        elif webhook_event_type in ["customer.subscription.created", "customer.subscription.deleted", "customer.subscription.updated"]:
             object = get_mock_subscription(webhook_event_type, **params)
         else:
-            object = Mock(**params)
+            object = Mock(**{"metadata": {}, **params})
         mock_event = Mock(
             account=seller_id,
             data=Mock(object=object), 
