@@ -10,17 +10,22 @@
                 <h2 class="card-title">Membership</h2>
             </div>
             <div class="card-body">
+                <a class="float-right" href={% url 'membership_list' %}>My memberships</a>
                 <dl>
                     <dt>Membership Plan</dt>
-                    <dd>{{ user_membership.membership }}{% if not user_membership.end_date %}<br/><a class="btn btn-sm btn-wm" href="{% url 'membership_change' user_membership.subscription_id %}">Change membership</a>{% endif %}
-                    </dd>
-                </dl>
-                <dl>
+                    <dd>{{ user_membership.membership }}</dd>
+
                     <dt>Status</dt>
-                    <dd>{{ user_membership.hr_status }} {% if user_membership.subscription_status == "active" and user_membership.end_date %}(cancels on {{ user_membership.end_date|date:"d M Y"}}){% endif %}</dd>
+                    <dd>{{ user_membership.hr_status }} {% if user_membership.subscription_status == "active" and user_membership.end_date %}(ends on {{ user_membership.end_date|date:"d M Y"}}){% endif %}</dd>
                     <dd>
-                        {% if user_membership.subscription_status == "past_due" %}
-                            <strong class="text-danger">Your membership is over due; complete payment now to avoid your membership lapsing!</strong>
+                        {% if user_membership.subscription_status == "past_due" or user_membership.subscription_status == "incomplete" or user_membership.subscription_status == "setup_pending" %}
+                            <strong class="text-danger">
+                                {% if user_membership.subscription_status == "past_due" %}
+                                Your membership payment is over due; complete payment now to avoid your membership lapsing!
+                                {% else %}
+                                Your membership payment is incomplete; complete payment now to finish setting up your membership!
+                                {% endif %}
+                            </strong>
                             <form method="post" action="{% url 'membership_checkout' %}">
                                 {% csrf_token %}
                                 <input type="hidden" name="subscription_id" value="{{ user_membership.subscription_id }}"/>
@@ -29,10 +34,23 @@
                                 </div>
                             </form>
                         {% endif %}
-                        {% if not user_membership.end_date %}
-                            <a class="btn btn-sm btn-secondary" href="{% url 'subscription_cancel' user_membership.subscription_id %}">Cancel membership</a><br/>
-                        {% endif %}
+                        
                     </dd>
+
+                    {% if not user_membership.end_date %}
+                    <dt>Changing or cancelling your plan</dt>
+                    <dd>You can change this membership to a different plan; changes will take effect from the next calendar month.
+                        <br/><a class="btn btn-sm btn-wm" href="{% url 'membership_change' user_membership.subscription_id %}">Change plan</a>{% endif %}
+                    </dd>
+                    <dd>
+                        You can also cancel this membership from the end of the current month. No refunds will be given for
+                        unused user_membership.user.userprofile.stripe_customer_id
+                        <br/><a class="btn btn-sm btn-secondary" href="{% url 'subscription_cancel' user_membership.subscription_id %}">Cancel membership</a>
+                    </dd>
+
+                </dl>
+                <dl>
+                    
                     <dt>Payment Methods</dt>
                         <a href="{% url 'stripe_payments:stripe_portal' user_membership.user.userprofile.stripe_customer_id %}" class="btn btn-sm btn-wm">View/update payment methods</a><br/>
                         <span class="studioadmin-help">Note: this will open a Stripe portal where you can update the payment method associated with your subscription. Payment information is not held on this site.</span>                        
@@ -40,7 +58,12 @@
                 </dl>
                 <dl>
                     <dt>Next payment due</dt>
-                    <dd>{% if next_due %}{{ next_due|date:"d M Y" }}{% else %}-{% endif %}</dd>
+                    <dd>
+                        <span class="studioadmin-help">
+                            Membership payments are taken in advance, on the 25th of each month, for the next month's membership. This
+                            is to allow any payment issues to be resolved before the start of the next membership period, and avoid
+                            membership lapses.</span><br/>
+                        {% if next_due %}{{ next_due|date:"d M Y" }}{% else %}-{% endif %}</dd>
                 </dl>
                 <dl>
                     <dt>Latest payment</dt>
