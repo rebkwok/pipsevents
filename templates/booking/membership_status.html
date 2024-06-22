@@ -38,19 +38,19 @@
                     </dd>
 
                     {% if not user_membership.end_date %}
-                    <dt>Changing or cancelling your plan</dt>
+                    <dt>Change your plan</dt>
                     <dd>You can change this membership to a different plan; changes will take effect from the next calendar month.
-                        <br/><a class="btn btn-sm btn-wm" href="{% url 'membership_change' user_membership.subscription_id %}">Change plan</a>{% endif %}
+                        <br/><a class="btn btn-sm btn-wm" href="{% url 'membership_change' user_membership.subscription_id %}">Change plan</a>
                     </dd>
+                    <dt>Cancel your plan</dt>
                     <dd>
-                        You can also cancel this membership from the end of the current month. No refunds will be given for
-                        unused user_membership.user.userprofile.stripe_customer_id
+                        You can cancel this membership from the end of the current month. No refunds will be given for
+                        unused memberships.
                         <br/><a class="btn btn-sm btn-secondary" href="{% url 'subscription_cancel' user_membership.subscription_id %}">Cancel membership</a>
                     </dd>
-
+                    {% endif %}
                 </dl>
                 <dl>
-                    
                     <dt>Payment Methods</dt>
                         <a href="{% url 'stripe_payments:stripe_portal' user_membership.user.userprofile.stripe_customer_id %}" class="btn btn-sm btn-wm">View/update payment methods</a><br/>
                         <span class="studioadmin-help">Note: this will open a Stripe portal where you can update the payment method associated with your subscription. Payment information is not held on this site.</span>                        

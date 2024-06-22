@@ -46,6 +46,7 @@
             <div>
               <button id="payment-button" class="btn btn-dark"
                 data-client_secret="{{ client_secret }}"
+                data-confirm_type="{{ confirm_type }}"
                 data-customer_id="{{ customer_id }}"
                 data-price_id="{{ membership.stripe_price_id}}"
                 data-amount="{{ amount }}"
@@ -75,5 +76,5 @@
     <script>
       var CSRF_TOKEN = '{{ csrf_token }}';
     </script>
-    <script type='text/javascript' src="{% static 'stripe_payments/js/stripe-subscribe.js' %}"></script>
+    <script type='text/javascript' src="{% static 'stripe_payments/js/stripe-subscribe-v1.1.js' %}"></script>
 {% endblock %}
