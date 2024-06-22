@@ -30,8 +30,11 @@ class MockConnector:
         raise NotImplementedError
 
     def get_subscription(self, subscription_id):
-        raise NotImplementedError
+        return MagicMock(id=subscription_id)
 
+    def get_setup_intent(self, setup_intent_id):
+        raise NotImplementedError
+    
     def create_subscription(self, customer_id, price_id, backdate=True):
         raise NotImplementedError
     

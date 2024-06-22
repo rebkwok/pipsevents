@@ -203,18 +203,44 @@ class StripeConnector:
             **kwargs
         )
 
+    def get_payment_intent(self, setup_intent_id):
+        return stripe.PaymentIntent.retrieve(
+            id=setup_intent_id, stripe_account=self.connected_account_id
+        )
+    
+    def get_setup_intent(self, setup_intent_id):
+        return stripe.SetupIntent.retrieve(
+            id=setup_intent_id, stripe_account=self.connected_account_id
+        )
+    
     def get_subscription(self, subscription_id):
         kwargs = dict(
             id=subscription_id, stripe_account=self.connected_account_id, 
-            expand=['latest_invoice']
+            expand=['latest_invoice', 'pending_setup_intent']
         )
         return stripe.Subscription.retrieve(**kwargs)
 
-    def get_subscriptions_for_customer(self, customer_id):
-        return {
-            sub["id"]: sub for sub in 
-            stripe.Subscription.list(status="all", customer=customer_id, stripe_account=self.connected_account_id).data  
-        }
+    def get_subscriptions_for_customer(self, customer_id, status="all"):
+        subscriptions = stripe.Subscription.list(
+            status=status, 
+            customer=customer_id, 
+            stripe_account=self.connected_account_id,
+            expand=['data.latest_invoice', 'data.pending_setup_intent'],
+        )
+        all_subscriptions = {sub["id"]: sub for sub in subscriptions.data}
+
+        while subscriptions["has_more"]:
+            subscriptions = stripe.Subscription.list(
+                status=status, 
+                customer=customer_id, 
+                stripe_account=self.connected_account_id,
+                expand=['data.latest_invoice.payment_intent', 'data.pending_setup_intent'],
+                starting_after=subscriptions.data[-1].id
+            )
+            all_subscriptions.update({sub["id"]: sub for sub in subscriptions.data})
+            
+        return all_subscriptions
+        
 
     def get_subscription_cycle_start_dates(self, reference_date=None):
         """
@@ -238,7 +264,35 @@ class StripeConnector:
             backdate_for_next_month = False
         return current_cycle_start_date, next_cycle_start_date, backdate_for_next_month
 
-    def create_subscription(self, customer_id, price_id, backdate=True, default_payment_method=None):
+    def get_subscription_kwargs(
+        self, customer_id, price_id, backdate=True, default_payment_method=None
+    ):
+        current_cycle_start_date, next_cycle_start_date, backdate_for_next_month = self.get_subscription_cycle_start_dates()
+        
+        kwargs = dict(
+            customer=customer_id,
+            items=[{'price': price_id, 'quantity': 1}],
+            default_payment_method=default_payment_method,
+            billing_cycle_anchor=int(next_cycle_start_date.timestamp()),
+            payment_behavior='default_incomplete',  # create subscription as incomplete
+            payment_settings={'save_default_payment_method': 'on_subscription'},   # save customer default payment
+            expand=['latest_invoice.payment_intent', 'pending_setup_intent'],
+            stripe_account=self.connected_account_id,
+        )
+        if backdate_for_next_month or backdate:
+            # backdating: backdate to start of current cycle
+            # proration invoice will be for the full month
+            kwargs["backdate_start_date"] = int(current_cycle_start_date.timestamp())
+            kwargs["proration_behavior"] = "create_prorations"
+        else:
+            # no backdating; set proration to none so stripe doesn't try to collect
+            # prorated payment for now to end of cycle
+            kwargs["proration_behavior"] = "none"
+        
+        return kwargs
+
+
+    def create_subscription(self, customer_id, price_id, backdate=True, default_payment_method=None, subscription_kwargs=None):
         """
         Create subscription for this customer and price
 
@@ -268,29 +322,10 @@ class StripeConnector:
 
         NOTE: If not backdating, will create setup intent; if backdating, creates payment intent
         """
-        current_cycle_start_date, next_cycle_start_date, backdate_for_next_month = self.get_subscription_cycle_start_dates()
-        
-        kwargs = dict(
-            customer=customer_id,
-            items=[{'price': price_id, 'quantity': 1}],
-            default_payment_method=default_payment_method,
-            billing_cycle_anchor=int(next_cycle_start_date.timestamp()),
-            payment_behavior='default_incomplete',  # create subscription as incomplete
-            payment_settings={'save_default_payment_method': 'on_subscription'},   # save customer default payment
-            expand=['latest_invoice.payment_intent', 'pending_setup_intent'],
-            stripe_account=self.connected_account_id,
+        subscription_kwargs = subscription_kwargs or self.get_subscription_kwargs(
+            customer_id, price_id, backdate, default_payment_method
         )
-        if backdate_for_next_month or backdate:
-            # backdating: backdate to start of current cycle
-            # proration invoice will be for the full month
-            kwargs["backdate_start_date"] = int(current_cycle_start_date.timestamp())
-            kwargs["proration_behavior"] = "create_prorations"
-        else:
-            # no backdating; set proration to none so stripe doesn't try to collect
-            # prorated payment for now to end of cycle
-            kwargs["proration_behavior"] = "none"
-
-        subscription = stripe.Subscription.create(**kwargs)
+        subscription = stripe.Subscription.create(**subscription_kwargs)
 
         return subscription
     

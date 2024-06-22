@@ -8,6 +8,7 @@ from django.db import models
 from django.utils.text import slugify
 from django.utils import timezone
 
+from activitylog.models import ActivityLog
 from booking.models import EventType
 from stripe_payments.utils import StripeConnector, get_first_of_next_month_from_timestamp
 
@@ -167,14 +168,29 @@ class UserMembership(models.Model):
     end_date = models.DateTimeField(null=True)
 
     # stripe data
+    # https://docs.stripe.com/api/subscriptions/object
     subscription_id = models.TextField(null=True)
-    subscription_status = models.TextField(null=True)  # active (paid), overdue, cancelled
+    subscription_status = models.TextField(null=True)  
+    # FROM STRIPE (initial subscriptions):
+    # - incomplete: backdated subscription, invoice not yet paid
+    # - incomplete_expired: backdated subscription, invoice not paid within 23 hrs
+    # - active: backdated subscription paid, OR starts in future, OR ongoing and paid
+    # - past_due: offline invoice payment attempt failed
+    # - unpaid?
+    # - cancelled
+    # PLUS:
+    # setup_pending: non-backdated subscription, setup intent not yet succeded (stripe status = active)
+
     # This are the start/end dates of the Stripe subscription end date (usually 25th)
     # start date may be < 25th if a subscription was set up to start in the future
     # in this case the billing_cycle_anchor is the start date for payment purposes
     subscription_start_date = models.DateTimeField()
     subscription_end_date = models.DateTimeField(null=True)
     subscription_billing_cycle_anchor = models.DateTimeField()
+
+    # Use to store setup intent for subscriptions set to start in the future so we can retrieve
+    # them in the stripe webhook and move the subscription to active
+    pending_setup_intent = models.TextField(null=True)
 
     # stripe status to user-friendly format
     HR_STATUS = {
@@ -184,6 +200,7 @@ class UserMembership(models.Model):
         "past_due": "Overdue",
         "canceled": "Cancelled",
         "unpaid": "Unpaid",
+        "setup_pending": "Incomplete",
     }
 
     class Meta:
@@ -242,3 +259,23 @@ class UserMembership(models.Model):
         if not end_date:
             return
         return get_first_of_next_month_from_timestamp(end_date.timestamp())
+
+    def reallocate_bookings(self):
+        """
+        1) Check user's membership for bookings that shouldn't be there and reallocate if possible
+            i.e.
+            After cancellation ( if status == cancelled or end_date) of a UserMembership, find all booking for events after the
+            end_date and:
+            - transfer to another available membership
+            - transfer other available block(s)
+            - mark as unpaid
+
+        2) Check user's bookings for unpaid bookings and allocate to this membership if possible
+            i.e. after successful set up of a subscription, allocate any unpaid bookings
+            - confirm subscription is in active state first and has no end date (set on payment for backdated, and on
+            setup intent confirmation for non-backdated)
+        """
+        # temporory logging
+        ActivityLog.objects.create(
+            log=f"Reallocate bookings called {self.subscription_id}"
+        )

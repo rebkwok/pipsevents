@@ -1,0 +1,19 @@
+{% extends 'email_base.html' %}
+
+{% block messagecontent %}
+<div style="font-family: sans-serif;">
+
+<p>
+    We have been unsuccessful at collecting payment for your membership ({{ user_membership.membership.name}}),
+    which has now been automatically cancelled.  If you wish, you can set up a membership again at
+    <a href="{{ host }}/memberships">{{ host }}/memberships</a>.
+</p>
+<p>
+    Any future bookings made against this membership have been reallocated to alternative
+    payment methods where possible. If no alternative payment method was found, they have been marked as
+    unpaid. Please visit the booking site to pay for any outstanding bookings. If left unpaid, they
+    will be automatically cancelled.
+</p>
+
+</div>
+{% endblock %}

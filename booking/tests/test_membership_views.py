@@ -1,6 +1,6 @@
 from datetime import datetime
 from datetime import timezone as datetime_tz
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock, Mock
 
 import pytest
 
@@ -16,6 +16,7 @@ pytestmark = pytest.mark.django_db
 
 create_url = reverse("membership_create")
 checkout_url = reverse("membership_checkout")
+stripe_subscribe_url = reverse("subscription_create")
 
 
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
@@ -124,16 +125,112 @@ def test_membership_create_post(client, seller, configured_user):
     m1 = baker.make(Membership, name="m1", active=True)
     resp = client.post(create_url, {"membership": m1.id, "backdate": 1})
     assert resp.status_code == 405
-    assert resp.url == reverse("stripe_subscription_checkout")
 
 
 @pytest.mark.freeze_time("2024-02-12")
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 @patch("booking.views.membership_views.StripeConnector", MockConnector)
-def test_subscription_checkout(client, seller, configured_user):
-    # subscription checkout page, with data from membership selection page
-    client.force_login(configured_user)
+def test_membership_checkout_new_subscription_backdate(client, seller, configured_stripe_user):
+    # membership checkout page, with data from membership selection page
+    client.force_login(configured_stripe_user)
     m1 = baker.make(Membership, name="m1", active=True)
     resp = client.post(checkout_url, {"membership": m1.id, "backdate": 1})
     assert resp.status_code == 200
     assert "/stripe/subscribe-complete/" in resp.context_data["stripe_return_url"]
+    assert resp.context_data["backdate"] == 1
+    assert resp.context_data["amount"] == m1.price * 100
+    assert resp.context_data["creating"] == True
+    assert resp.context_data["membership"] == m1
+    assert resp.context_data["customer_id"] == configured_stripe_user.userprofile.stripe_customer_id
+
+
+@pytest.mark.freeze_time("2024-02-12")
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+@patch("booking.views.membership_views.StripeConnector", MockConnector)
+def test_membership_checkout_new_subscription_no_backdate(client, seller, configured_stripe_user):
+    # membership checkout page, with data from membership selection page
+    client.force_login(configured_stripe_user)
+    m1 = baker.make(Membership, name="m1", active=True)
+    resp = client.post(checkout_url, {"membership": m1.id, "backdate": 0})
+    assert resp.status_code == 200
+    assert "/stripe/subscribe-complete/" in resp.context_data["stripe_return_url"]
+    assert resp.context_data["backdate"] == 0
+    # no backdating, amount charged now is 0
+    assert resp.context_data["amount"] == 0
+    assert resp.context_data["creating"] == True
+    assert resp.context_data["membership"] == m1
+    assert resp.context_data["customer_id"] == configured_stripe_user.userprofile.stripe_customer_id
+
+
+def mock_connector_class(subscription_id, invoice_secret=None, setup_secret=None, su_status="payment_method_required"):
+    invoice = None
+    pending_setup_intent = None
+
+    if invoice_secret:
+        invoice = Mock(payment_intent=Mock(client_secret=invoice_secret))
+    elif setup_secret:
+        pending_setup_intent = Mock(id="su", client_secret=setup_secret)
+
+    class Connector(MockConnector):
+        def get_subscription(self, subscription_id):
+            return MagicMock(
+                id=subscription_id,
+                latest_invoice=invoice,
+                pending_setup_intent=pending_setup_intent
+            )
+        
+        def get_setup_intent(self, setup_intent_id):
+            return Mock(id=setup_intent_id, status=su_status)
+            
+
+    return Connector
+
+
+@pytest.mark.freeze_time("2024-02-12")
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+@patch("booking.views.membership_views.StripeConnector", mock_connector_class("sub1a", invoice_secret="pi_secret"))
+def test_membership_checkout_existing_subscription_with_invoice(client, seller, configured_stripe_user):
+    # membership checkout page, with data from membership selection page
+    client.force_login(configured_stripe_user)
+    m1 = baker.make(Membership, name="m1", active=True)
+    baker.make(
+        UserMembership, 
+        user=configured_stripe_user, 
+        membership=m1, 
+        subscription_id="sub1a",
+        subscription_status="incomplete"
+    )
+    resp = client.post(checkout_url, {"subscription_id": "sub1a"})
+    assert resp.status_code == 200
+    assert resp.context_data["backdate"] == 0
+    assert resp.context_data["amount"] == ""
+    assert "creating" not in resp.context_data
+    assert resp.context_data["membership"] == m1
+    assert resp.context_data["customer_id"] == configured_stripe_user.userprofile.stripe_customer_id
+    assert resp.context_data["client_secret"] == "pi_secret"
+    assert resp.context_data["confirm_type"] == "payment"
+
+
+@pytest.mark.freeze_time("2024-02-12")
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+@patch("booking.views.membership_views.StripeConnector", mock_connector_class("sub1b", setup_secret="su_secret"))
+def test_membership_checkout_existing_subscription_with_setup_intent(client, seller, configured_stripe_user):
+    # membership checkout page, with data from membership selection page
+    client.force_login(configured_stripe_user)
+    m1 = baker.make(Membership, name="m1", active=True)
+    baker.make(
+        UserMembership, 
+        user=configured_stripe_user, 
+        membership=m1, 
+        subscription_id="sub1b",
+        subscription_status="setup_pending"
+    )
+    resp = client.post(checkout_url, {"subscription_id": "sub1b"})
+    assert resp.status_code == 200
+    assert resp.context_data["backdate"] == 0
+    assert resp.context_data["amount"] == ""
+    assert "creating" not in resp.context_data
+    assert resp.context_data["membership"] == m1
+    assert resp.context_data["customer_id"] == configured_stripe_user.userprofile.stripe_customer_id
+    assert resp.context_data["client_secret"] == "su_secret"
+    assert resp.context_data["confirm_type"] == "setup"

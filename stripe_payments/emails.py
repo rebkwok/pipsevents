@@ -14,9 +14,14 @@ def _get_user_from_invoice(invoice):
     
 
 def _get_user_from_membership(event_object):
-    user = User.objects.filter(memberships__customer_id=event_object.customer).first()
+    user = User.objects.filter(userprofile__stripe_customer_id=event_object.customer).first()
+    if event_object.object == "subscription":
+        user_membership = user.memberships.get(subscription_id=event_object.id)
+    else:
+        user_membership = None
+            
     if user is not None:
-        return user, user.memberships.get(customer_id=event_object.customer)
+        return user, user_membership
     return None, None
 
 
@@ -145,7 +150,7 @@ def send_payment_expiring_email(event_object):
 
 
 def send_subscription_past_due_email(event_object):
-    _send_subscription_email(event_object, "subscription_past_due", "Action required - Complete your membership payments")
+    _send_subscription_email(event_object, "subscription_past_due", "Action required - Complete your membership payment")
 
 
 def send_subscription_renewal_upcoming_email(event_object):
