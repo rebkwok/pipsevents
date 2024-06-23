@@ -689,8 +689,8 @@ def test_webhook_subscription_created(
     )
     resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
     assert resp.status_code == 200
-    # email sent to user
-    assert len(mail.outbox) == 1
+    # no emails sent for initial creation with no default payment method (i.e. setup but not paid/confirmed yet)
+    assert len(mail.outbox) == 0
     # membership created, with start date as first of next month
     assert membership.user_memberships.count() == 1
     assert membership.user_memberships.first().start_date.date() == datetime(2024, 7, 1).date()

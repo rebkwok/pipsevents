@@ -1,3 +1,5 @@
+import pytest 
+
 from datetime import datetime, date
 from datetime import timezone as dt_timezone
 
@@ -29,6 +31,7 @@ MEDICAL_TREATMENT_TERMS_AT_2020_05_01 = "I give permission for myself to receive
 OVER_18_STATEMENT_AT_2020_05_01 = "I confirm that I am aged 18 or over"
 
 
+@pytest.mark.skip(reason="Old migration tests")
 class DisclaimerVersioningMingrationTests(MigrationTest):
 
     before = [

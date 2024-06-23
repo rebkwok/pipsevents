@@ -108,13 +108,12 @@ class DisclaimerContentModelTests(TestCase):
             disclaimer_terms="foo", over_18_statement="bar", medical_treatment_terms="foobar",
             version=None
         )
-        with pytest.raises(ValidationError) as e:
+        with pytest.raises(ValidationError, match="No changes made to content; not saved") as e:
             baker.make(
                 DisclaimerContent,
                 disclaimer_terms="foo", over_18_statement="bar", medical_treatment_terms="foobar",
                 version=None
             )
-            assert str(e) == "No changes made to content; not saved"
 
 
 class DisclaimerModelTests(TestCase):
@@ -199,6 +198,27 @@ class DisclaimerModelTests(TestCase):
         with self.assertRaises(ValidationError):
             baker.make(OnlineDisclaimer, user=user, version=disclaimer_content.version)
 
+    def test_expired_disclaimer(self):
+        user = baker.make_recipe('booking.user', username='testuser')
+        disclaimer_content = baker.make(
+            DisclaimerContent,
+            disclaimer_terms="foo", over_18_statement="bar", medical_treatment_terms="foobar",
+            version=None  # ensure version is incremented from any existing ones
+        )
+        # disclaimer is out of date, so inactive
+        disclaimer = baker.make(
+            OnlineDisclaimer, user=user,
+            version=disclaimer_content.version
+        )
+        
+        assert disclaimer.is_active
+
+        # manually mark as expired, even though stil in date
+        disclaimer.expired = True
+        disclaimer.save()
+
+        assert not disclaimer.is_active
+
     def test_delete_online_disclaimer(self):
         self.assertFalse(ArchivedDisclaimer.objects.exists())
         disclaimer = baker.make(OnlineDisclaimer, name='Test 1')
@@ -242,6 +262,19 @@ class DisclaimerModelTests(TestCase):
             date=timezone.now() - timedelta(367),
         )
         self.assertFalse(old_disclaimer.is_active)
+
+    def test_nonregistered_disclaimer_expired(self):
+        disclaimer_content = baker.make(
+            DisclaimerContent, version=None  # ensure version is incremented from any existing ones
+        )
+        disclaimer = baker.make(
+            NonRegisteredDisclaimer, first_name='Test', last_name='User', version=disclaimer_content.version
+        )
+        assert disclaimer.is_active
+
+        disclaimer.expired = True
+        disclaimer.save()
+        assert not disclaimer.is_active
 
     def test_delete_nonregistered_disclaimer(self):
         self.assertFalse(ArchivedDisclaimer.objects.exists())

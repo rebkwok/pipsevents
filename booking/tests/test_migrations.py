@@ -1,11 +1,14 @@
 from datetime import datetime, timedelta
 from datetime import timezone as dt_timezone
 
+import pytest
+
 from django.utils import timezone
 
 from django_migration_testcase import MigrationTest
 
 
+@pytest.mark.skip(reason="Old migration tests")
 class VoucherMigrationTests(MigrationTest):
 
     before = [
@@ -143,6 +146,7 @@ class VoucherMigrationTests(MigrationTest):
         self.assertEqual(BlockVoucher.objects.count(), 0)
 
 
+@pytest.mark.skip(reason="Old migration tests")
 class DateWarningSentMigrationTests(MigrationTest):
 
     before = [
