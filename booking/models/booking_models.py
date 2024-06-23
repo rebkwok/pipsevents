@@ -762,9 +762,7 @@ class Booking(models.Model):
     def has_available_block(self):
         available_blocks = [
             block for block in
-            Block.objects.select_related("user", "block_type").filter(
-                user=self.user, block_type__event_type=self.event.event_type
-            )
+            self.user.blocks.filter(block_type__event_type=self.event.event_type)
             if block.active_block()
         ]
         return bool(available_blocks)
@@ -773,10 +771,8 @@ class Booking(models.Model):
     def has_unpaid_block(self):
         available_blocks = [
             block for block in
-            Block.objects.select_related("user", "block_type").filter(
-                user=self.user, block_type__event_type=self.event.event_type
-            )
-            if not block.full and not block.expired and not block.paid
+            self.user.blocks.filter(block_type__event_type=self.event.event_type, paid=False)
+            if not block.full and not block.expired
         ]
         return bool(available_blocks)
 

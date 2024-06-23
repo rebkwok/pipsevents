@@ -238,21 +238,25 @@ class UserMembership(models.Model):
         
         if self.end_date and self.end_date < event.date:
             return False
-        
-        # check quantities of classes already booked with this membership for this event type
+    
+        # check quantities of classes already booked with this membership for this event type in the same month
         allowed_numbers = membership_item.quantity
-        open_booking_count = self.bookings.filter(event__event_type=event.event_type, status="OPEN").count()
+        open_booking_count = self.bookings.filter(
+            event__event_type=event.event_type, event__date__month=event.date.month, event__date__year=event.date.year, 
+            status="OPEN"
+        ).count()
         return open_booking_count < allowed_numbers
 
     def hr_status(self):
         return self.HR_STATUS.get(self.subscription_status, self.subscription_status.title())
 
     def bookings_this_month(self):
-        return self.bookings.filter(status="OPEN", event__date__month=datetime.now().month)
+        return self.bookings.filter(status="OPEN", event__date__month=datetime.now().month, event__date__year=datetime.now().year)
     
     def bookings_next_month(self):
-        next_month = (datetime.now().month - 12) % 12
-        return self.bookings.filter(status="OPEN", event__date__month=next_month)
+        next_month = (datetime.now().month + 1 - 12) % 12
+        year = datetime.now().year + 1 if next_month == 1 else datetime.now().year
+        return self.bookings.filter(status="OPEN", event__date__month=next_month, event__date__year=year)
     
     @classmethod
     def calculate_membership_end_date(cls, end_date=None):

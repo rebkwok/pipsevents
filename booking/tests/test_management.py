@@ -3179,3 +3179,67 @@ class TestFindNoShows(TestCase):
         assert len(mail.outbox) == 2
         assert f"{3}: {user.first_name} {user.last_name} - (id {user.id})" in mail.outbox[1].body
         assert f"{user1.first_name} {user1.last_name} - (id {user1.id})" not in mail.outbox[1].body
+
+
+import json
+import pytest
+@pytest.mark.django_db
+def test_update_prices(tmp_path):
+    blocktype = baker.make_recipe("booking.blocktype5", size=3, identifier="standard", cost=20)
+    blocktype1 = baker.make_recipe("booking.blocktype5", size=3, identifier="not-standard", cost=20)
+    event_type = baker.make("booking.EventType", event_type="CL", subtype="Test class")
+    event_type1 = baker.make("booking.EventType", event_type="CL", subtype="Test class 1")
+    event = baker.make_recipe("booking.future_PC", event_type=event_type, cost=10)
+    event1 = baker.make_recipe("booking.future_PC", event_type=event_type1, cost=10)
+    tt_session = baker.make("timetable.Session", event_type=event_type, cost=10)
+    tt_session1 = baker.make("timetable.Session", event_type=event_type1, cost=10)
+
+    new_prices = {
+        "blocktype": [ 
+            { 
+                "identifier": "standard", 
+                "size": 3, 
+                "price": 36.00 
+            }, 
+        ], 
+        "event": [ 
+            { 
+                "event_type": "CL", 
+                "subtype": "Test class", 
+                "price": 13.00 
+            }, 
+        ], 
+        "session": [ 
+            { 
+                "event_type": "CL", 
+                "subtype": "Test class", 
+                "price": 12.00 
+            }, 
+        ] 
+    }
+    new_prices_filepath = tmp_path / "prices.json"
+    new_prices_filepath.write_text(json.dumps(new_prices))
+
+    # dry run
+    management.call_command("update_prices", new_prices_filepath)
+    for obj in [blocktype, blocktype1, event_type, event_type1, event, event1, tt_session, tt_session1]:
+        obj.refresh_from_db()
+    assert blocktype.cost == 20
+    assert blocktype1.cost == 20
+    assert event.cost == 10
+    assert event1.cost == 10
+    assert tt_session.cost == 10
+    assert tt_session1.cost == 10
+
+    # live run
+    management.call_command("update_prices", new_prices_filepath, live_run=True)
+    for obj in [blocktype, blocktype1, event_type, event_type1, event, event1, tt_session, tt_session1]:
+        obj.refresh_from_db()
+    assert blocktype.cost == 36
+    assert blocktype1.cost == 20
+    assert event.cost == 13
+    assert event1.cost == 10
+    assert tt_session.cost == 12
+    assert tt_session1.cost == 10
+
+    

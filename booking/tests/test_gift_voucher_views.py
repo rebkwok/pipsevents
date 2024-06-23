@@ -102,6 +102,20 @@ class TestGiftVoucherPurchseView(GiftVoucherTestMixin, TestCase):
 
         assert "paypal_form" in resp.context_data
 
+    def test_purchase_gift_voucher_invalid_email(self):
+        data = {
+            'voucher_type': self.block_voucher_type1.id,
+            'user_email': "test@test.com",
+            'user_email1': "test1@test.com",
+            'recipient_name': 'Donald Duck',
+            'message': 'Quack'
+        }
+        resp = self.client.post(self.url, data)
+        assert resp.status_code == 200
+        assert resp.context_data["form"].errors == {
+            "user_email1": ["Email addresses do not match"]
+        }
+
 
 class TestGiftVoucherUpdateView(GiftVoucherTestMixin, TestCase):
 
