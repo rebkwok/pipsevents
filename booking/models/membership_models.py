@@ -264,6 +264,47 @@ class UserMembership(models.Model):
             return
         return get_first_of_next_month_from_timestamp(end_date.timestamp())
 
+    def _reallocate_booking(self, booking, other_active_memberships):
+        # no-show or cancelled bookings are just set to no membership and unpaid
+        if booking.no_show or booking.status == "CANCELLED":
+            booking.membership = None
+            booking.paid = False
+            booking.payment_confirmed = False
+            booking.save()
+            return booking
+        # assign to first valid membership
+        for membership in other_active_memberships:
+            if membership.valid_for_event(booking.event):
+                booking.membership = membership
+                booking.paid = True
+                booking.payment_confirmed = True
+                booking.save()
+                ActivityLog.objects.create(
+                    log=f"Reallocated booking {booking.id} (user {self.user.username}) to membership {membership}"
+                )
+                return booking
+        # assign to first valid block
+        active_block = booking.get_next_active_block()
+        if active_block is not None:
+            booking.membership = None
+            booking.block = active_block
+            booking.paid = True
+            booking.payment_confirmed = True
+            booking.save()
+            ActivityLog.objects.create(
+                log=f"Reallocated booking {booking.id} (user {self.user.username}) to block {active_block.id}"
+            )
+            return booking
+        # no valid membership or block, set to None
+        booking.membership = None
+        booking.paid = False
+        booking.payment_confirmed = False
+        booking.save()
+        ActivityLog.objects.create(
+            log=f"Booking {booking.id} (user {self.user.username}) for cancelled membership set to unpaid"
+        )
+        return booking
+
     def reallocate_bookings(self):
         """
         1) Check user's membership for bookings that shouldn't be there and reallocate if possible
@@ -283,3 +324,14 @@ class UserMembership(models.Model):
         ActivityLog.objects.create(
             log=f"Reallocate bookings called {self.subscription_id}"
         )
+        if self.end_date:
+            # check for open bookings for events after the end date
+            bookings_after_end_date = self.bookings.filter(event__date__gt=self.end_date)
+            other_active_memberships = self.user.memberships.filter(subscription_status="active")
+            for booking in bookings_after_end_date:
+                booking = self._reallocate_booking(booking, other_active_memberships)
+
+        elif self.subscription_status == "active":
+            # check for unpaid bookings that this membership is eligible for and assign the membership to it
+            # email user a notification? 
+            ...
