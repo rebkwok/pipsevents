@@ -816,10 +816,12 @@ def test_reallocate_bookings_after_cancel_with_other_membership_inactive(seller)
     # New membership starts next month, not yet active
     next_user_membership = baker.make(
         UserMembership,
+        user=user_membership.user,
         membership=user_membership.membership,
         start_date=datetime(2020, 4, 1, tzinfo=dt_tz.utc),
         subscription_status="inactive",
     )
+    assert not next_user_membership.valid_for_event(booking_next.event)
 
     user_membership.reallocate_bookings()
 
@@ -848,16 +850,18 @@ def test_reallocate_bookings_after_cancel_with_other_membership_active(seller):
     # New membership starts next month, not yet active
     next_user_membership = baker.make(
         UserMembership,
+        user=user_membership.user,
         membership=user_membership.membership,
         start_date=datetime(2020, 4, 1, tzinfo=dt_tz.utc),
         subscription_status="active",
     )
+    assert next_user_membership.valid_for_event(booking_next.event)
 
     user_membership.reallocate_bookings()
 
     for bk in booking_set:
         bk.refresh_from_db()
-    
+
     # next months booking has been removed
     assert set(user_membership.bookings.all()) == {booking, booking_end_of_month}
     # allocated to next membership
@@ -866,7 +870,6 @@ def test_reallocate_bookings_after_cancel_with_other_membership_active(seller):
     assert booking_next.paid
 
 
-@pytest.mark.xfail
 @pytest.mark.freeze_time("2020-03-21")
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 def test_reallocate_bookings_after_cancel_with_active_block(seller):
@@ -881,17 +884,18 @@ def test_reallocate_bookings_after_cancel_with_active_block(seller):
         
     )
     assert block.active_block()
-    assert booking_next.has_available_block
+    assert booking_next.get_next_active_block() == block
 
     # change status to cancelled
     user_membership.subscription_status == "canceled"
+    user_membership.end_date = datetime(2020, 4, 1, tzinfo=dt_tz.utc)
     user_membership.save()
 
     user_membership.reallocate_bookings()
 
     for bk in booking_set:
         bk.refresh_from_db()
-    
+
     # next months booking has been removed
     assert set(user_membership.bookings.all()) == {booking, booking_end_of_month}
     # allocated to next membership
