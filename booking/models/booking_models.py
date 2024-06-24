@@ -758,14 +758,28 @@ class Booking(models.Model):
             return False
         return self.event.can_cancel
 
+    def get_next_active_block(self):
+        """
+        return the active block for this booking with the soonest expiry date
+        """
+        blocks = self.user.blocks.filter(
+            expiry_date__gte=timezone.now(),
+            block_type__event_type=self.event.event_type
+        ).order_by("expiry_date")
+        # already sorted by expiry date, so we can just get the next active one
+        return next(
+            (block for block in blocks if block.active_block()), None
+        )
+
     @property
     def has_available_block(self):
-        available_blocks = [
-            block for block in
-            self.user.blocks.filter(block_type__event_type=self.event.event_type)
-            if block.active_block()
-        ]
-        return bool(available_blocks)
+        return any(
+            [
+                block for block in
+                self.user.blocks.filter(block_type__event_type=self.event.event_type, expiry_date__gte=timezone.now())
+                if block.active_block()
+            ]
+        )
 
     @cached_property
     def has_unpaid_block(self):

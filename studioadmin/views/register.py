@@ -21,7 +21,6 @@ from braces.views import LoginRequiredMixin
 
 from booking.email_helpers import send_waiting_list_email
 from booking.models import Event, Booking, Block, BlockType, WaitingListUser
-from booking.views.views_utils import _get_active_user_block
 from studioadmin.forms import StatusFilter,  RegisterDayForm, AddRegisterBookingForm
 from studioadmin.views.helpers import is_instructor_or_staff, \
     InstructorOrStaffUserMixin
@@ -326,8 +325,8 @@ def process_event_booking_updates(form, event, request):
             action = 'reopened'
 
         if not booking.block:  # reopened no-show could already have block
-            active_block = _get_active_user_block(booking.user, booking)
-            if booking.has_available_block:
+            active_block = booking.get_next_active_block()
+            if active_block is not None:
                 booking.block = active_block
                 booking.paid = True
                 booking.payment_confirmed = True
@@ -382,7 +381,7 @@ def ajax_assign_block(request, booking_id):
                     'status': 'warning', 'msg': 'Block already assigned.'
                 }
         else:
-            available_block = _get_active_user_block(booking.user, booking)
+            available_block = booking.get_next_active_block()
             if available_block:
                 booking.block = available_block
                 booking.paid = True

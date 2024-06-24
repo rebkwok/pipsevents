@@ -43,7 +43,7 @@ from booking.email_helpers import send_support_email, send_waiting_list_email
 from booking.views.shopping_basket_views import shopping_basket_bookings_total_context
 from booking.views.views_utils import DisclaimerRequiredMixin, \
     DataPolicyAgreementRequiredMixin, \
-    _get_active_user_block, _get_block_status, validate_voucher_code
+    _get_block_status, validate_voucher_code
 
 from booking.templatetags.bookingtags import format_paid_status, get_shopping_basket_icon
 
@@ -282,7 +282,7 @@ class BookingUpdateView(
             _email_free_class_request(self.request, booking, 'update')
 
         elif 'block_book' in form.data:
-            active_block = _get_active_user_block(self.request.user, booking)
+            active_block = booking.get_next_active_block()
             if active_block:
                 booking.block = active_block
                 booking.paid = True
@@ -876,7 +876,7 @@ def ajax_create_booking(request, event_id):
         # leave paid no_show booking with existing payment method
         pass
 
-    active_block = _get_active_user_block(request.user, booking)
+    active_block = booking.get_next_active_block()
 
     if active_block:
         booking.block = active_block
