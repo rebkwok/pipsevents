@@ -25,8 +25,7 @@ from booking.models import (
 )
 from booking.forms import BookingVoucherForm, BlockVoucherForm
 import booking.context_helpers as context_helpers
-from booking.views.views_utils import _get_active_user_block, \
-    _get_block_status, validate_block_voucher_code, validate_voucher_code
+from booking.views.views_utils import _get_block_status, validate_block_voucher_code, validate_voucher_code
 
 from payments.helpers import (
     create_booking_paypal_transaction, create_multiblock_paypal_transaction,
@@ -525,7 +524,7 @@ def update_block_bookings(request):
 
     block_booked = []
     for booking in unpaid_bookings:
-        active_block = _get_active_user_block(request.user, booking)
+        active_block = booking.get_next_active_block()
         if active_block:
             booking.block = active_block
             booking.paid = True
