@@ -942,7 +942,7 @@ class Booking(models.Model):
         if self.block and self.block.block_type.identifier == 'free class':
             self.free_class = True
 
-        if self.free_class or self.block:
+        if self.free_class or self.block or self.membership:
             self.paid = True
             self.payment_confirmed = True
 
