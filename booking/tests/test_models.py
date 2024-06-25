@@ -26,6 +26,9 @@ class EventTests(TestCase):
     def setUpTestData(cls):
         cls.event = baker.make_recipe('booking.future_EV')
 
+    def test_location_index(self):
+        assert self.event.location_index == 1
+
     def test_bookable_booking_not_open(self):
         """
         Test that event bookable logic returns correctly
@@ -168,11 +171,18 @@ class EventTests(TestCase):
 
     def test_allowed_group(self):
         pp_et = baker.make_recipe("booking.event_type_PP")
-        pp = baker.make_recipe('booking.future_PP', event_type=pp_et, allowed_group_override=None)
-        assert pp.allowed_group_for_event() == pp_et.allowed_group
-        assert pp.allowed_group_description == pp_et.allowed_group.description
+        allowed_group = baker.make(AllowedGroup, description="test", group__name="test")
+        pp = baker.make_recipe('booking.future_PP', event_type=pp_et, allowed_group_override=allowed_group)
+        pp1 = baker.make_recipe('booking.future_PP', event_type=pp_et, allowed_group_override=None)
+
+        assert pp.allowed_group_for_event() == allowed_group
+        assert pp_et.allowed_group_description ==  pp_et.allowed_group.description
+        assert pp.allowed_group_description == "test"
+        assert pp1.allowed_group_description == "regular student only"
+
 
         assert self.event.allowed_group == AllowedGroup.default_group()
+        assert self.event.allowed_group_description == "default group; open to all"
 
 
 class BookingTests(PatchRequestMixin, TestCase):
