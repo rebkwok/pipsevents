@@ -7,6 +7,8 @@ from model_bakery import baker
 
 from urllib.parse import urlsplit
 
+import pytest
+
 from django.conf import settings
 from django.core import mail
 from django.urls import reverse
@@ -23,6 +25,12 @@ from common.tests.helpers import _create_session, \
     TestSetupMixin, format_content, make_data_privacy_agreement
 
 from payments.helpers import create_booking_paypal_transaction
+
+
+@pytest.mark.django_db
+def test_permission_denied_page(client):
+    resp = client.get(reverse("booking:permission_denied"))
+    assert resp.status_code == 200
 
 
 class BookingListViewTests(TestSetupMixin, TestCase):

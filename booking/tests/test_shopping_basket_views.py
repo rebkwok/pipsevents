@@ -820,6 +820,16 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         assert self.client.session["cart_items"] == f"obj=booking ids={booking_ids} usr={self.user.email}"
 
     @override_settings(PAYMENT_METHOD="paypal")
+    def test_paypal_cart_items_unpaid_bookings_overridden(self):
+        session = self.client.session
+        session["cart_items"] = f"obj=booking ids=3,4,5 usr=foo@example.com"
+        session.save()
+        resp = self.client.get(self.url)
+        self.assertEqual(len(resp.context['unpaid_bookings']), 6)
+        booking_ids = ','.join(str(booking.id) for booking in self.user.bookings.all().order_by("id"))
+        assert self.client.session["cart_items"] == f"obj=booking ids={booking_ids} usr={self.user.email}"
+
+    @override_settings(PAYMENT_METHOD="paypal")
     def test_paypal_cart_items_unpaid_blocks(self):
         # If we only have unpaid blocks, add the cart items to the session
         Booking.objects.all().delete()

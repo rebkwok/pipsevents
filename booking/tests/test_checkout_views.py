@@ -415,6 +415,29 @@ class StripeCheckoutTests(TestSetupMixin, TestCase):
         assert resp.url == reverse("booking:ticketed_events")
 
     @patch("booking.views.checkout_views.stripe.PaymentIntent")
+    def test_ticket_bookings_total_none(self, mock_payment_intent):
+        mock_payment_intent_obj = self.get_mock_payment_intent(id="foo", amount=2000)
+        mock_payment_intent.create.return_value = mock_payment_intent_obj
+
+        ticket_booking = baker.make_recipe(
+            'booking.ticket_booking', ticketed_event__ticket_cost=5,
+            user=self.user, paid=False
+        )
+        baker.make("booking.Ticket", ticket_booking=ticket_booking, _quantity=2)
+
+        # no ticket bookings, redirects
+        resp = self.client.post(
+            self.url, 
+            data={
+                "cart_ticket_booking_ref": ticket_booking.booking_reference,
+                "cart_ticket_bookings_total": ""
+            }
+        )
+        assert resp.status_code == 302
+        assert resp.url == reverse("booking:book_ticketed_event", args=(ticket_booking.ticketed_event.slug,))
+
+
+    @patch("booking.views.checkout_views.stripe.PaymentIntent")
     def test_creates_invoice_and_applies_to_unpaid_gift_vouchers_anon_user(
             self, mock_payment_intent
     ):

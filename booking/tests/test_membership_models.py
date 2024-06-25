@@ -735,6 +735,8 @@ def _setup_user_membership_and_bookings():
     event = baker.make(Event, event_type=pc_event_type, date=datetime(2020, 3, 5, tzinfo=dt_tz.utc))
     end_of_month_event = baker.make(Event, event_type=pc_event_type, date=datetime(2020, 3, 29, tzinfo=dt_tz.utc))
     next_month_event = baker.make(Event, event_type=pc_event_type, date=datetime(2020, 4, 5, tzinfo=dt_tz.utc))
+    next_month_event1 = baker.make(Event, event_type=pc_event_type, date=datetime(2020, 4, 6, tzinfo=dt_tz.utc))
+    next_month_event2 = baker.make(Event, event_type=pc_event_type, date=datetime(2020, 4, 7, tzinfo=dt_tz.utc))
     
     # active membership, no end date
     user_membership = baker.make(
@@ -762,14 +764,31 @@ def _setup_user_membership_and_bookings():
         event=next_month_event,
         membership=user_membership,
     )
-    return user_membership, booking, booking_end_of_month, booking_next
+    booking_next_cancelled = baker.make_recipe(
+        "booking.booking",
+        user=user_membership.user,
+        event=next_month_event1,
+        membership=user_membership,
+        status="CANCELLED",
+    )
+    booking_next_no_show = baker.make_recipe(
+        "booking.booking",
+        user=user_membership.user,
+        event=next_month_event2,
+        membership=user_membership,
+        status="OPEN",
+        no_show=True
+    )
+    return user_membership, booking, booking_end_of_month, booking_next, booking_next_cancelled, booking_next_no_show
 
 
 @pytest.mark.freeze_time("2020-03-21")
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 def test_reallocate_bookings(seller):
-    user_membership, booking, booking_end_of_month, booking_next = _setup_user_membership_and_bookings()
-    booking_set = {booking, booking_end_of_month, booking_next}
+    user_membership, booking, booking_end_of_month, booking_next, booking_next_cancelled, booking_next_no_show = (
+        _setup_user_membership_and_bookings()
+    )
+    booking_set = {booking, booking_end_of_month, booking_next, booking_next_cancelled, booking_next_no_show }
 
     # active membership, reallocating does nothing
     user_membership.reallocate_bookings()
@@ -783,8 +802,10 @@ def test_reallocate_bookings(seller):
 @pytest.mark.freeze_time("2020-03-21")
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 def test_reallocate_bookings_after_cancel(seller):
-    user_membership, booking, booking_end_of_month, booking_next = _setup_user_membership_and_bookings()
-    booking_set = {booking, booking_end_of_month, booking_next}
+    user_membership, booking, booking_end_of_month, booking_next, booking_next_cancelled, booking_next_no_show = (
+        _setup_user_membership_and_bookings()
+    )
+    booking_set = {booking, booking_end_of_month, booking_next, booking_next_cancelled, booking_next_no_show}
 
     # change status to cancelled
     user_membership.subscription_status = "canceled"
@@ -798,15 +819,18 @@ def test_reallocate_bookings_after_cancel(seller):
     
     # next months booking has been removed
     assert set(user_membership.bookings.all()) == {booking, booking_end_of_month}
-    assert booking_next.membership == None
-    assert not booking_next.paid
+    for booking in [booking_next, booking_next_cancelled, booking_next_no_show]:
+        assert booking.membership is None
+        assert not booking.paid
 
 
 @pytest.mark.freeze_time("2020-03-21")
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 def test_reallocate_bookings_after_cancel_with_other_membership_inactive(seller):
-    user_membership, booking, booking_end_of_month, booking_next = _setup_user_membership_and_bookings()
-    booking_set = {booking, booking_end_of_month, booking_next}
+    user_membership, booking, booking_end_of_month, booking_next, booking_next_cancelled, booking_next_no_show = (
+        _setup_user_membership_and_bookings()
+    )
+    booking_set = {booking, booking_end_of_month, booking_next, booking_next_cancelled, booking_next_no_show}
 
     # change status to cancelled
     user_membership.subscription_status = "canceled"
@@ -832,15 +856,19 @@ def test_reallocate_bookings_after_cancel_with_other_membership_inactive(seller)
     assert set(user_membership.bookings.all()) == {booking, booking_end_of_month}
     # not allocated to next membership
     assert set(next_user_membership.bookings.all()) == set()
-    assert booking_next.membership == None
-    assert not booking_next.paid
+    assert set(user_membership.bookings.all()) == {booking, booking_end_of_month}
+    for booking in [booking_next, booking_next_cancelled, booking_next_no_show]:
+        assert booking.membership == None
+        assert not booking.paid
 
 
 @pytest.mark.freeze_time("2020-03-21")
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 def test_reallocate_bookings_after_cancel_with_other_membership_active(seller):
-    user_membership, booking, booking_end_of_month, booking_next = _setup_user_membership_and_bookings()
-    booking_set = {booking, booking_end_of_month, booking_next}
+    user_membership, booking, booking_end_of_month, booking_next, booking_next_cancelled, booking_next_no_show = (
+        _setup_user_membership_and_bookings()
+    )
+    booking_set = {booking, booking_end_of_month, booking_next, booking_next_cancelled, booking_next_no_show}
 
     # change status to cancelled
     user_membership.subscription_status = "canceled"
@@ -869,12 +897,19 @@ def test_reallocate_bookings_after_cancel_with_other_membership_active(seller):
     assert booking_next.membership == next_user_membership
     assert booking_next.paid
 
+    for booking in [booking_next_cancelled, booking_next_no_show]:
+        assert booking.membership is None
+        assert not booking.paid
+        assert not booking.payment_confirmed
+
 
 @pytest.mark.freeze_time("2020-03-21")
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 def test_reallocate_bookings_after_cancel_with_active_block(seller):
-    user_membership, booking, booking_end_of_month, booking_next = _setup_user_membership_and_bookings()
-    booking_set = {booking, booking_end_of_month, booking_next}
+    user_membership, booking, booking_end_of_month, booking_next, booking_next_cancelled, booking_next_no_show = (
+        _setup_user_membership_and_bookings()
+    )
+    booking_set = {booking, booking_end_of_month, booking_next, booking_next_cancelled, booking_next_no_show}
 
     # make a valid block
     block = baker.make_recipe(
@@ -902,3 +937,8 @@ def test_reallocate_bookings_after_cancel_with_active_block(seller):
     assert booking_next.membership is None
     assert booking_next.block == block
     assert booking_next.paid
+
+    for booking in [booking_next_cancelled, booking_next_no_show]:
+        assert booking.membership is None
+        assert not booking.paid
+        assert not booking.payment_confirmed

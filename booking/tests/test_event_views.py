@@ -1148,6 +1148,21 @@ class RoomHireListViewTests(TestSetupMixin, TestCase):
         self.assertTrue(event1.id in booked_events)
 
 
+class OnlineTutorialListViewTests(TestSetupMixin, TestCase):
+    """
+    Test EventListView with room hires; reuses the event templates and context
+    data helpers
+    """
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        baker.make_recipe('booking.future_OT', _quantity=4)
+
+    def test_online_tutorials(self):
+        resp = self.client.get(reverse('booking:online_tutorials'))
+        assert resp.context_data["events"].count() == 4
+
+
 class LessonDetailViewTests(TestSetupMixin, TestCase):
     """
     Test EventDetailView with lessons; reuses the event templates and

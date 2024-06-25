@@ -154,13 +154,13 @@ class ActivityLogListViewTests(TestPermissionMixin, TestCase):
             timestamp=datetime(2015, 1, 1, 15, 10, tzinfo=dt_timezone.utc),
             _quantity=25
         )
-        resp = self._get_response(
-            self.staff_user, {
-                'search_submitted': 'Search',
-                'search_date': '01-Jan-2015',
-            }
-        )
-        self.assertEqual(len(resp.context_data['logs']), 20)
+        self.client.force_login(self.staff_user)
+        url = reverse('studioadmin:activitylog') + f"?search_submitted=Search&search_date='01-Jan-2015"
+        resp = self.client.get(url)
+        assert len(resp.context_data['logs']) == 20
+
+        resp = self.client.get(url + "&page=2")
+        assert len(resp.context_data['logs']) == ActivityLog.objects.count() - 20
 
     def test_search_multiple_terms(self):
         """

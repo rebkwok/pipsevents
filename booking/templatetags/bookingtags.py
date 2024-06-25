@@ -471,7 +471,7 @@ def events_links(context, event_type):
     
     if context["room_hires_exist"]:
         event_types.update({"room_hires": ["booking:room_hires", "Room Hires"]})
-    if context["online_tutorials_exist"]:
+    if context["online_tutorials_exist"]:  # pragma: no cover
         event_types.update({"online_tutorials": ["booking:online_tutorials", "Online Tutorials"]})
 
     del event_types[event_type]
