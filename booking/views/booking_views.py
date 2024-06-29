@@ -378,43 +378,38 @@ def _email_free_class_request(request, booking, booking_status):
     booking.paid = False
     booking.payment_confirmed = False
     booking.block = None
-    try:
-        # send email and set messages
-        host = 'http://{}'.format(request.META.get('HTTP_HOST'))
-        # send email to studio
-        ctx = {
-              'host': host,
-              'event': booking.event,
-              'user': request.user,
-              'booking_status': booking_status,
-        }
-        send_mail('{} Request to claim free class from {} {}'.format(
-                settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
-                request.user.first_name,
-                request.user.last_name
-            ),
-            get_template(
-                'studioadmin/email/free_class_request_to_studio.txt'
-            ).render(ctx),
-            settings.DEFAULT_FROM_EMAIL,
-            [settings.DEFAULT_STUDIO_EMAIL],
-            html_message=get_template(
-                'studioadmin/email/free_class_request_to_studio.html'
-                ).render(ctx),
-            fail_silently=False)
 
-        messages.success(
-            request,
-            "Your request to claim {} as a free class has been "
-            "sent to the studio.  Your booking has been "
-            "provisionally made and your place will be secured once "
-            "your request has been approved.".format(booking.event)
-        )
-    except Exception as e:
-        # send mail to tech support with Exception
-        send_support_email(e, __name__, "UpdateBookingView - claim free class email")
-        messages.error(request, "An error occured, please contact "
-            "the studio for information")
+    # send email and set messages
+    host = 'http://{}'.format(request.META.get('HTTP_HOST'))
+    # send email to studio
+    ctx = {
+            'host': host,
+            'event': booking.event,
+            'user': request.user,
+            'booking_status': booking_status,
+    }
+    send_mail('{} Request to claim free class from {} {}'.format(
+            settings.ACCOUNT_EMAIL_SUBJECT_PREFIX,
+            request.user.first_name,
+            request.user.last_name
+        ),
+        get_template(
+            'studioadmin/email/free_class_request_to_studio.txt'
+        ).render(ctx),
+        settings.DEFAULT_FROM_EMAIL,
+        [settings.DEFAULT_STUDIO_EMAIL],
+        html_message=get_template(
+            'studioadmin/email/free_class_request_to_studio.html'
+            ).render(ctx),
+        fail_silently=False)
+
+    messages.success(
+        request,
+        "Your request to claim {} as a free class has been "
+        "sent to the studio.  Your booking has been "
+        "provisionally made and your place will be secured once "
+        "your request has been approved.".format(booking.event)
+    )
 
 
 class BookingDeleteView(

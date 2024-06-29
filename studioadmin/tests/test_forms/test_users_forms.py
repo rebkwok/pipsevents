@@ -787,6 +787,7 @@ class EditPastBookingFormTests(PatchRequestMixin, TestCase):
             'block': self.booking.block.id
         }
         form = EditBookingForm(instance=self.booking, data=data)
+        assert form.fields["paid"].disabled
         assert form.is_valid()
         # paid field in posted data is ignored
         assert form.cleaned_data["paid"]

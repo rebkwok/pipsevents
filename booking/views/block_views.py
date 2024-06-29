@@ -158,7 +158,7 @@ class BlockDeleteView(LoginRequiredMixin, DisclaimerRequiredMixin, DeleteView):
         self.block = get_object_or_404(Block, id=self.kwargs['pk'])
         if self.block.paid or self.block.bookings.exists():
             if self.request.GET.get('ref') == 'basket':
-                logger.error(f"Attempt to delete block that is paid or has bookings (id {block.id})")
+                logger.error(f"Attempt to delete block that is paid or has bookings (id {self.block.id})")
                 return HttpResponse("")
             return HttpResponseRedirect(reverse('booking:permission_denied'))
         return super().dispatch(request, *args, **kwargs)

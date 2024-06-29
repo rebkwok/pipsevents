@@ -1421,13 +1421,13 @@ class TicketBookingWarningTests(TestCase):
             2015, 2, 11, 10, 0, tzinfo=dt_timezone.utc
             )
 
-        # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
+        # advance payment required - warnings sent
         ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
             date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             ticket_cost=10,
-            payment_due_date=datetime(2015, 2, 11, tzinfo=dt_timezone.utc),
+            advance_payment_required=True
         )
         # advance payment not required - warnings not sent
         ticketed_event1 = baker.make_recipe(
@@ -1470,13 +1470,13 @@ class TicketBookingWarningTests(TestCase):
         """
         test email warnings only sent between 7am and 10pm
         """
-        # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
+        # advance payment required - warnings sent
         ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
             date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             ticket_cost=10,
-            payment_due_date=datetime(2015, 2, 11, tzinfo=dt_timezone.utc),
+            advance_payment_required=True
         )
 
         baker.make(
@@ -1509,15 +1509,14 @@ class TicketBookingWarningTests(TestCase):
             2015, 2, 11, 10, 0, tzinfo=dt_timezone.utc
             )
 
-        # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
         # payment_time_allowed is set
+        # advance payment required - warnings sent
         ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
             date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             ticket_cost=10,
-            payment_due_date=datetime(2015, 2, 11, tzinfo=dt_timezone.utc),
-            payment_time_allowed=4,
+            advance_payment_required=True
         )
 
         baker.make(
@@ -1540,13 +1539,13 @@ class TicketBookingWarningTests(TestCase):
             2015, 2, 11, 10, 0, tzinfo=dt_timezone.utc
             )
 
-        # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
+        # advance payment required - warnings sent
         ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
             date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             ticket_cost=10,
-            payment_due_date=datetime(2015, 2, 11, tzinfo=dt_timezone.utc),
+            advance_payment_required=True
         )
 
         baker.make(
@@ -1578,13 +1577,13 @@ class TicketBookingWarningTests(TestCase):
             2015, 2, 11, 10, 0, tzinfo=dt_timezone.utc
             )
 
-        # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
+        # advance payment required - warnings sent
         ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
             date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             ticket_cost=10,
-            payment_due_date=datetime(2015, 2, 11, tzinfo=dt_timezone.utc),
+            advance_payment_required=True
         )
 
         baker.make(
@@ -1614,13 +1613,13 @@ class TicketBookingWarningTests(TestCase):
             2015, 2, 11, 10, 0, tzinfo=dt_timezone.utc
             )
 
-        # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
+        # advance payment required - warnings sent
         ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
             date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             ticket_cost=10,
-            payment_due_date=datetime(2015, 2, 11, tzinfo=dt_timezone.utc),
+            advance_payment_required=True
         )
 
         baker.make(
@@ -1651,13 +1650,13 @@ class TicketBookingWarningTests(TestCase):
             2015, 2, 11, 10, 0, tzinfo=dt_timezone.utc
             )
 
-        # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
+        # advance payment required - warnings sent
         ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
             date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             ticket_cost=10,
-            payment_due_date=datetime(2015, 2, 11, tzinfo=dt_timezone.utc),
+            advance_payment_required=True
         )
         ticketed_event_cancelled = baker.make_recipe(
             'booking.ticketed_event_max10',
@@ -1665,7 +1664,7 @@ class TicketBookingWarningTests(TestCase):
             payment_open=True,
             ticket_cost=10,
             cancelled=True,
-            payment_due_date=datetime(2015, 2, 11, tzinfo=dt_timezone.utc),
+            advance_payment_required=True,
         )
         baker.make(
             TicketBooking,  ticketed_event=ticketed_event, paid=False,
@@ -1699,13 +1698,13 @@ class TicketBookingWarningTests(TestCase):
             2015, 2, 11, 10, 0, tzinfo=dt_timezone.utc
             )
 
-        # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
+        # advance payment required - warnings sent
         ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
             date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             ticket_cost=10,
-            payment_due_date=datetime(2015, 2, 11, tzinfo=dt_timezone.utc),
+            advance_payment_required=True
         )
         baker.make(
             TicketBooking,  ticketed_event=ticketed_event, paid=False,
@@ -1733,13 +1732,13 @@ class TicketBookingWarningTests(TestCase):
             2015, 2, 11, 10, 0, tzinfo=dt_timezone.utc
             )
 
-        # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
+        # advance payment required - warnings sent
         ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
             date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             ticket_cost=10,
-            payment_due_date=datetime(2015, 2, 11, tzinfo=dt_timezone.utc),
+            advance_payment_required=True
         )
         booking1 = baker.make(
             TicketBooking,  ticketed_event=ticketed_event, paid=False,

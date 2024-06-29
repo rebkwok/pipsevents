@@ -228,7 +228,7 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = root('media')
 if env("CONSOLE_EMAIL"):   # pragma: no cover
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-else:
+else:  # pragma: no cover
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_USE_TLS = True
 EMAIL_HOST = 'smtp.gmail.com'

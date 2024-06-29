@@ -169,7 +169,7 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
             if form.instance.status == 'CANCELLED' or form.instance.block:
                 # also disable payment and free class fields for cancelled and
                 # block bookings
-
+                
                 paid_widget.attrs.update({
                     'class': 'regular-checkbox regular-checkbox-disabled',
                     'OnClick': "javascript:return ReadOnlyCheckBox()"
@@ -241,7 +241,8 @@ class UserBookingInlineFormSet(BaseInlineFormSet):
                         form.add_error('deposit_paid', error_msg)
 
             if block and 'paid' in form.changed_data \
-                    and not 'block' in form.changed_data:
+                    and not 'block' in form.changed_data:  # pragma: no cover
+                # fallback; widget should be disabled and prevent this
                 error_msg = 'Cannot make block booking for {} ' \
                             'unpaid'.format(event)
                 form.add_error('paid', error_msg)
@@ -606,7 +607,7 @@ class EditPastBookingForm(forms.ModelForm):
             self.disabled_attrs |= widgets_to_disable_for_cancelled
         if self.instance.block:
             self.disabled_attrs |= widgets_to_disable_for_blocks
-        
+
         for field in self.disabled_attrs:
             self.fields[field].disabled = True
 

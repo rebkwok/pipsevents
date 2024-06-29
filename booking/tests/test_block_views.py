@@ -496,6 +496,13 @@ class BlockDeleteViewTests(TestSetupMixin, TestCase):
 
         self.assertEqual(Block.objects.first(), self.block)
 
+    def test_cannot_post_delete_block_page_if_block_paid_from_basket(self):
+        self.block.paid = True
+        self.block.save()
+        resp = self.client.get(self.url + "?ref=basket")
+        assert resp.status_code == 200
+        assert Block.objects.first() == self.block
+
     def test_cannot_post_delete_block_page_if_block_has_bookings(self):
         baker.make_recipe('booking.booking', block=self.block)
         resp = self.client.post(self.url)

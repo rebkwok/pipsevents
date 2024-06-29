@@ -117,20 +117,22 @@ class EventListView(DataPolicyAgreementRequiredMixin, ListView):
                 self.request.user
             )
 
+        # TODO: Tabbed querysets not currently used
         # paginate each queryset
-        tab = self.request.GET.get('tab', 0)
+        # tab = self.request.GET.get('tab', 0)
 
-        try:
-            tab = int(tab)
-        except ValueError:  # value error if tab is not an integer, default to 0
-            tab = 0
+        # try:
+        #     tab = int(tab)
+        # except ValueError:  # value error if tab is not an integer, default to 0
+        #     tab = 0
 
-        context['tab'] = str(tab)
+        # context['tab'] = str(tab)
 
-        if not tab or tab == 0:
-            page = self.request.GET.get('page', 1)
-        else:
-            page = 1
+        # if not tab or tab == 0:
+        #     page = self.request.GET.get('page', 1)
+        # else:
+        #     page = 1
+        page = self.request.GET.get('page', 1)
         all_paginator = Paginator(all_events, 30)
 
         queryset = all_paginator.get_page(page)

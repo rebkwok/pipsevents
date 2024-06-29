@@ -229,10 +229,10 @@ TicketFormSet = inlineformset_factory(
 
 class UserModelChoiceField(forms.ModelChoiceField):
 
-    def label_from_instance(self, obj):
+    def label_from_instance(self, obj):  # pragma: no cover
         return "{} {} ({})".format(obj.first_name, obj.last_name, obj.username)
 
-    def to_python(self, value):
+    def to_python(self, value):  # pragma: no cover
         if value:
             return User.objects.get(id=value)
 

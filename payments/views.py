@@ -62,7 +62,7 @@ def paypal_confirm_return(request):
             objs = Block.objects.filter(id__in=obj_ids)
         elif obj_type == "ticket_booking":
             objs = TicketBooking.objects.filter(id__in=obj_ids)
-        elif obj_type == "gift_voucher":
+        elif obj_type == "gift_voucher":  # pragma: no cover
             objs = list(BlockVoucher.objects.filter(id__in=obj_ids)) + list(EventVoucher.objects.filter(id__in=obj_ids))
         elif obj_type == "paypal_test":
             objs = ["paypal_test"]

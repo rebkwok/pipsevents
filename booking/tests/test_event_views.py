@@ -1156,10 +1156,18 @@ class OnlineTutorialListViewTests(TestSetupMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         super().setUpTestData()
-        baker.make_recipe('booking.future_OT', _quantity=4)
+        baker.make_recipe('booking.future_OT', name="Bar", _quantity=3)
+        baker.make_recipe('booking.future_OT', name="Foo")
 
     def test_online_tutorials(self):
         resp = self.client.get(reverse('booking:online_tutorials'))
+        assert resp.context_data["events"].count() == 4
+
+    def test_online_tutorials_with_name(self):
+        resp = self.client.get(reverse('booking:online_tutorials') + "?name=Foo")
+        assert resp.context_data["events"].count() == 1
+
+        resp = self.client.get(reverse('booking:online_tutorials') + "?name=all")
         assert resp.context_data["events"].count() == 4
 
 

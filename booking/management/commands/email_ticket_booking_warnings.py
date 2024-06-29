@@ -74,7 +74,8 @@ def send_warning_email(self, upcoming_bookings):
                 ticket_booking.ticketed_event, ticket_booking.user.username
             )
         )
-    upcoming_bookings.update(warning_sent=True)
+
+    # Do this before updaing the upcoming bookings otherwise the update makes it None
     if upcoming_bookings:
         self.stdout.write(
             'Warning emails sent for booking refs {}'.format(
@@ -87,3 +88,5 @@ def send_warning_email(self, upcoming_bookings):
 
     else:
         self.stdout.write('No warnings to send')
+
+    upcoming_bookings.update(warning_sent=True)

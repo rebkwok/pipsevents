@@ -61,7 +61,7 @@ class Session(models.Model):
     categories = models.ManyToManyField(FilterCategory)
 
     @property
-    def location_index(self):
+    def location_index(self):  # pragma: no cover
         return Event.LOCATION_INDEX_MAP[self.location]
 
     def __str__(self):

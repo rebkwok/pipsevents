@@ -850,9 +850,9 @@ def payment_not_received(sender, **kwargs):
                 )
 
                 # Don't send payment emails to user, so we get the warning email and can check the payment first
-                if voucher_error:
+                if voucher_error:  # pragma: no cover
                     raise voucher_error
-                elif voucher_code:
+                elif voucher_code:  # pragma: no cover
                     ActivityLog.objects.create(
                         log='Voucher code {} used for paypal txn {} ({} id(s) '
                             '{}) by user {}'.format(

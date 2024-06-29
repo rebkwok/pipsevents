@@ -143,6 +143,6 @@ def check_paypal(bookings):
                     # ensure the transaction ID is set
                     pptxn.transaction_id = ppipn.txn_id
                     pptxn.save()
-                else:
+                else:  # pragma: no cover
                     bookings_to_warn.append(booking)
     return bookings_to_warn

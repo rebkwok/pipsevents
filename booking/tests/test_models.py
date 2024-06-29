@@ -1543,6 +1543,11 @@ class TicketedEventTests(TestCase):
         )
         self.assertEqual(str(ticketed_event), 'Test event - 01 Jan 2015, 00:00')
 
+    def test_waiting_list_str(self):
+        user = baker.make(User, username="test")
+        wluser = baker.make("booking.TicketedEventWaitingListUser", ticketed_event=self.ticketed_event, user=user)
+        assert str(wluser) == f"test - {self.ticketed_event}" 
+
 
 class TicketBookingTests(TestCase):
 

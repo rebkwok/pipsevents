@@ -40,7 +40,6 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         cls.group, _ = Group.objects.get_or_create(name='subscribed')
         cls.tutorial = baker.make_recipe('booking.future_OT', cost=5, max_participants=3)
         cls.tutorial_url = reverse('booking:ajax_create_booking', args=[cls.tutorial.id]) + "?ref=events"
-        
 
     def _mock_new_user_email_sent(self):
         session = self.client.session
@@ -427,6 +426,32 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
 
         self.assertEqual(mail_to_user.to, [self.user.email])
         self.assertEqual(mail_to_studio.to, [settings.DEFAULT_STUDIO_EMAIL])
+
+    def test_rebook_from_bookings(self):
+
+        """
+        Test rebooking a cancelled booking still marked as paid reopens booking
+        and emails studio
+        """
+        booking = baker.make_recipe(
+            'booking.booking', event=self.event, user=self.user, paid=True,
+            payment_confirmed=True, status='CANCELLED'
+        )
+
+        # try to book again
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.post(reverse('booking:ajax_create_booking', args=[self.event.id]) + "?ref=bookings")
+        booking.refresh_from_db()
+        self.assertEqual('OPEN', booking.status)
+        self.assertTrue(booking.paid)
+        self.assertTrue(booking.payment_confirmed)
+
+        self.assertEqual(
+            resp.context['alert_message']['message'],
+            'You previously paid for this booking; your booking will remain as '
+            'pending until the organiser has reviewed your payment status.'
+
+        )
 
     def test_creating_booking_with_active_user_block(self):
         """

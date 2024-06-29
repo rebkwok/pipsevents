@@ -1,12 +1,18 @@
 [run]
-omit=venv/*,\
-    booking/management/commands/upload_data.py,\
-    booking/management/commands/update_categories.py,\
-    booking/management/commands/check_credits.py,\
-    booking/management/commands/reactivate_blocks.py,\
-    */migrations/*,\
-    */tests/*,\
-    pipsevents/wsgi.py,\
-    timetable/management/commands/create_pip_hire_sessions.py,\
+omit = 
+    venv/*
+    .venv/*
+    booking/management/commands/upload_data.py
+    booking/management/commands/update_categories.py
+    booking/management/commands/check_credits.py
+    booking/management/commands/reactivate_blocks.py
+    */migrations/*
+    */tests/*
+    pipsevents/wsgi.py
+    timetable/management/commands/create_pip_hire_sessions.py
     manage.py
+
 relative_files = True
+
+[report]
+skip_covered = True
