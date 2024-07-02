@@ -66,13 +66,22 @@ def membership_change(request, subscription_id):
     old_membership = user_membership.membership
     can_change = not bool(user_membership.end_date)
 
+    # can only change IF the membership is active and not cancelling, i.e. it has no end date
+    # changes will all start from the beginning of the next month
+    # cancellations will start from the beginning of the next month
+    # if it's the user's current (uncancelled) membership, this one will be cancelled from the end of the month and
+    # a new one created from start of next month
+    # if it's a future membership (starting at beginning of next month):
+    # - if it's not billed yet, it'll be cancelled from the end of the month (25th) and a new one created that starts
+    # from the start of next month - so this one should never be invoiced.
+
     if request.method == "POST":
         form = ChangeMembershipForm(request.POST, current_membership_id=user_membership.membership.id)
         if form.is_valid():
             membership = form.cleaned_data["membership"]
             client = StripeConnector(request)
             current_subscription = client.get_subscription(subscription_id)
-            new_subscription = client.create_subscription(
+            client.create_subscription(
                 request.user.userprofile.stripe_customer_id, price_id=membership.stripe_price_id, backdate=False,
                 default_payment_method=current_subscription.default_payment_method,
             )
@@ -98,17 +107,10 @@ def membership_change(request, subscription_id):
 
             return HttpResponseRedirect(reverse("membership_list"))
 
-    else:
-        # can only change IF the membership is active and not cancelling, i.e. it has no end date
-        # changes will all start from the beginning of the next month
-        # cancellations will start from the beginning of the next month
-        # if it's the user's current (uncancelled) membership, this one will be cancelled from the end of the month and
-        # a new one created from start of next month
-        # if it's a future membership (starting at beginning of next month):
-        # - if it's not billed yet, it'll be cancelled from the end of the month (25th) and a new one created that starts
-        # from the start of next month - so this one should never be invoiced.
-        # - if it's been billed (i.e. between 25th and 1st), can't change? or changes are one month later?       
+    elif can_change:
         form = ChangeMembershipForm(current_membership_id=user_membership.membership.id)
+    else:
+        form = None
     return TemplateResponse(
         request, 
         "booking/membership_change.html", 
