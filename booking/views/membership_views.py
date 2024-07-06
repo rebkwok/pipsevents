@@ -154,7 +154,6 @@ def subscription_create(request):
                 "payment_settings": {'save_default_payment_method': subsc.payment_settings.save_default_payment_method},
             }
             return to_compare == subscription_kwargs
-
         subscription = next(
             (
                 subs for subs in user_subscriptions.values() if _compare_subscription_kwargs(subs)

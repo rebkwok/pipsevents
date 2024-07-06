@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 from datetime import timezone as datetime_tz
 from unittest.mock import patch, MagicMock, Mock
@@ -162,38 +163,13 @@ def test_membership_checkout_new_subscription_no_backdate(client, seller, config
     assert resp.context_data["customer_id"] == configured_stripe_user.userprofile.stripe_customer_id
 
 
-def mock_connector_class(invoice_secret=None, setup_secret=None, su_status="payment_method_required"):
-    invoice = None
-    pending_setup_intent = None
-
-    if invoice_secret:
-        invoice = Mock(payment_intent=Mock(client_secret=invoice_secret))
-    elif setup_secret:
-        pending_setup_intent = Mock(id="su", client_secret=setup_secret)
-
-
-    class Connector(MockConnector):
-        
-        def get_subscription(self, subscription_id):
-            super().get_subscription(subscription_id)
-            return MagicMock(
-                id=subscription_id,
-                latest_invoice=invoice,
-                pending_setup_intent=pending_setup_intent,
-                default_payment_method="p1"
-            )
-        
-        def get_setup_intent(self, setup_intent_id):
-            super().get_setup_intent(setup_intent_id)
-            return Mock(id=setup_intent_id, status=su_status)
-
-    return Connector
-
-
 @pytest.mark.freeze_time("2024-02-12")
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
-@patch("booking.views.membership_views.StripeConnector", mock_connector_class(invoice_secret="pi_secret"))
-def test_membership_checkout_existing_subscription_with_invoice(client, seller, configured_stripe_user):
+@patch("booking.views.membership_views.StripeConnector")
+def test_membership_checkout_existing_subscription_with_invoice(mock_conn, client, seller, configured_stripe_user):
+    mock_connector = MockConnector(invoice_secret="pi_secret")
+    mock_conn.return_value = mock_connector
+    
     # membership checkout page, with data from membership selection page
     client.force_login(configured_stripe_user)
     m1 = baker.make(Membership, name="m1", active=True)
@@ -217,8 +193,11 @@ def test_membership_checkout_existing_subscription_with_invoice(client, seller, 
 
 @pytest.mark.freeze_time("2024-02-12")
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
-@patch("booking.views.membership_views.StripeConnector", mock_connector_class(setup_secret="su_secret"))
-def test_membership_checkout_existing_subscription_with_setup_intent(client, seller, configured_stripe_user):
+@patch("booking.views.membership_views.StripeConnector")
+def test_membership_checkout_existing_subscription_with_setup_intent(mock_conn, client, seller, configured_stripe_user):
+    mock_connector = MockConnector(setup_intent_secret="su_secret")
+    mock_conn.return_value = mock_connector
+
     # membership checkout page, with data from membership selection page
     client.force_login(configured_stripe_user)
     m1 = baker.make(Membership, name="m1", active=True)
@@ -317,7 +296,9 @@ def test_membership_change_get_current_membership_cancelled(client, seller, conf
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 @patch("booking.views.membership_views.StripeConnector")
 def test_membership_change_post_active_subscription(mock_conn, client, seller, configured_stripe_user):
-    mock_connector = MockConnector()
+    # default payment method is used in get_subscription (to get the old subscription)
+    # and passed on to create_subscription to create the new one
+    mock_connector = MockConnector(default_payment_method="p1")
     mock_conn.return_value = mock_connector
 
     client.force_login(configured_stripe_user)
@@ -346,7 +327,7 @@ def test_membership_change_post_active_subscription(mock_conn, client, seller, c
     # create for customer with m2 price
     assert create_calls[0]["args"] == ("cus-1",)
     assert create_calls[0]["kwargs"]["price_id"] == m2.stripe_price_id
-    assert create_calls[0]["kwargs"]["default_payment_method"] is not None
+    assert create_calls[0]["kwargs"]["default_payment_method"] == "p1"
     assert create_calls[0]["kwargs"]["backdate"] is False
 
     # cancel sub1   
@@ -358,7 +339,9 @@ def test_membership_change_post_active_subscription(mock_conn, client, seller, c
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 @patch("booking.views.membership_views.StripeConnector")
 def test_membership_change_post_future_subscription(mock_conn, client, seller, configured_stripe_user):
-    mock_connector = MockConnector()
+    # default payment method is used in get_subscription (to get the old subscription)
+    # and passed on to create_subscription to create the new one
+    mock_connector = MockConnector(default_payment_method="p1")
     mock_conn.return_value = mock_connector
 
     client.force_login(configured_stripe_user)
@@ -388,7 +371,7 @@ def test_membership_change_post_future_subscription(mock_conn, client, seller, c
     # create for customer with m2 price
     assert create_calls[0]["args"] == ("cus-1",)
     assert create_calls[0]["kwargs"]["price_id"] == m2.stripe_price_id
-    assert create_calls[0]["kwargs"]["default_payment_method"] is not None
+    assert create_calls[0]["kwargs"]["default_payment_method"] == "p1"
     assert create_calls[0]["kwargs"]["backdate"] is False
 
     # cancel sub1   
@@ -408,3 +391,173 @@ def test_membership_change_post_invalid_form(client, seller, configured_stripe_u
     )
     resp = client.post(reverse("membership_change", args=("sub1",)), {"membership": "foo"})
     assert resp.status_code == 200
+
+
+# httpx calls
+    
+# subscription_create
+# - called with customer_id, price_id and backdate (0/1 str) in post data
+# - looks up subscriptions for customer
+# - looks for a subscription with matching price id and date that is either
+#     - incomplete OR
+#     - active, but with non-succeeded pending_setup_intent
+# - if it doesn't find a matching one, creates a new one
+# - Returns either the setup intent or invoices payment intent secret
+from conftest import MockSubscription
+@pytest.mark.parametrize(
+    "subscriptions,setup_intent_secret,invoice_secret,expected_secret,expected_setup_type",
+    [
+        # no existing subscriptions, setup intent
+        ({}, "setup_secret", None, "setup_secret", "setup"),
+        # no existing subscriptions, invoice
+        ({}, None, "inv_secret", "inv_secret", "payment"),
+        # no matching subscriptions, setup intent
+        (
+            {
+                "s1": Mock(customer="cus-1", status="canceled", pending_setup_intent=Mock(client_secret="foo"))
+            }, 
+            "setup_secret", None, "setup_secret", "setup"
+        ),
+        # no matching subscriptions, invoice
+        (
+            {
+                "s1": Mock(customer="cus-1", status="canceled", latest_invoice=Mock(payment_intent=Mock(client_secret="foo")))
+            }, 
+            None, "inv_secret", "inv_secret", "payment",
+        ),
+        # matching subscriptions, setup intent
+        (
+            {
+                "s1": MockSubscription(
+                    customer="cus-1", 
+                    status="active", 
+                    pending_setup_intent=Mock(client_secret="foo", status="payment_method_required"),
+                    latest_invoice=None,
+                    items=Mock(data=[Mock(price=Mock(id="price-1"), quantity=1)]),
+                    billing_cycle_anchor=datetime(2024, 2, 25, tzinfo=datetime_tz.utc).timestamp(),
+                    payment_settings=Mock(save_default_payment_method="on_subscription")
+                )
+            }, 
+            "setup_secret", None, "foo", "setup"
+        ),
+        # matching subscriptions, setup intent succeeded
+        (
+            {
+                "s1": MockSubscription(
+                    customer="cus-1", 
+                    status="active", 
+                    pending_setup_intent=Mock(client_secret="foo", status="succeeded"),
+                    latest_invoice=None,
+                    items=Mock(data=[Mock(price=Mock(id="price-1"), quantity=1)]),
+                    billing_cycle_anchor=datetime(2024, 2, 25, tzinfo=datetime_tz.utc).timestamp(),
+                    payment_settings=Mock(save_default_payment_method="on_subscription")
+                )
+            }, 
+            "setup_secret", None, "setup_secret", "setup"
+        ),
+        # matching subscriptions, invoice
+        (
+            {
+                "s1": MockSubscription(
+                    customer="cus-1", 
+                    status="active", 
+                    pending_setup_intent=None,
+                    latest_invoice=Mock(payment_intent="pi-1", paid=False, client_secret="foo"),
+                    items=Mock(data=[Mock(price=Mock(id="price-1"), quantity=1)]),
+                    billing_cycle_anchor=datetime(2024, 2, 25, tzinfo=datetime_tz.utc).timestamp(),
+                    payment_settings=Mock(save_default_payment_method="on_subscription")
+                )
+            }, 
+            None, "inv_secret", "foo", "payment"
+        ),
+        # matching subscriptions, invoice paid
+        (
+            {
+                "s1": MockSubscription(
+                    customer="cus-1", 
+                    status="active", 
+                    pending_setup_intent=None,
+                    latest_invoice=Mock(payment_intent="pi-1", paid=True, client_secret="foo"),
+                    items=Mock(data=[Mock(price=Mock(id="price-1"), quantity=1)]),
+                    billing_cycle_anchor=datetime(2024, 2, 25, tzinfo=datetime_tz.utc).timestamp(),
+                    payment_settings=Mock(save_default_payment_method="on_subscription")
+                )
+            }, 
+            None, "inv_secret", "inv_secret", "payment"
+        )
+    ]
+)
+@patch("booking.views.membership_views.StripeConnector")
+@pytest.mark.freeze_time("2024-02-12")
+def test_subscription_create_subscription(
+    mock_conn, client, seller, subscriptions, setup_intent_secret, invoice_secret, expected_secret, expected_setup_type
+):
+    """
+    parametrize:
+    existing_user_subscriptions - none, no matching, matching with invoice, matching with setup intent
+    backdate for post - 0/1
+    """
+    mock_connector = MockConnector(
+        setup_intent_secret=setup_intent_secret, invoice_secret=invoice_secret, subscriptions=subscriptions,
+        # payment intent for the existing invoice not-paid test
+        get_payment_intent=Mock(id="pi-1", status="incomplete", client_secret="foo")
+    )
+    mock_conn.return_value = mock_connector
+    resp = client.post(
+        reverse("subscription_create"), 
+        json.dumps({"customer_id": "cus-1", "price_id": "price-1", "backdate": "0"}),
+        content_type="application/json"
+    )
+
+    assert resp.status_code == 200, resp.content
+    assert json.loads(resp.content) == {'clientSecret': expected_secret, 'type': expected_setup_type}
+
+
+@patch("booking.views.membership_views.StripeConnector.get_subscriptions_for_customer")
+def test_subscription_create_subscription_error(
+    mock_get_subscriptions, client, seller
+):
+    """
+    parametrize:
+    existing_user_subscriptions - none, no matching, matching with invoice, matching with setup intent
+    backdate for post - 0/1
+    """
+    mock_get_subscriptions.side_effect = Exception("Something went wrong")
+    resp = client.post(
+        reverse("subscription_create"), 
+        json.dumps({"customer_id": "cus-1", "price_id": "price-1", "backdate": "0"}),
+        content_type="application/json"
+    )
+
+    assert resp.status_code == 400
+    assert json.loads(resp.content) == {'error': 'Something went wrong'}
+
+
+
+@pytest.mark.freeze_time("2024-02-12")
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+@patch("booking.views.membership_views.StripeConnector")
+def test_subscription_cancel(
+        mock_conn, client, seller, configured_stripe_user
+):
+    mock_connector = MockConnector()
+    mock_conn.return_value = mock_connector
+
+    client.force_login(configured_stripe_user)
+    m1 = baker.make(Membership, name="m1", active=True)
+    baker.make(
+        UserMembership, 
+        user=configured_stripe_user, 
+        membership=m1, 
+        subscription_id="sub-1",
+        subscription_status="active",
+        subscription_start_date=datetime(2024, 2, 10),
+        subscription_billing_cycle_anchor=datetime(2024, 2, 25),
+        start_date=datetime(2024, 3, 1)
+    )
+
+    resp = client.post(
+        reverse("subscription_cancel", args=("sub-1",)), 
+        json.dumps({"customer_id": "cus-1", "price_id": "price-1", "backdate": "0"}),
+        content_type="application/json"
+    )

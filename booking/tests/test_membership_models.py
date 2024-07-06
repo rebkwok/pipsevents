@@ -303,7 +303,7 @@ def test_membership_change_name(mocked_responses, seller):
 
 
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
-def test_membership_item_str():
+def test_membership_item_str(seller):
     membership = baker.make(
         Membership, name="Test membership", description="a membership", price=10
     )

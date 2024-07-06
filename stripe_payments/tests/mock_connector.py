@@ -1,17 +1,61 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, Mock
 
 import stripe
+
+from ..utils import StripeConnector
 
 
 class MockConnector:
 
-    def __init__(self, *args):
+    def __init__(
+            self,
+            request=None, 
+            default_payment_method=None, 
+            invoice_secret=None, 
+            setup_intent_secret=None, 
+            setup_intent_status="payment_method_required",
+            payment_intent_status="incomplete",
+            subscriptions={},
+            get_payment_intent=None
+        ):
+        super().__init__()
+        self.connector = StripeConnector()
         self.connected_account = None
         self.connected_account_id = "id123"
-        self.method_calls = {}
+        self.connector.connected_account =  self.connected_account
+        self.connector.account_id = self.connected_account_id
 
+        # record method calls and args/kwargs
+        self.method_calls = {}
+        
+        # Provide invoice secret OR setup intent secret: 
+        # used in get_subscription; determines how a new subscription is being set up 
+        self.invoice = None
+        self.pending_setup_intent = None
+        self.invoice_secret = invoice_secret
+        if self.invoice_secret:
+            self.invoice = Mock(payment_intent=Mock(client_secret=self.invoice_secret))
+        elif setup_intent_secret:
+            self.pending_setup_intent = Mock(id="su", client_secret=setup_intent_secret)
+
+        # setup_intent_status: used in get_setup_intent to override the usual status
+        self.setup_intent_status = setup_intent_status
+        self.payment_intent_status = payment_intent_status
+
+        # default_payment_method: used when changing a subscription, transferred to the new one
+        self.default_payment_method = default_payment_method
+
+        # subscriptions for customer
+        self.subscriptions = subscriptions
+
+        # resp from get_payment_intent
+        self.payment_intent = get_payment_intent
+        
     def _record(self, fn, *args, **kwargs):
         self.method_calls.setdefault(fn.__name__, []).append({"args": args, "kwargs": kwargs})
+
+    def get_subscription_kwargs(self, customer_id, price_id, backdate=True, default_payment_method=None):
+        return self.connector.get_subscription_kwargs(customer_id, price_id, backdate, default_payment_method)
 
     def create_stripe_product(self,  *args, **kwargs):
         self._record(self.create_stripe_product, *args, **kwargs)
@@ -40,15 +84,33 @@ class MockConnector:
 
     def get_subscription(self, subscription_id):
         self._record(self.get_subscription, subscription_id)
-        return MagicMock(id=subscription_id)
+        return MagicMock(
+            id=subscription_id,
+            latest_invoice=self.invoice,
+            pending_setup_intent=self.pending_setup_intent,
+            default_payment_method=self.default_payment_method
+        )
+
+    def get_subscriptions_for_customer(self, customer_id, status="all"):
+        self._record(self.get_subscriptions_for_customer, customer_id, status=status )
+        return self.subscriptions
 
     def get_setup_intent(self, setup_intent_id):
         self._record(self.get_setup_intent, setup_intent_id)
+        return Mock(id=setup_intent_id, status=self.setup_intent_status)
+
+    def get_payment_intent(self, payment_intent_id):
+        self._record(self.get_payment_intent, payment_intent_id)
+        return self.payment_intent or Mock(id=payment_intent_id, status="incomplete", client_secret="bar")
     
     def create_subscription(self, *args, **kwargs):
         self._record(self.create_subscription, *args, **kwargs)
-
-        return MagicMock(spec=stripe.Subscription, default_payment_method=kwargs.get("default_payment_method"))
+        return MagicMock(
+            spec=stripe.Subscription,
+            latest_invoice=self.invoice,
+            pending_setup_intent=self.pending_setup_intent,
+            default_payment_method=kwargs.get("default_payment_method")
+        )
     
     def get_or_create_subscription_schedule(self, subscription_id):
         self._record(self.get_or_create_subscription_schedule, subscription_id)
