@@ -141,21 +141,25 @@ def disclaimer_content_view(request, version):
         request, "studioadmin/disclaimer_content_view.html", ctx
     )
 
-@login_required
-@is_instructor_or_staff
-def user_disclaimer(request, encoded_user_id):
-    # get last disclaimer for this user
-    user_id = dechaffify(str_int(encoded_user_id))
 
+def user_disclaimer_view_context(user_id=None, encoded_user_id=None):
+
+    # get last disclaimer for this user
+    user_id = user_id or dechaffify(str_int(encoded_user_id))
     disclaimer = OnlineDisclaimer.objects.filter(user__id=user_id).last()
     disclaimer_content = DisclaimerContent.objects.get(version=disclaimer.version)
 
-    ctx = {
+    return {
         'disclaimer': disclaimer,
         'disclaimer_content': disclaimer_content,
-        'encoded_user_id': encoded_user_id
-   }
+        'encoded_user_id': encoded_user_id,
+    }
 
+@login_required
+@is_instructor_or_staff
+def user_disclaimer(request, encoded_user_id):
+    ctx = user_disclaimer_view_context(encoded_user_id=encoded_user_id)
+    ctx["editable"] = True
     return TemplateResponse(
         request, "studioadmin/user_disclaimer.html", ctx
     )

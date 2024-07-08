@@ -5,6 +5,7 @@
 {% block studioadmincontent %}
 
 <div class="container-fluid row">
+    {% if editable %}
     <div>
         <a href="javascript:window.print()" id="print-button" alt="print this page"><span class="fa fa-print fa-3x"></span></a>
         {% if request.user.is_staff or request.user.is_instructor %}
@@ -25,6 +26,7 @@
             {% endif %}
         {% endif %}
     </div>
+    {% endif %}
 
 
     <div class="disclaimer">

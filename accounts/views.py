@@ -25,6 +25,7 @@ from .models import CookiePolicy, DataPrivacyPolicy, SignedDataPrivacy, active_d
 from activitylog.models import ActivityLog
 from booking.email_helpers import send_mail
 from common.mailchimp_utils import update_mailchimp
+from studioadmin.views.disclaimers import user_disclaimer_view_context
 
 
 @login_required
@@ -357,3 +358,12 @@ class SignedDataPrivacyCreateView(LoginRequiredMixin, FormView):
         if form and form.next_url:
             return form.next_url
         return reverse('booking:lessons')
+
+
+@login_required
+def user_disclaimer(request):
+    ctx = user_disclaimer_view_context(user_id=request.user.id)
+    ctx["editable"] = False
+    return TemplateResponse(
+        request, "studioadmin/user_disclaimer.html", ctx
+    )
