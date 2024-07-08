@@ -771,6 +771,18 @@ class Booking(models.Model):
             (block for block in blocks if block.active_block()), None
         )
 
+    def get_next_active_user_membership(self):
+        """
+        return the active block for this booking with the soonest expiry date
+        """
+        membersips = self.user.memberships.filter(
+            subscription_status="active",
+        )
+        # already sorted by expiry date, so we can just get the next active one
+        return next(
+            (membersips for membersips in membersips if membersips.valid_for_event(self.event)), None
+        )
+
     @property
     def has_available_block(self):
         return any(

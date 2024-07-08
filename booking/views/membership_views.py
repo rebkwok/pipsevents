@@ -192,10 +192,14 @@ def subscription_cancel(request, subscription_id):
             first_subscription_payment_date = user_membership.subscription_start_date.replace(day=25)
         else:
             first_subscription_payment_date = user_membership.subscription_start_date
+        cancel_immediately = first_subscription_payment_date > timezone.now()
         # Cancel immediately if the first subscription payment is in the future
-        client.cancel_subscription(subscription_id, cancel_immediately=first_subscription_payment_date > timezone.now()) 
+        client.cancel_subscription(subscription_id, cancel_immediately=cancel_immediately) 
         # unset bookings for dates after the subscription end date - done in webhook
         ActivityLog.objects.create(log=f"User {request.user} cancelled membership {user_membership.membership.name}")
+        messages.success(
+            request, "Your membership has been cancelled."
+        )
         return HttpResponseRedirect(reverse("membership_list"))
     return TemplateResponse(request,  "booking/membership_cancel.html", {"user_membership": user_membership})
 
@@ -246,7 +250,7 @@ def stripe_subscription_checkout(request):
                 user_membership.pending_setup_intent = None
                 user_membership.save()
                 messages.info(request, "Subscription is active")
-                return HttpResponseRedirect(reverse("subscription_status", args=(subscription_id,)))
+                return HttpResponseRedirect(reverse("membership_status", args=(subscription_id,)))
             
             client_secret = subscription.pending_setup_intent.client_secret
             confirm_type = "setup"
@@ -255,7 +259,7 @@ def stripe_subscription_checkout(request):
                 user_membership.subscription_status = "active"
                 user_membership.save()
             messages.info(request, "Subscription is active")
-            return HttpResponseRedirect(reverse("subscription_status", args=(subscription_id,)))
+            return HttpResponseRedirect(reverse("membership_status", args=(subscription_id,)))
         else:
             client_secret = subscription.latest_invoice.payment_intent.client_secret
             confirm_type = "payment"

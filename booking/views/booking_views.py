@@ -443,9 +443,9 @@ class BookingDeleteView(
         context['booking'] = booking
         return context
 
-    def _block_booked_within_allowed_time(self, booking):
+    def _block_or_membership_booked_within_allowed_time(self, booking):
         allowed_datetime = timezone.now() - timedelta(minutes=15)
-        if booking.block:
+        if booking.block or booking.membership:
             return (booking.date_rebooked and booking.date_rebooked > allowed_datetime) \
                    or (booking.date_booked > allowed_datetime)
         return False
@@ -464,7 +464,7 @@ class BookingDeleteView(
         # if the booking was made with a block, allow 15 mins to cancel in case user
         # clicked the wrong button by mistake and autobooked with a block
         # Check here so we can adjust the email message
-        block_booked_within_allowed_time = self._block_booked_within_allowed_time(booking)
+        block_or_membership_booked_within_allowed_time = self._block_or_membership_booked_within_allowed_time(booking)
 
         host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
 
@@ -474,7 +474,7 @@ class BookingDeleteView(
         ctx = {
                   'host': host,
                   'booking': booking,
-                  'block_booked_within_allowed_time': block_booked_within_allowed_time,
+                  'block_or_membership_booked_within_allowed_time': block_or_membership_booked_within_allowed_time,
                   'event': event,
                   'date': event.date.strftime('%A %d %B'),
                   'time': event.date.strftime('%I:%M %p'),
@@ -496,7 +496,7 @@ class BookingDeleteView(
 
         if can_cancel_and_refund:
             transfer_block_created = False
-            if booking.paid and (not booking.block or booking.block.expired):
+            if booking.paid and (not booking.block or booking.block.expired) and not booking.membership:
                 # booking was paid directly, either in cash or by paypal
                 # OR booking was free class but not made with free block
                 # OR booking was made with block (normal/free/transfer) but
@@ -544,7 +544,7 @@ class BookingDeleteView(
                         [settings.DEFAULT_STUDIO_EMAIL],
                         fail_silently=False)
 
-            # if booking was bought with a block, remove from block and set
+            # if booking was bought with a block/membership, remove from block and set
             # paid and payment_confirmed to False. If paid directly, paid is only
             # changed to False for bookings that have created transfer blocks; for
             # EV event types, leave paid as True as refunds need to be dealt with
@@ -552,6 +552,10 @@ class BookingDeleteView(
             # reassigning free class blocks is done in model save
             if booking.block:
                 booking.block = None
+                booking.paid = False
+            
+            if booking.membership:
+                booking.membership = None
                 booking.paid = False
 
             if booking.free_class:
@@ -595,8 +599,9 @@ class BookingDeleteView(
             # clicked the wrong button by mistake and autobooked with a block
             # if the booking wasn't paid, just cancel it
 
-            can_cancel = block_booked_within_allowed_time or not booking.paid
+            can_cancel = block_or_membership_booked_within_allowed_time or not booking.paid
             if can_cancel:
+                booking.membership = None
                 booking.block = None
                 booking.paid = False
                 booking.free_class = False
@@ -870,13 +875,18 @@ def ajax_create_booking(request, event_id):
     elif previously_no_show and booking.paid:
         # leave paid no_show booking with existing payment method
         pass
-
-    active_block = booking.get_next_active_block()
-
-    if active_block:
-        booking.block = active_block
+    
+    active_membership = booking.get_next_active_user_membership()
+    if active_membership:
+        booking.membership = active_membership
         booking.paid = True
         booking.payment_confirmed = True
+    else:
+        active_block = booking.get_next_active_block()
+        if active_block:
+            booking.block = active_block
+            booking.paid = True
+            booking.payment_confirmed = True
 
     # check for existence of free child block on pre-saved booking
     # note for prev no-shows booked with block, any free child blocks should
@@ -910,8 +920,6 @@ def ajax_create_booking(request, event_id):
                 booking.event, booking.user.username)
     )
 
-    blocks_used, total_blocks = _get_block_status(booking, request)
-
     host = 'http://{}'.format(request.META.get('HTTP_HOST'))
     
     # send email to user ONLY IF PAID
@@ -923,8 +931,6 @@ def ajax_create_booking(request, event_id):
             'event': booking.event,
             'date': booking.event.date.strftime('%A %d %B'),
             'time': booking.event.date.strftime('%H:%M'),
-            'blocks_used':  blocks_used,
-            'total_blocks': total_blocks,
             'prev_cancelled_and_direct_paid':
             previously_cancelled_and_direct_paid,
             'claim_free': False,
@@ -1024,6 +1030,11 @@ def ajax_create_booking(request, event_id):
                 msg += 'Go to My Blocks buy a new one.'
 
         alert_message['message'] = msg
+    
+    elif booking.membership:
+
+        alert_message['message_type'] = 'success'
+        alert_message['message'] =  "Booked with membership."
 
     elif event.cost == 0:
         alert_message['message_type'] = 'success'

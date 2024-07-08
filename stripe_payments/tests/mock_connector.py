@@ -16,7 +16,9 @@ class MockConnector:
             setup_intent_status="payment_method_required",
             payment_intent_status="incomplete",
             subscriptions={},
-            get_payment_intent=None
+            get_payment_intent=None,
+            subscription_status=None,
+            no_subscription=False,
         ):
         super().__init__()
         self.connector = StripeConnector()
@@ -37,6 +39,8 @@ class MockConnector:
             self.invoice = Mock(payment_intent=Mock(client_secret=self.invoice_secret))
         elif setup_intent_secret:
             self.pending_setup_intent = Mock(id="su", client_secret=setup_intent_secret)
+        
+        self.subscription_status = subscription_status
 
         # setup_intent_status: used in get_setup_intent to override the usual status
         self.setup_intent_status = setup_intent_status
@@ -50,6 +54,9 @@ class MockConnector:
 
         # resp from get_payment_intent
         self.payment_intent = get_payment_intent
+
+        # no subscrption == return None from get_subscription
+        self.no_subscription = no_subscription
         
     def _record(self, fn, *args, **kwargs):
         self.method_calls.setdefault(fn.__name__, []).append({"args": args, "kwargs": kwargs})
@@ -84,11 +91,14 @@ class MockConnector:
 
     def get_subscription(self, subscription_id):
         self._record(self.get_subscription, subscription_id)
+        if self.no_subscription:
+            return None
         return MagicMock(
             id=subscription_id,
             latest_invoice=self.invoice,
             pending_setup_intent=self.pending_setup_intent,
-            default_payment_method=self.default_payment_method
+            default_payment_method=self.default_payment_method,
+            status=self.subscription_status,
         )
 
     def get_subscriptions_for_customer(self, customer_id, status="all"):

@@ -11,8 +11,7 @@ Your booking has been received for {{ event }}.
     <a href="{{ host }}{% url 'booking:bookings' %}">{{ host }}{% url 'booking:bookings' %}</a>.</p>
 {% else %}
     {% if booking.block %}
-        <p>You have used a block to pay for this {{ ev_type }}.  You have used {{ blocks_used }} of your total
-        {{ total_blocks }} blocks.</p>
+        <p>You have used a block to pay for this {{ ev_type }}.</p>
         <p> View your bookings at
         <a href="{{ host }}{% url 'booking:bookings' %}">{{ host }}{% url 'booking:bookings' %}</a>.</p>
     {% else %}

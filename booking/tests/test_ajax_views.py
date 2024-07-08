@@ -5,22 +5,26 @@ from datetime import timezone as dt_timezone
 from unittest.mock import patch
 from model_bakery import baker
 
+import pytest
+
 from django.conf import settings
 from django.core import mail
 from django.urls import reverse
 from django.test import override_settings, TestCase
 from django.contrib.auth.models import Group, User
+from django.contrib.sites.models import Site
 from django.contrib.sessions.middleware import SessionMiddleware
 from django.utils import timezone
 
 from accounts.models import DisclaimerContent, OnlineDisclaimer, AccountBan
 
-from booking.models import Event, EventType, Booking, Block, WaitingListUser
+from booking.models import Event, EventType, Booking, Block, WaitingListUser, MembershipItem, Membership, UserMembership
 from booking.views.shopping_basket_views import shopping_basket_bookings_total_context, \
     shopping_basket_blocks_total_context
 from common.tests.helpers import TestSetupMixin, make_data_privacy_agreement
 
-from payments.helpers import create_booking_paypal_transaction
+from stripe_payments.models import Seller
+from stripe_payments.tests.mock_connector import MockConnector
 
 
 class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
@@ -40,6 +44,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         cls.group, _ = Group.objects.get_or_create(name='subscribed')
         cls.tutorial = baker.make_recipe('booking.future_OT', cost=5, max_participants=3)
         cls.tutorial_url = reverse('booking:ajax_create_booking', args=[cls.tutorial.id]) + "?ref=events"
+        baker.make(Seller, site=Site.objects.get_current())
 
     def _mock_new_user_email_sent(self):
         session = self.client.session
@@ -480,6 +485,48 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(bookings.count(), 1)
         self.assertEqual(bookings[0].block, block)
         self.assertTrue(bookings[0].paid)
+
+    @patch("booking.models.membership_models.StripeConnector", MockConnector)
+    @pytest.mark.freeze_time("2024, 2, 20")
+    def test_creating_booking_with_active_user_block_and_membership(self):
+        """
+        Test that an active membership is automatically used before a block when booking
+        """
+        self.user.userprofile.stripe_customer_id = "cus1"
+        self.user.userprofile.save()
+
+        event_type = baker.make_recipe('booking.event_type_PC')
+        event = baker.make_recipe('booking.future_PC', event_type=event_type, cost=5)
+        url = reverse('booking:ajax_create_booking', args=[event.id]) + "?ref=events"
+
+        blocktype = baker.make_recipe(
+            'booking.blocktype5', event_type=event_type
+        )
+        block = baker.make_recipe(
+            'booking.block', block_type=blocktype, user=self.user, paid=True
+        )
+        assert block.active_block()
+
+        m1 = baker.make(Membership, name="m1", active=True)
+        baker.make(MembershipItem, membership=m1, event_type=event_type, quantity=2)
+        user_membership = baker.make(
+            UserMembership, 
+            user=self.user, 
+            membership=m1, 
+            subscription_id="sub-1",
+            subscription_status="active",
+            start_date=datetime(2024, 2, 1, tzinfo=dt_timezone.utc)
+        )
+        assert user_membership.valid_for_event(event)
+
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.post(url)
+        assert resp.context['alert_message']['message'] == "Booked with membership."
+
+        booking = Booking.objects.filter(user=self.user).first()
+        assert booking.block is None
+        assert booking.membership == user_membership
+        assert booking.paid
 
     def test_creating_booking_with_unpaid_user_block(self):
         """
