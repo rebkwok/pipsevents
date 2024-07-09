@@ -463,6 +463,10 @@ class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     pronouns = models.CharField(max_length=100, blank=True, null=True)
     stripe_customer_id = models.CharField(max_length=50, blank=True, null=True)
+    booking_preference = models.CharField(
+        choices=(("membership", "membership"), ("block", "block")), default="membership",
+        help_text="Use membership or block first for booking (if you have both available)"    
+    )
 
     def __str__(self):
         return self.user.username

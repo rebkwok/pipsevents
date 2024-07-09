@@ -74,8 +74,9 @@ class ProfileUpdateView(LoginRequiredMixin, UpdateView):
                 )
             )
         user = form.save()
-        if 'pronouns' in form.changed_data:
+        if 'pronouns' in form.changed_data or "booking_preference"  in form.changed_data:
             user.userprofile.pronouns = form.cleaned_data["pronouns"]
+            user.userprofile.booking_preference = form.cleaned_data["booking_preference"]
             user.userprofile.save()
         return super().form_valid(form)
 

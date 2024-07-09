@@ -439,7 +439,7 @@ class BookingDeleteView(
         context['event'] = event
         # Add in block info
         context['booked_with_block'] = booking.block is not None
-        context['block_booked_within_allowed_time'] = self._block_booked_within_allowed_time(booking)
+        context['block_booked_within_allowed_time'] = self._block_or_membership_booked_within_allowed_time(booking)
         context['booking'] = booking
         return context
 
@@ -876,17 +876,34 @@ def ajax_create_booking(request, event_id):
         # leave paid no_show booking with existing payment method
         pass
     
-    active_membership = booking.get_next_active_user_membership()
-    if active_membership:
-        booking.membership = active_membership
-        booking.paid = True
-        booking.payment_confirmed = True
-    else:
+    def assign_membership(booking):
+        active_membership = booking.get_next_active_user_membership()
+        if active_membership:
+            booking.membership = active_membership
+            booking.paid = True
+            booking.payment_confirmed = True
+            return active_membership
+    
+    def assign_block(booking):
         active_block = booking.get_next_active_block()
         if active_block:
             booking.block = active_block
             booking.paid = True
             booking.payment_confirmed = True
+            return active_block
+
+    # assign to first availble membership or block, depending on booking preference for this user
+    match request.user.userprofile.booking_preference:
+        case "membership":
+            active_membership = assign_membership(booking)
+            if not active_membership:
+                assign_block(booking)     
+        case "block":
+            active_block = assign_block(booking)
+            if not active_block:
+                assign_membership(booking)   
+        case _: # pragma: no cover
+            assert False
 
     # check for existence of free child block on pre-saved booking
     # note for prev no-shows booked with block, any free child blocks should
@@ -1032,7 +1049,6 @@ def ajax_create_booking(request, event_id):
         alert_message['message'] = msg
     
     elif booking.membership:
-
         alert_message['message_type'] = 'success'
         alert_message['message'] =  "Booked with membership."
 

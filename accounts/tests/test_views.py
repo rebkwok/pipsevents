@@ -39,13 +39,20 @@ class ProfileUpdateViewTests(TestSetupMixin, TestCase):
         """
         Test custom view to allow users to update their details
         """
+        assert self.user.userprofile.booking_preference == "membership"
         self.client.login(username=self.user.username, password='test')
         self.client.post(
-            self.url, {'username': self.user.username,
-                  'first_name': 'Fred', 'last_name': self.user.last_name}
+            self.url, 
+            {
+                'username': self.user.username,
+                'first_name': 'Fred', 
+                'last_name': self.user.last_name,
+                "booking_preference": "block",
+            }
         )
         self.user.refresh_from_db()
-        self.assertEqual(self.user.first_name, "Fred")
+        assert self.user.first_name == "Fred"
+        assert self.user.userprofile.booking_preference == "block"
 
     def test_updating_pronouns(self):
         """
@@ -59,7 +66,8 @@ class ProfileUpdateViewTests(TestSetupMixin, TestCase):
                 'username': self.user.username,
                 'first_name': self.user.first_name, 
                 'last_name': self.user.last_name,
-                'pronouns': 'they/them'
+                'pronouns': 'they/them',
+                "booking_preference": "membership",
             }
         )
         self.user.refresh_from_db()
@@ -68,8 +76,13 @@ class ProfileUpdateViewTests(TestSetupMixin, TestCase):
     def test_updates_mailchimp_with_first_name(self):
         self.client.login(username=self.user.username, password='test')
         self.client.post(
-            self.url, {'username': self.user.username,
-                  'first_name': 'Fred', 'last_name': self.user.last_name}
+            self.url, 
+            {
+                'username': self.user.username,
+                'first_name': 'Fred', 
+                'last_name': self.user.last_name,
+                "booking_preference": "membership",
+            }
         )
         self.user.refresh_from_db()
         assert not self.user.subscribed()
@@ -79,7 +92,10 @@ class ProfileUpdateViewTests(TestSetupMixin, TestCase):
         self.client.post(
             self.url, {
                 'username': self.user.username,
-                'first_name': 'George', 'last_name': self.user.last_name}
+                'first_name': 'George', 
+                'last_name': self.user.last_name,
+                "booking_preference": "membership",
+            }
         )
         self.user.refresh_from_db()
         assert self.user.subscribed()
@@ -92,8 +108,13 @@ class ProfileUpdateViewTests(TestSetupMixin, TestCase):
         self.user.groups.add(self.group)
         self.client.login(username=self.user.username, password='test')
         self.client.post(
-            self.url, {'username': self.user.username,
-                  'first_name': self.user.first_name, 'last_name': 'New'}
+            self.url, 
+            {
+                'username': self.user.username,
+                'first_name': self.user.first_name, 
+                'last_name': 'New',
+                "booking_preference": "membership",
+            }
         )
         self.user.refresh_from_db()
         assert_mailchimp_post_data(
@@ -110,7 +131,8 @@ class ProfileUpdateViewTests(TestSetupMixin, TestCase):
             {
                 'username': self.user.username,
                 'first_name': 'Fred1',
-                'last_name': self.user.last_name
+                'last_name': self.user.last_name,
+                "booking_preference": "membership",
             }
         )
         request.user = self.user
@@ -129,7 +151,8 @@ class ProfileUpdateViewTests(TestSetupMixin, TestCase):
             {
                 'username': 'foo',
                 'first_name': self.user.first_name,
-                'last_name': self.user.last_name
+                'last_name': self.user.last_name,
+                "booking_preference": "membership",
             }
         )
         self.user.refresh_from_db()
@@ -150,7 +173,8 @@ class ProfileUpdateViewTests(TestSetupMixin, TestCase):
             {
                 'username': self.user.username,
                 'first_name': 'Foo',
-                'last_name': self.user.last_name
+                'last_name': self.user.last_name,
+                "booking_preference": "membership",
             })
 
         self.assertEqual(len(cm.output), 1)
