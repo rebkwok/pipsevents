@@ -14,6 +14,16 @@
                 <dl>
                     <dt>Membership Plan</dt>
                     <dd>{{ user_membership.membership }}</dd>
+                    {% if user_membership.membership.description %}
+                    <dd>{{ user_membership.membership.description }}</dd>
+                    {% endif %}
+                    
+
+                    <dt>Plan includes (per calendar month):</dt>
+                    <dd>{% for item in user_membership.membership.membership_items.all %}
+                        {{ item.event_type.subtype }} x {{ item.quantity }}</br>
+                        {% endfor %}
+                    </dd>   
 
                     <dt>Status</dt>
                     <dd>{{ user_membership.hr_status }} {% if user_membership.subscription_status == "active" and user_membership.end_date %}(ends on {{ user_membership.end_date|date:"d M Y"}}){% endif %}</dd>
@@ -70,19 +80,21 @@
                     <dd>{% if last_invoice %}{{ last_invoice|date:"d M Y" }}{% else %}-{% endif %}</dd>
                 </dl>
                 <dl>
-                    <dt>Start date</dt>
+                    <dt>Membership start date</dt>
                     <dd>{{ user_membership.start_date|date:"d M Y" }}</dd>
                 </dl>
-                <dl>
-                    <dt>End date (exclusive)</dt>
-                    <dd>{% if user_membership.end_date %}{{ user_membership.end_date|date:"d M Y" }}{% else %}-{% endif %}</dd>
-                </dl>
+                {% if user_membership.end_date %}
+                    <dl>
+                        <dt>Membership end date (exclusive)</dt>
+                        {{ user_membership.end_date|date:"d M Y" }}</dd>
+                    </dl>
+                {% endif %}
                 <dl>
                     <dt>Bookings this month ({{this_month}})</dt>
                     <dd>
                         {% if user_membership.bookings_this_month %}
                             {% for booking in user_membership.bookings_this_month %}
-                                {{ booking.event }}
+                                {{ booking.event }}<br/<
                             {% endfor %}
                         {% else %}
                             -
@@ -94,7 +106,7 @@
                     <dd>
                         {% if user_membership.bookings_next_month %}
                             {% for booking in user_membership.bookings_next_month %}
-                                {{ booking.event }}
+                                {{ booking.event }}<br/>
                             {% endfor %}
                         {% else %}
                             -
