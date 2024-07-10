@@ -264,7 +264,7 @@ class UserMembership(models.Model):
             return
         return get_first_of_next_month_from_timestamp(end_date.timestamp())
 
-    def _reallocate_booking(self, booking, other_active_memberships):
+    def _reallocate_existing_booking(self, booking, other_active_memberships):
         # no-show or cancelled bookings are just set to no membership and unpaid
         if booking.no_show or booking.status == "CANCELLED":
             booking.membership = None
@@ -319,19 +319,23 @@ class UserMembership(models.Model):
             i.e. after successful set up of a subscription, allocate any unpaid bookings
             - confirm subscription is in active state first and has no end date (set on payment for backdated, and on
             setup intent confirmation for non-backdated)
-        """
-        # temporory logging
-        ActivityLog.objects.create(
-            log=f"Reallocate bookings called {self.subscription_id}"
-        )
+        """        
         if self.end_date:
-            # check for open bookings for events after the end date
+            # check for open bookings for events after the end date and reallocate
             bookings_after_end_date = self.bookings.filter(event__date__gt=self.end_date)
             other_active_memberships = self.user.memberships.filter(subscription_status="active")
             for booking in bookings_after_end_date:
-                booking = self._reallocate_booking(booking, other_active_memberships)
+                booking = self._reallocate_existing_booking(booking, other_active_memberships)
 
         elif self.subscription_status == "active":
             # check for unpaid bookings that this membership is eligible for and assign the membership to it
-            # email user a notification? 
-            ...
+            unpaid_bookings = self.user.bookings.filter(event__date__gt=self.start_date, paid=False, status="OPEN", no_show=False)
+            for booking in unpaid_bookings:
+                if self.valid_for_event(booking.event):
+                    booking.membership = self
+                    booking.paid = True
+                    booking.payment_confirmed = True
+                    booking.save()
+                    ActivityLog.objects.create(
+                        log=f"Unpaid booking {booking.id} (user {self.user.username}) allocated to membership"
+                    )
