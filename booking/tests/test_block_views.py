@@ -1,6 +1,9 @@
 from datetime import datetime, timedelta
 from datetime import timezone as dt_timezone
+from unittest.mock import patch
+
 from model_bakery import baker
+import pytest
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -17,7 +20,7 @@ from booking.models import Block
 from booking.views import BlockCreateView, BlockListView
 from common.tests.helpers import _create_session, format_content, \
     setup_view, TestSetupMixin, make_data_privacy_agreement
-
+from stripe_payments.tests.mock_connector import MockConnector
 
 class BlockCreateViewTests(TestSetupMixin, TestCase):
 
@@ -571,7 +574,7 @@ class BlockDeleteViewTests(TestSetupMixin, TestCase):
         )
 
 
-class BlockModalTests(TestSetupMixin, TestCase):
+class PaymentPlansModalTests(TestSetupMixin, TestCase):
 
     @classmethod
     def setUpTestData(cls):
@@ -582,14 +585,14 @@ class BlockModalTests(TestSetupMixin, TestCase):
         super().setUp()
         self.client.login(username=self.user.username, password='test')
 
-    def test_block_modal_no_blocks(self):
+    def test_block_modal_no_blocks_or_memberships(self):
         resp = self.client.get(self.url)
         self.assertEqual(resp.context['active_blocks'], [])
-        self.assertEqual(resp.context['unpaid_blocks'], [])
+        self.assertEqual(list(resp.context['active_memberships']), [])
         self.assertTrue('can_book_block')
 
     def test_block_modal_with_blocks(self):
-        unpaid_block = baker.make_recipe(
+        baker.make_recipe(
             'booking.block_5', user=self.user, paid=False,
             start_date=timezone.now()-timedelta(days=1)
         )
@@ -617,4 +620,23 @@ class BlockModalTests(TestSetupMixin, TestCase):
         resp = self.client.get(self.url)
 
         self.assertEqual(resp.context['active_blocks'], [paid_block])
-        self.assertEqual(resp.context['unpaid_blocks'], [unpaid_block])
+
+
+@pytest.mark.django_db
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+def test_block_modal_with_memberships(client, seller, configured_user):
+    client.force_login(configured_user)
+    m1 = baker.make("booking.Membership", name="m1", active=True)
+    user_membership = baker.make("booking.UserMembership", membership=m1, user=configured_user, subscription_status="active")
+    user_membership1 = baker.make(
+        "booking.UserMembership", membership=m1, user=configured_user, subscription_status="active",
+        end_date=datetime.now() + timedelta(10)
+    )
+    baker.make(
+        "booking.UserMembership", membership=m1, user=configured_user, subscription_status="canceled",
+        end_date=datetime.now() - timedelta(10)
+    )
+
+    resp = client.get(reverse('booking:blocks_modal'))
+    # with end date first
+    assert list(resp.context['active_memberships']) == [user_membership1, user_membership]

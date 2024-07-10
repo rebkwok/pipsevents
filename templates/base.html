@@ -43,7 +43,7 @@
           {% if request.user.is_authenticated %}
         <div class="d-inline-block d-md-none extra-collapsed-menu-icons">
         <span class="shopping-basket-menu" id="shopping-basket-menu-xs">{% show_shopping_basket_menu request.user %}</span>
-        <span class="blocks-menu mr-4" id="blocks-menu-xs" title="View available blocks">{% include 'booking/includes/blocks_modal.html' %}</span>
+        <span class="blocks-menu mr-4" id="blocks-menu-xs" title="View your available payment methods">{% include 'booking/includes/payment_plans_modal.html' %}</span>
         </div>
         {% endif %}
         {% endblock %}
@@ -61,6 +61,8 @@
             {% if room_hires %}
             <li class="nav-item"><a class="nav-link" href="{% url 'booking:room_hires' %}">Room Hire</a></li>
             {% endif %}
+            <li class="nav-item"><a class="nav-link" href="{% url 'booking:payment_plans' %}">Payment Plans</a></li>
+
             <li class="nav-item d-inline-block d-sm-none"><a class="nav-link" href="{% url 'booking:buy_gift_voucher' %}">Gift Vouchers</a></li>
             <li class="nav-item d-inline-block d-sm-none"><a class="nav-link" href="{% url 'booking:ticketed_events' %}">Tickets</a></li>
             <li class="nav-item d-inline-block d-sm-none"><a class="nav-link" href="{% url 'nonregistered_disclaimer_form' %}">Event Disclaimer</a></li>
@@ -75,7 +77,7 @@
 
             {% if request.user.is_authenticated %}
                 <li class="pl-1 pt-2 nav-item d-none d-sm-block"><span id="shopping-basket-menu">{% show_shopping_basket_menu request.user %}</span></li>
-                <li id="blocks-menu" class="pt-2 ml-4 mr-2 nav-item d-none d-sm-block" title="View available blocks">{% include 'booking/includes/blocks_modal.html' %}</li>
+                <li id="blocks-menu" class="pt-2 ml-4 mr-2 nav-item d-none d-sm-block" title="View available payment plans">{% include 'booking/includes/payment_plans_modal.html' %}</li>
             {% endif %}
             {% endblock %}
             </ul>

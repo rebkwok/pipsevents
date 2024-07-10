@@ -226,10 +226,17 @@ def blocks_modal(request):
     # # already sorted by expiry date,
     active_blocks = [block for block in blocks if block.active_block()]
 
-    unpaid_blocks = [
-        block for block in request.user.blocks.filter(expiry_date__gte=timezone.now(), paid=False, paypal_pending=False)
-        if not block.full
-    ]
     types_available_to_book = context_helpers.get_blocktypes_available_to_book(request.user)
-    context = {'active_blocks': active_blocks, 'unpaid_blocks': unpaid_blocks, 'can_book_block': types_available_to_book}
-    return render(request, 'booking/includes/blocks_modal_content.html', context)
+    
+    active_memberships = request.user.memberships.filter(
+        subscription_status__in=["active", "past_due"], 
+    ).order_by("end_date")
+
+    context = {
+        "active_memberships": active_memberships,
+        'active_blocks': active_blocks, 'can_book_block': types_available_to_book}
+    return render(request, 'booking/includes/payment_plans_modal_content.html', context)
+
+
+def payment_plans(request):
+    return render(request, 'booking/payment_plans.html')
