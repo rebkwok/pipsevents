@@ -75,6 +75,8 @@
                 <span class="studioadmin-help">{{ booking|format_paid_status }}</span>
             {% if booking.block %}
                 <br/><span class="studioadmin-help">Block used</span>
+            {% elif booking.membership %}
+                <br/><span class="studioadmin-help">Membership used</span>
             {% endif %}
         {% if not booking.paid and due_date_time %}
             <br/><span class="studioadmin-help">Due by: {{ due_date_time | date:"d M H:i"}}</span>

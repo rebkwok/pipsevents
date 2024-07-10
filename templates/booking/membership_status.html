@@ -73,10 +73,10 @@
                             Membership payments are taken in advance, on the 25th of each month, for the next month's membership. This
                             is to allow any payment issues to be resolved before the start of the next membership period, and avoid
                             membership lapses.</span><br/>
-                        {% if next_due %}{{ next_due|date:"d M Y" }}{% else %}-{% endif %}</dd>
+                        {% if next_due %}{{ next_due|date:"d M Y" }} (for {{ next_month }} membership){% else %}-{% endif %}</dd>
                 </dl>
                 <dl>
-                    <dt>Latest payment</dt>
+                    <dt>Last payment received</dt>
                     <dd>{% if last_invoice %}{{ last_invoice|date:"d M Y" }}{% else %}-{% endif %}</dd>
                 </dl>
                 <dl>
