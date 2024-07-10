@@ -355,7 +355,6 @@ def stripe_webhook(request):
                 if old_status == "incomplete":
                     # A new subscription was just activated
                     send_subscription_created_email(user_membership)
-                    user_membership.reallocate_bookings()
                 # has it been cancelled in future?               
                 if event_object.cancel_at:
                     end_date = datetime.fromtimestamp(event_object.cancel_at)
@@ -366,7 +365,6 @@ def stripe_webhook(request):
                         user_membership.subscription_end_date = end_date
                         user_membership.end_date = UserMembership.calculate_membership_end_date(end_date)
                         user_membership.save()
-                        user_membership.reallocate_bookings()
                 else:
                     if user_membership.end_date is not None:
                         ActivityLog.objects.create(
@@ -375,7 +373,6 @@ def stripe_webhook(request):
                         user_membership.end_date = None
                         user_membership.subscription_end_date = None
                         user_membership.save()
-                        user_membership.reallocate_bookings()
                 
                 # Has the price changed?
                 
@@ -401,7 +398,10 @@ def stripe_webhook(request):
                     )
                     send_updated_membership_email_to_support(user_membership, membership.stripe_price_id, old_price_id)
                 
-            if event_object.status == "past_due":
+                # reallocate bookings now we're done with updating the membership
+                user_membership.reallocate_bookings()
+
+            elif event_object.status == "past_due":
                 send_subscription_past_due_email(event_object)
 
         elif event.type == "setup_intent.succeeded":

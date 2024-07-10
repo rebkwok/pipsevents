@@ -720,6 +720,7 @@ def test_webhook_subscription_deleted(
     assert len(mail.outbox) == 0
 
 
+@pytest.mark.freeze_time("2024-02-26")
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 @patch("stripe_payments.views.stripe.Webhook")
 def test_webhook_subscription_updated_status_changed_to_past_due(
@@ -732,9 +733,16 @@ def test_webhook_subscription_updated_status_changed_to_past_due(
     # status changed to active from cancelled
     # price changed (only if changed from stripe) - sends emails to support and changes membersip
     membership = baker.make(Membership, name="membership1")
+    # freeze time; start user membership in past
+    # make booking for next month and allocate user membership
+    booking = baker.make_recipe("booking.booking", user=configured_stripe_user, event__date=datetime(2024, 3, 10, tzinfo=datetime_tz.utc))
+    baker.make("booking.MembershipItem", event_type=booking.event.event_type, quantity=4, membership=membership)
     user_membership = baker.make(
-        UserMembership, membership=membership, user=configured_stripe_user, subscription_id="id"
+        UserMembership, membership=membership, user=configured_stripe_user, subscription_id="id",
+        start_date=datetime(2024, 1, 25, tzinfo=datetime_tz.utc)
     )
+    booking.membership = user_membership
+    booking.save()
     mock_webhook.construct_event.return_value = get_mock_webhook_event(
         webhook_event_type="customer.subscription.updated", 
         status="past_due",
@@ -746,8 +754,12 @@ def test_webhook_subscription_updated_status_changed_to_past_due(
     assert len(mail.outbox) == 1
     assert "Action required - Complete your membership payment" in mail.outbox[0].subject
 
+    # booking still has membership
+    booking.refresh_from_db()
+    assert booking.membership == user_membership
 
 
+@pytest.mark.freeze_time("2024-02-26")
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 @patch("stripe_payments.views.stripe.Webhook")
 def test_webhook_subscription_updated_status_changed_to_active(
@@ -756,10 +768,25 @@ def test_webhook_subscription_updated_status_changed_to_active(
     mock_webhook.construct_event.return_value = get_mock_webhook_event(
         webhook_event_type="customer.subscription.updated"
     )
+
     membership = baker.make(Membership, name="membership1")
+    # booking with no membership yet
+    unpaid_booking = baker.make_recipe(
+        "booking.booking", 
+        user=configured_stripe_user, 
+        event__date=datetime(2024, 3, 10, tzinfo=datetime_tz.utc), paid=False
+    )
+    # paid booking that otherwise would be valid for membership
+    paid_booking = baker.make_recipe(
+        "booking.booking", 
+        user=configured_stripe_user, 
+        event__event_type=unpaid_booking.event.event_type, 
+        event__date=datetime(2024, 3, 10, tzinfo=datetime_tz.utc), paid=True
+    )
+    baker.make("booking.MembershipItem", event_type=unpaid_booking.event.event_type, quantity=4, membership=membership)
     user_membership = baker.make(
         UserMembership, membership=membership, user=configured_stripe_user, subscription_id="id",
-        subscription_status="canceled"
+        subscription_status="canceled", start_date=datetime(2024, 1, 25, tzinfo=datetime_tz.utc)
     )
     mock_webhook.construct_event.return_value = get_mock_webhook_event(
         webhook_event_type="customer.subscription.updated", 
@@ -773,6 +800,11 @@ def test_webhook_subscription_updated_status_changed_to_active(
     user_membership.refresh_from_db()
     assert user_membership.subscription_status == "active"
 
+    unpaid_booking.refresh_from_db()
+    paid_booking.refresh_from_db()
+    assert unpaid_booking.membership == user_membership
+    assert unpaid_booking.paid == True
+    assert paid_booking.membership is None
 
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 @patch("stripe_payments.views.stripe.Webhook")
@@ -783,10 +815,28 @@ def test_webhook_subscription_updated_status_scheduled_to_cancel(
         webhook_event_type="customer.subscription.updated"
     )
     membership = baker.make(Membership, name="membership1")
+    # booking before end date
+    booking = baker.make_recipe(
+        "booking.booking", 
+        user=configured_stripe_user, 
+        event__date=datetime(2024, 1, 10, tzinfo=datetime_tz.utc)
+    )
+    booking1 = baker.make_recipe(
+        "booking.booking", 
+        user=configured_stripe_user, 
+        event__event_type=booking.event.event_type,
+        event__date=datetime(2024, 2, 10, tzinfo=datetime_tz.utc)
+    )
+    baker.make("booking.MembershipItem", event_type=booking.event.event_type, quantity=4, membership=membership)
     user_membership = baker.make(
         UserMembership, membership=membership, user=configured_stripe_user, subscription_id="id",
         subscription_status="active"
     )
+    booking.membership = user_membership
+    booking.save()
+    booking1.membership = user_membership
+    booking1.save()
+
     mock_webhook.construct_event.return_value = get_mock_webhook_event(
         webhook_event_type="customer.subscription.updated", 
         status="active",
@@ -800,6 +850,12 @@ def test_webhook_subscription_updated_status_scheduled_to_cancel(
     assert user_membership.subscription_status == "active"
     assert user_membership.subscription_end_date == datetime(2024, 1, 25, tzinfo=datetime_tz.utc)
     assert user_membership.end_date == datetime(2024, 2, 1, tzinfo=datetime_tz.utc)
+
+    booking.refresh_from_db()
+    booking1.refresh_from_db()
+    assert booking.membership == user_membership
+    assert booking1.membership is None
+    assert booking1.paid is False
 
 
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
