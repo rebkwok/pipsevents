@@ -7,76 +7,70 @@
             <div class="card-header">
                 <h2 class="card-title">Your Profile</h2>
             </div>
-           <div class="card-body">
-               <div class="col-12">
-                    <h4 class="card-title">Personal info</h4>
-                </div>
-               <div class="col-12">
+            <div class="card-body">
+                <h4 class="card-title mt-2">Personal info & account setttings</h4> 
+                <div>
                    <span class="col-3"><strong>Username:</strong></span>
                    <span class="col-9">{{ user.username }}</span>
                </div>
-
-               <div class="col-12">
+               <div>
                    <span class="col-3"><strong>First name:</strong></span>
                    <span class="col-9">{{ user.first_name }}</span>
-               </div>
-
-               <div class="col-12">
-                   <span class="col-3"><strong>Last name:</strong></span>
-                   <span class="col-6 col-sm-4 col-md-4 col-lg-3">{{ user.last_name }}</span>
-               </div>
-
-               <div class="col-12">
-                    <span class="col-3"><strong>Pronouns:</strong></span>
-                    <span class="col-6 col-sm-4 col-md-4 col-lg-3">{{ user.userprofile.pronouns }}</span>
                 </div>
-
-                <div class="col-12">
+                <div>
+                   <span class="col-3"><strong>Last name:</strong></span>
+                   <span class="col-9">{{ user.last_name }}</span>
+                </div>
+                <div>
+                    <span class="col-3"><strong>Pronouns:</strong></span>
+                    <span class="col-9">{{ user.userprofile.pronouns }}</span>
+                </div>
+                <div>
                     <span class="col-3"><strong>Connected social accounts:</strong></span>
-                    <span class="col-6 col-sm-4 col-md-4 col-lg-3">
+                    <span class="col-9">
                         {% if user.socialaccount_set.exists %}
                             {% for sacc in user.socialaccount_set.all %}{{ sacc.provider|title }}{% if not forloop.last %}; {% endif %}{% endfor %}
                        {% else %}
                            None
                         {% endif %}
                     </span>
+                </div>   
+                <div class="col-12">
+                    <a class="btn btn-sm btn-profile btn-wm float-right mt-4" href="{% url 'profile:update_profile' %}">Edit</a>
                 </div>
                 
-                <div class="col-12"><a class="btn btn-sm btn-profile btn-wm  ml-4" href="{% url 'profile:update_profile' %}">Change</a></div>
-                <hr/>
+            </div>
 
-                <div class="col-12">
-                    <h4 class="card-title">Email</h4>
-                </div>
-               <div class="col-12">
+            <div class="card-body p-0"><hr></div>
+
+            <div class="card-body">
+                <h4 class="card-title">Email</h4>
+                <div>
                    <span class="col-3"><strong>Primary email address:</strong></span>
-                   <span class="col-6 col-sm-4 col-md-4 col-lg-3">{{ user.email }}</span>
+                   <span class="col-6 col-9">{{ user.email }}</span>
                </div>
-               <div class="col-12"><a class="btn btn-sm btn-profile btn-wm  ml-4" href="{% url 'account_email' %}">Change</a></div>
-                <hr/>
-               
-                {% if request.user|subscribed or request.user|has_booked_class %}
-                    <div class="col-12">
-                        <h4 class="card-title">Mailing List</h4>
-                    </div>
-                    
-                    <div class="col-12">
-                        <span class="col-12">
-                                {% if request.user|subscribed %}
-                                    Subscribed
-                                {% else %}
-                                    Not subscribed
-                                {% endif %}
-                        </span>
-                    </div>
-                    <div class="col-12"><a class="btn btn-sm btn-profile btn-wm  ml-4" href="{% url 'subscribe' %}">Change</a></div>
-                    <hr/>
-                {% endif %}
+               <div class="col-12"><a class="btn btn-sm btn-profile btn-wm mb-0 float-right" href="{% url 'account_email' %}">Edit</a></div>
+            </div>
 
-                <div class="col-12">
-                    <h4 class="card-title">Account Info</h4>
+            <div class="card-body p-0"><hr></div>
+
+            {% if request.user|subscribed or request.user|has_booked_class %}
+                <div class="card-body">
+                    <h4 class="card-title">Mailing List</h4>                 
+                    <div class="col-12">
+                        {% if request.user|subscribed %}
+                            Subscribed
+                        {% else %}
+                            Not subscribed
+                        {% endif %}
+                    </div>
+                <div class="col-12"><a class="btn btn-sm btn-profile btn-wm float-right" href="{% url 'subscribe' %}">Edit</a></div>
                 </div>
-               <div class="col-12 mb-1">
+                <div class="card-body p-0"><hr></div>
+            {% endif %}
+            <div class="card-body">
+                <h4 class="card-title">Account Info</h4>
+               <div>
                    <span class="col-3"><strong>Status:</strong></span>
                    <span class="col-9">
                            {% if user.is_staff %}
@@ -88,21 +82,21 @@
                            {% endif %}
                    </span>
                </div>
-
-               <div class="col-12">
+        
+               <div>
                    <span class="col-3"><strong>Disclaimer:</strong></span>
                    <span class="col-9">
                            {% if disclaimer %}
-                           Completed <a class="btn btn-sm btn-wm btn-wm-xs ml-2" href="{% url 'profile:view_latest_disclaimer' %}" target="_blank">View</a>
+                           Completed <a class="btn btn-sm btn-wm ml-2" href="{% url 'profile:view_latest_disclaimer' %}" target="_blank">View</a>
                             {% elif expired_disclaimer %}
                                 Expired
                            {% else %}
                                 Not completed
                            {% endif %}
                    </span>
-                   </div>
-                   {% if not disclaimer %}
-                   <div class="col-12 mt-4">
+                </div>
+                <div class="col-12">
+                    {% if not disclaimer %}
                        <h4>DISCLAIMER</h4>
                        {% if expired_disclaimer %}
                             <p>Your disclaimer has expired.  We require disclaimers to be updated once a year for health and safety reasons.
@@ -112,18 +106,12 @@
                            This must be completed before attending any classes or workshops.</p>
                        {% endif %}
                        <p><a href="{% url 'disclaimer_form' %}">Complete disclaimer form now</a></p>
-                   </div>
                    {% else %}
-                       <div class="col-12">
-                           <p>If you have any additional questions or concerns about the information you have provided, please contact
-                            <a href="mailto:{{ studio_email }}">{{ studio_email }}</a>.</p>
-
-                       </div>
+                        <p>If you have any additional questions or concerns about the information you have provided, please contact
+                        <a href="mailto:{{ studio_email }}">{{ studio_email }}</a>.</p>
                    {% endif %}
-                <div class="col-12">
                    <p>View our <a href="{% url 'data_privacy_policy' %}">data privacy and cookie policy.</a></p>
-               </div>
-
+            </div>
         </div>
 {% endblock content %}
 
