@@ -43,7 +43,7 @@
           {% if request.user.is_authenticated %}
         <div class="d-inline-block d-md-none extra-collapsed-menu-icons">
         <span class="shopping-basket-menu" id="shopping-basket-menu-xs">{% show_shopping_basket_menu request.user %}</span>
-        <span class="pr-2 blocks-menu" id="blocks-menu-xs" title="View available blocks">{% include 'booking/includes/blocks_modal.html' %}</span>
+        <span class="blocks-menu mr-4" id="blocks-menu-xs" title="View available blocks">{% include 'booking/includes/blocks_modal.html' %}</span>
         </div>
         {% endif %}
         {% endblock %}
@@ -71,28 +71,10 @@
                     <a class="dropdown-item d-none d-sm-block" href="{% url 'booking:buy_gift_voucher' %}">Gift Vouchers</a>
                     <a class="dropdown-item d-none d-sm-block" href="{% url 'booking:ticketed_events' %}">Tickets</a>
                     <a class="dropdown-item d-none d-sm-block" href="{% url 'nonregistered_disclaimer_form' %}">Event Disclaimer</a>
-                    <span role="separator" class="divider d-none d-sm-block"></span>
-                    <a class="dropdown-item d-none d-sm-block" href="{% url 'booking:bookings' %}">My bookings</a>
-                    <a class="dropdown-item d-none d-sm-block" href="{% url 'booking:purchased_tutorials' %}">My tutorials</a>
-                    <a class="dropdown-item d-none d-sm-blockk" href="{% url 'booking:block_list' %}">My blocks</a>
-                    <a class="dropdown-item d-none d-sm-block" href="{% url 'booking:booking_history' %}">Booking history</a>
-                    <a class="dropdown-item d-none d-sm-block" href="{% url 'booking:ticket_bookings' %}">My ticket bookings</a>
-                    <a class="dropdown-item d-none d-sm-block" href="{% url 'booking:ticket_booking_history' %}">Ticket booking history</a>
             </li>
             {% if request.user.is_authenticated %}
-                <li class="nav-item dropdown d-block d-md-none">
-                    <a class="nav-link dropdown-toggle" href="#" id="navbarAccountDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">My Activity</a>
-                    <div class="dropdown-menu" aria-labelledby="navbarAccountDropdown">
-                        <a class="dropdown-item" href="{% url 'booking:bookings' %}">My bookings</a>
-                        <a class="dropdown-item" href="{% url 'booking:purchased_tutorials' %}">My tutorials</a>
-                        <a class="dropdown-item" href="{% url 'booking:block_list' %}">My blocks</a>
-                        <a class="dropdown-item" href="{% url 'booking:booking_history' %}">Booking history</a>
-                        <a class="dropdown-item" href="{% url 'booking:ticket_bookings' %}">My ticket bookings</a>
-                        <a class="dropdown-item" href="{% url 'booking:ticket_booking_history' %}">Ticket booking history</a>
-                    </div>
-                </li>
                 <li class="pl-1 pt-2 nav-item d-none d-sm-block"><span id="shopping-basket-menu">{% show_shopping_basket_menu request.user %}</span></li>
-                <li id="blocks-menu" class="pt-2 pl-2 nav-item d-none d-sm-block" title="View available blocks">{% include 'booking/includes/blocks_modal.html' %}</li>
+                <li id="blocks-menu" class="pt-2 ml-4 mr-2 nav-item d-none d-sm-block" title="View available blocks">{% include 'booking/includes/blocks_modal.html' %}</li>
             {% endif %}
             {% endblock %}
             </ul>
@@ -118,7 +100,16 @@
                         {% if not request.user|has_disclaimer %}
                         <a class="dropdown-item active-nav-login" href="{% url 'disclaimer_form' %}">Disclaimer Form</a>
                         {% endif %}
+                        <span role="separator" class="divider"></span>
                         <a class="dropdown-item active-nav-login" href="{% url 'account_logout' %}">Sign Out</a>
+                        <span role="separator" class="divider"></span>
+                        <a class="dropdown-item active-nav-login" href="{% url 'booking:bookings' %}">Bookings</a>
+                        <a class="dropdown-item active-nav-login" href="{% url 'booking:booking_history' %}">Booking history</a>
+                        <a class="dropdown-item active-nav-login" href="{% url 'booking:purchased_tutorials' %}">Tutorials</a>
+                        <a class="dropdown-item active-nav-login" href="{% url 'booking:block_list' %}">Blocks</a>
+                        <a class="dropdown-item active-nav-login" href="{% url 'booking:ticket_bookings' %}">Tickets</a>
+                        <a class="dropdown-item active-nav-login" href="{% url 'booking:ticket_booking_history' %}">Ticket history</a>
+                        
                     </div>
                 </li>
             {% else %}
