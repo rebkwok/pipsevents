@@ -9,8 +9,9 @@ from urllib.parse import parse_qs
 
 from model_bakery import baker
 
+from django.utils import timezone
+
 from stripe_payments.utils import StripeConnector
-from responses import matchers
 
 
 pytestmark = pytest.mark.django_db
@@ -334,7 +335,7 @@ def test_get_subscriptions_for_customer_paginated(seller, mocked_responses):
     ]
 )
 def test_create_subscription(
-    freezer,seller, mocked_responses, now, backdate, default_payment_method,
+    freezer, seller, mocked_responses, now, backdate, default_payment_method,
     expected_billing_cycle_anchor, expected_backdate_start_date, expected_proration_behavior
 ):
     freezer.move_to(now)
@@ -374,3 +375,308 @@ def test_create_subscription(
     assert parsed == expected
 
 
+def test_cancel_subscription_immediately(seller, mocked_responses):
+    mocked_responses.delete(
+        "https://api.stripe.com/v1/subscriptions/sub-1",
+        body=json.dumps(
+            {
+                "id": "sub_1MlPf9LkdIwHu7ixB6VIYRyX",
+                "object": "subscription",
+                "application": None,
+                "billing_cycle_anchor": 1678768838,
+                "billing_thresholds": None,
+                "cancel_at": None,
+                "cancel_at_period_end": False,
+                "canceled_at": timezone.now().timestamp(),
+                "cancellation_details": {
+                    "comment": None,
+                    "feedback": None,
+                    "reason": "cancellation_requested"
+                },
+                "customer": "cus-1"
+            }
+        )
+    )
+    connector = StripeConnector()
+    subscription = connector.cancel_subscription(
+        "sub-1", cancel_immediately=True
+    )
+    assert isinstance(subscription, stripe.Subscription)
+
+
+def test_cancel_subscription_on_schedule(seller, mocked_responses):
+    # get subscription
+    mocked_responses.get(
+        "https://api.stripe.com/v1/subscriptions/subsc-1",
+        body=json.dumps(
+            {
+                "object": "subscription",
+                "url": "/v1/subscription",
+                "id": "subsc-1",
+                "schedule": None,
+            }
+        ),
+        status=200,
+        content_type="application/json",
+    )
+
+    # create the schedule
+    mocked_responses.post(
+        "https://api.stripe.com/v1/subscription_schedules",
+        body=json.dumps(
+            {
+                "object": "subscription_schedule",
+                "url": "/v1/subscription_schedules",
+                "id": "sub_sched-1",
+                "subscription": "subsc-1",
+                "end_behavior": "release",
+                "phases": [
+                    {
+                        "start_date": datetime(2024, 6, 25).timestamp(),
+                        "end_date": datetime(2024, 7, 25).timestamp(),
+                        "items": [{"price": 2000, "quantity": 1}],
+                    }
+                ],
+            }
+        ),
+        status=200,
+        content_type="application/json",
+    )
+    # update the schedule to
+    mocked_responses.post(
+        "https://api.stripe.com/v1/subscription_schedules/sub_sched-1",
+        body=json.dumps(
+            {
+                "object": "subscription_schedule",
+                "url": "/v1/subscription_schedules",
+                "id": "sub_sched-1",
+                "subscription": {
+                    "object": "subscription",
+                    "id": "subsc-1"
+                },
+            }
+        ),
+        status=200,
+        content_type="application/json",
+    )
+
+    connector = StripeConnector()
+    subscription = connector.cancel_subscription(
+        "subsc-1", cancel_immediately=False
+    )
+    assert isinstance(subscription, stripe.Subscription)
+    last_call = mocked_responses.calls[-1]
+    parsed = parse_qs(last_call.request.body)
+    # called with the schedule details and end behvaiour cancel
+    expected = {
+        'end_behavior': ['cancel'], 
+        'phases[0][items][0][price]': ['2000'], 
+        'phases[0][items][0][quantity]': ['1'], 
+        'phases[0][start_date]': [str(datetime(2024, 6, 25).timestamp())], 
+        'phases[0][end_date]': [str(datetime(2024, 7, 25).timestamp())], 
+        'phases[0][proration_behavior]': ['none'], 
+        'expand[0]': ['subscription']
+    }
+    assert parsed == expected
+
+
+def test_stripe_customer_portal_existing_config(seller, mocked_responses):
+    # list configs
+    mocked_responses.get(
+        "https://api.stripe.com/v1/billing_portal/configurations?active=True",
+        body=json.dumps(
+            {
+                "object": "list",
+                "url": "https://api.stripe.com/v1/billing_portal/configurations",
+                "data": [
+                    {
+                        "id": "bpc_1",
+                        "object": "billing_portal.configuration",
+                        "active": True,
+                        "business_profile": {
+                            "headline": None,
+                            "privacy_policy_url": "https://example.com/privacy",
+                            "terms_of_service_url": "https://example.com/terms"
+                        },
+                        "default_return_url": "https://thewatermelonstudio.co.uk/",
+                        "features": {
+                            "customer_update": {"allowed_updates": ["email", "name", "address"], "enabled": True},
+                            "payment_method_update": {"enabled": True},
+                            "invoice_history": {"enabled": True},
+                            "subscription_cancel": {"enabled": False},
+                            "subscription_update": {"enabled": False},
+                        }
+                    },
+                    {
+                        "id": "bpc_2",
+                        "object": "billing_portal.configuration",
+                        "active": True,
+                        "business_profile": {
+                            "headline": None,
+                            "privacy_policy_url": "https://booking.thewatermelonstudio.co.uk/data-privacy-policy/",
+                            "terms_of_service_url": "https://www.thewatermelonstudio.co.uk/t&c.html"
+                        },
+                        "default_return_url": "https://booking.thewatermelonstudio.co.uk/accounts/profile",
+                        "features": {
+                            "customer_update": {"allowed_updates": ["email", "name", "address"], "enabled": True},
+                            "payment_method_update": {"enabled": True},
+                            "invoice_history": {"enabled": True},
+                            "subscription_cancel": {"enabled": False},
+                            "subscription_update": {"enabled": False},
+                        }
+                    },
+                    
+                ]
+            }
+        ),
+        status=200,
+        content_type="application/json",
+    )
+
+    # get customer portal session
+    mocked_responses.post(
+        "https://api.stripe.com/v1/billing_portal/sessions",
+        body=json.dumps(
+            {
+                "id": "bps_1",
+                "object": "billing_portal.session",
+                "url": "https://example.com/sessionid"
+            }
+        )
+    )    
+
+    connector = StripeConnector()
+    assert connector.customer_portal_url("cus-1") ==  "https://example.com/sessionid"
+    # session create called with bpc_2
+    last_call = mocked_responses.calls[-1]
+    parsed = parse_qs(last_call.request.body)
+    assert parsed == {'customer': ['cus-1'], 'configuration': ['bpc_2']}
+
+
+def test_stripe_customer_portal_existing_mismatched_config(seller, mocked_responses):
+    # list configs
+    mocked_responses.get(
+        "https://api.stripe.com/v1/billing_portal/configurations?active=True",
+        body=json.dumps(
+            {
+                "object": "list",
+                "url": "https://api.stripe.com/v1/billing_portal/configurations",
+                "data": [
+                    {
+                        "id": "bpc_1",
+                        "object": "billing_portal.configuration",
+                        "active": True,
+                        "business_profile": {
+                            "headline": None,
+                            "privacy_policy_url": "https://booking.thewatermelonstudio.co.uk/data-privacy-policy/",
+                            "terms_of_service_url": "https://www.thewatermelonstudio.co.uk/t&c.html"
+                        },
+                        "default_return_url": "https://booking.thewatermelonstudio.co.uk/accounts/profile",
+                        "features": {
+                            "customer_update": {"allowed_updates": ["email", "name", "address"], "enabled": True},
+                            "payment_method_update": {"enabled": True},
+                            "invoice_history": {"enabled": True},
+                            "subscription_cancel": {"enabled": False},
+                            "subscription_update": {"enabled": True},
+                        }
+                    },
+                    
+                ]
+            }
+        ),
+        status=200,
+        content_type="application/json",
+    )
+    # modifies the config
+    mocked_responses.post(
+        "https://api.stripe.com/v1/billing_portal/configurations/bpc_1",
+        body=json.dumps(
+            {
+                "id": "bpc_1",
+                "object": "billing_portal.configuration"
+            }
+        )
+    )
+
+    # get customer portal session
+    mocked_responses.post(
+        "https://api.stripe.com/v1/billing_portal/sessions",
+        body=json.dumps(
+            {
+                "id": "bps_1",
+                "url": "https://example.com/sessionid"
+            }
+        )
+    )    
+
+    connector = StripeConnector()
+    assert connector.customer_portal_url("cus-1") ==  "https://example.com/sessionid"    
+
+    last_call = mocked_responses.calls[-1]
+    parsed = parse_qs(last_call.request.body)
+    assert parsed == {'customer': ['cus-1'], 'configuration': ['bpc_1']}
+
+
+
+def test_stripe_customer_portal_no_existing_config(seller, mocked_responses):
+    # list configs
+    mocked_responses.get(
+        "https://api.stripe.com/v1/billing_portal/configurations?active=True",
+        body=json.dumps(
+            {
+                "object": "list",
+                "url": "https://api.stripe.com/v1/billing_portal/configurations",
+                "data": [
+                    {
+                        "id": "bpc_1",
+                        "object": "billing_portal.configuration",
+                        "active": True,
+                        "business_profile": {
+                            "headline": None,
+                            "privacy_policy_url": "https://booking.thewatermelonstudio.co.uk/data-privacy-policy/",
+                            "terms_of_service_url": "https://www.thewatermelonstudio.co.uk/t&c.html"
+                        },
+                        "default_return_url": "https:/foo",
+                        "features": {
+                            "customer_update": {"allowed_updates": ["email", "name", "address"], "enabled": True},
+                            "payment_method_update": {"enabled": True},
+                            "invoice_history": {"enabled": True},
+                            "subscription_cancel": {"enabled": False},
+                            "subscription_update": {"enabled": True},
+                        }
+                    },
+                    
+                ]
+            }
+        ),
+        status=200,
+        content_type="application/json",
+    )
+    # creates new config
+    mocked_responses.post(
+        "https://api.stripe.com/v1/billing_portal/configurations",
+        body=json.dumps(
+            {
+                "id": "bpc_1",
+                "object": "billing_portal.configuration"
+            }
+        )
+    )
+
+    # get customer portal session
+    mocked_responses.post(
+        "https://api.stripe.com/v1/billing_portal/sessions",
+        body=json.dumps(
+            {
+                "id": "bps_1",
+                "url": "https://example.com/sessionid"
+            }
+        )
+    )    
+
+    connector = StripeConnector()
+    assert connector.customer_portal_url("cus-1") ==  "https://example.com/sessionid"    
+
+    last_call = mocked_responses.calls[-1]
+    parsed = parse_qs(last_call.request.body)
+    assert parsed == {'customer': ['cus-1'], 'configuration': ['bpc_1']}  

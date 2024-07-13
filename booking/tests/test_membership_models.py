@@ -49,7 +49,7 @@ def test_membership_create_duplicate_name(seller):
     assert m2.stripe_product_id == "memb_1"
 
 
-def test_membership_change_price(mocked_responses, seller):
+def mock_change_price_responses(mocked_responses):
     # created initial product
     mocked_responses.post(
         "https://api.stripe.com/v1/products",
@@ -109,6 +109,9 @@ def test_membership_change_price(mocked_responses, seller):
         content_type="application/json",
     )
 
+
+def test_membership_change_price(mocked_responses, seller):
+    mock_change_price_responses(mocked_responses)
     membership = baker.make(
         Membership, name="memb 1", description="a membership", price=10
     )
@@ -123,64 +126,7 @@ def test_membership_change_price(mocked_responses, seller):
 
 
 def test_membership_change_price_with_user_memberships(mocked_responses, seller):
-    # created initial product
-    mocked_responses.post(
-        "https://api.stripe.com/v1/products",
-        body=json.dumps(
-            {
-                "object": "product",
-                "url": "/v1/product",
-                "id": "memb-1",
-                "name": "membership 1",
-                "description": "a membership",
-                "default_price": "price_1",
-            }
-        ),
-        status=200,
-        content_type="application/json",
-    )
-    # gets list of matching product prices
-    mocked_responses.get(
-        "https://api.stripe.com/v1/prices",
-        body=json.dumps(
-            {
-                "object": "list",
-                "url": "/v1/prices",
-                "data": [],
-            }
-        ),
-        status=200,
-        content_type="application/json",
-    )
-    # create new price
-    mocked_responses.post(
-        "https://api.stripe.com/v1/prices",
-        body=json.dumps(
-            {
-                "object": "price",
-                "url": "/v1/prices",
-                "id": "price_2",
-            }
-        ),
-        status=200,
-        content_type="application/json",
-    )
-    # update product to set price as default
-    mocked_responses.post(
-        "https://api.stripe.com/v1/products/memb-1",
-        body=json.dumps(
-            {
-                "object": "product",
-                "url": "/v1/product",
-                "id": "memb-1",
-                "name": "membership 1",
-                "description": "a membership",
-                "default_price": "price_2",
-            }
-        ),
-        status=200,
-        content_type="application/json",
-    )
+    mock_change_price_responses(mocked_responses)
 
     # update subscriptions to add schedule to change price
     # get the subscription to check if it has a schedule
@@ -252,6 +198,130 @@ def test_membership_change_price_with_user_memberships(mocked_responses, seller)
 
     assert membership.stripe_product_id == "memb-1"
     assert membership.stripe_price_id == "price_2"
+
+
+def test_membership_change_price_with_user_membership_existing_schedule(mocked_responses, seller):
+    mock_change_price_responses(mocked_responses)
+
+    # update subscriptions to add schedule to change price
+    # get the subscription to check if it has a schedule
+    # This one has a schedule with a different proce
+    mocked_responses.get(
+        "https://api.stripe.com/v1/subscriptions/subsc-1",
+        body=json.dumps(
+            {
+                "object": "subscription",
+                "url": "/v1/subscription",
+                "id": "subsc-1",
+                "schedule": {
+                    "object": "subscription_schedule",
+                    "url": "/v1/subscription_schedules",
+                    "id": "sub_sched-1",
+                    "subscription": "subsc-1",
+                    "end_behavior": "release",
+                    "phases": [
+                        {
+                            "start_date": datetime(2024, 6, 25).timestamp(),
+                            "end_date": datetime(2024, 7, 25).timestamp(),
+                            "items": [{"price": 500, "quantity": 1}],
+                        }
+                    ],
+                },
+            }
+        ),
+        status=200,
+        content_type="application/json",
+    )
+
+    mocked_responses.post(
+        "https://api.stripe.com/v1/subscription_schedules/sub_sched-1",
+        body=json.dumps(
+            {
+                "object": "subscription_schedule",
+                "url": "/v1/subscription_schedules/sub_sched-1",
+                "id": "sub_sched-1",
+                "subscription": "subsc-1",
+                "end_behavior": "release",
+                "phases": [
+                    {
+                        "start_date": datetime(2024, 6, 25).timestamp(),
+                        "end_date": datetime(2024, 7, 25).timestamp(),
+                        "items": [{"price": 2000, "quantity": 1}],
+                    }
+                ],
+            }
+        ),
+        status=200,
+        content_type="application/json",
+    )
+
+    membership = baker.make(
+        Membership, name="memb 1", description="a membership", price=10
+    )
+    assert membership.stripe_product_id == "memb-1"
+    assert membership.stripe_price_id == "price_1"
+
+    user_membership = baker.make(
+        UserMembership,
+        membership=membership,
+        subscription_status="active",
+        subscription_id="subsc-1",
+    )
+    membership.price = 20
+    membership.save()
+
+    assert membership.stripe_product_id == "memb-1"
+    assert membership.stripe_price_id == "price_2"    
+
+
+def test_membership_change_price_with_user_membership_existing_cancelled_schedule(mocked_responses, seller):
+    mock_change_price_responses(mocked_responses)
+    
+    # update subscriptions to add schedule to change price
+    # get the subscription to check if it has a schedule
+    # This one has a schedule with a different price but due to cancel, so it doesn't update
+    mocked_responses.get(
+        "https://api.stripe.com/v1/subscriptions/subsc-1",
+        body=json.dumps(
+            {
+                "object": "subscription",
+                "url": "/v1/subscription",
+                "id": "subsc-1",
+                "schedule": {
+                    "object": "subscription_schedule",
+                    "url": "/v1/subscription_schedules",
+                    "id": "sub_sched-1",
+                    "subscription": "subsc-1",
+                    "end_behavior": "cancel",
+                    "phases": [
+                        {
+                            "start_date": datetime(2024, 6, 25).timestamp(),
+                            "end_date": datetime(2024, 7, 25).timestamp(),
+                            "items": [{"price": 500, "quantity": 1}],
+                        }
+                    ],
+                },
+            }
+        ),
+        status=200,
+        content_type="application/json",
+    )
+    # Subscription Modify endpoint is NOT called
+
+    membership = baker.make(
+        Membership, name="memb 1", description="a membership", price=10
+    )
+    assert membership.stripe_product_id == "memb-1"
+    assert membership.stripe_price_id == "price_1"
+
+    baker.make(
+        UserMembership,
+        membership=membership,
+        subscription_status="active",
+        subscription_id="subsc-1",
+    )
+    membership.price = 20
+    membership.save()
 
 
 def test_membership_change_name(mocked_responses, seller):

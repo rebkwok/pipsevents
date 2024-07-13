@@ -216,7 +216,7 @@ class StripeConnector:
     def get_subscription(self, subscription_id):
         kwargs = dict(
             id=subscription_id, stripe_account=self.connected_account_id, 
-            expand=['latest_invoice', 'pending_setup_intent']
+            expand=['latest_invoice', 'pending_setup_intent', 'schedule']
         )
         return stripe.Subscription.retrieve(**kwargs)
 
@@ -330,15 +330,13 @@ class StripeConnector:
         return subscription
     
     def get_or_create_subscription_schedule(self, subscription_id):
-        subscription = self.get_subscription(subscription_id)
-        if subscription.schedule:
-            schedule = stripe.SubscriptionSchedule.retrieve(id=subscription.schedule, stripe_account=self.connected_account_id)
-        else:
-            schedule = stripe.SubscriptionSchedule.create(
+        subscription = self.get_subscription(subscription_id)  # returned with subscription schedule expanded
+        if not subscription.schedule:
+            return stripe.SubscriptionSchedule.create(
                 from_subscription=subscription_id,
                 stripe_account=self.connected_account_id,
             )
-        return schedule
+        return subscription.schedule
 
     def update_subscription_price(self, subscription_id, new_price_id):
         """
@@ -444,8 +442,28 @@ class StripeConnector:
             stripe_account=self.connected_account_id,
         )
         if configs.data:
-            config_id = configs.data[0].id
-            return stripe.billing_portal.Configuration.modify(config_id, **config_data)
+            # find the first config that returns to the booking site profile page
+            config = next(
+                (
+                    config_it for config_it in configs.data
+                    if config_it.default_return_url == "https://booking.thewatermelonstudio.co.uk/accounts/profile"
+                ),
+                None
+            )
+            if config is not None:
+                # Check the config matches the expected data
+                try:
+                    assert config.business_profile.privacy_policy_url == config_data["business_profile"]["privacy_policy_url"]
+                    assert config.business_profile.terms_of_service_url == config_data["business_profile"]["terms_of_service_url"]
+                    assert config.features.customer_update.allowed_updates == ["email", "name", "address"]
+                    assert config.features.customer_update.enabled
+                    assert config.features.payment_method_update.enabled
+                    assert config.features.invoice_history.enabled
+                    assert not config.features.subscription_cancel.enabled
+                    assert not config.features.subscription_update.enabled
+                    return config
+                except AssertionError:
+                    return stripe.billing_portal.Configuration.modify(config.id, **config_data)
         return stripe.billing_portal.Configuration.create(**config_data)
     
     def customer_portal_url(self, customer_id):

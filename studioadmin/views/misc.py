@@ -219,7 +219,7 @@ def test_paypal_view(request):
 
 @login_required
 @staff_required
-def reactivated_block_status(request):
+def reactivated_block_status(request):  # pragma: no cover
     total, still_left_to_use = reactivated_status()
     context = {
         "total": total,
