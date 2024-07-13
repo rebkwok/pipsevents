@@ -1,10 +1,8 @@
-from booking.models import Block, BlockType, Booking
+from booking.models import Block, BlockType
 from activitylog.models import ActivityLog
 
 def cancel_event(event, transfer_direct_paid=True, transfer_expired_blocks=True):
-    open_bookings = Booking.objects.filter(
-        event=event, status='OPEN', no_show=False
-    )
+    open_bookings = event.bookings.filter(status='OPEN', no_show=False)
     open_free_non_block = [
         bk for bk in open_bookings if bk.free_class and not bk.block
         ]
@@ -15,7 +13,10 @@ def cancel_event(event, transfer_direct_paid=True, transfer_expired_blocks=True)
 
     for booking in open_bookings:
         direct_paid = booking in open_direct_paid or booking in open_free_non_block
-
+        if booking.membership:
+            booking.membership = None
+            booking.paid = False
+            booking.payment_confirmed = False
         if booking.block and not booking.block.expired:
             booking.block = None
             booking.deposit_paid = False

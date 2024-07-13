@@ -4,14 +4,8 @@ from model_bakery import baker
 
 from django.urls import reverse
 from django.test import TestCase
-from django.contrib.messages.storage.fallback import FallbackStorage
 
 from common.tests.helpers import create_configured_user
-from studioadmin.views import (
-    event_waiting_list_view,
-)
-
-from studioadmin.tests.test_views.helpers import TestPermissionMixin
 
 
 class WaitingListViewStudioAdminTests(TestCase):

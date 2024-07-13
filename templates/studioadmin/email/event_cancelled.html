@@ -6,7 +6,8 @@
 <p>We regret to inform you that {{ event_type }} {{ event }} has been cancelled.</p>
 
 <p>Your booking has been cancelled
-    {% if block_paid %} and your {% if free_block %}(free) {% endif %}block has been updated.
+    {% if membership_paid %} and your membership has been updated.
+    {% elif block_paid %} and your {% if free_block %}(free) {% endif %}block has been updated.
         {% if block_expires_soon %}<strong style="color: red">Your block expires on {{ block_expiry_date }}.  Book your
         replacement class before this date to ensure you use your credited block.</strong>{% endif %}
     {% elif transfer_block_created %}.

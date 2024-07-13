@@ -294,31 +294,32 @@ def cancel_event_view(request, slug):
     event = get_object_or_404(Event, slug=slug)
     ev_type = event.event_type.readable_name.lower()
 
-    open_bookings = Booking.objects.filter(
-        event=event, status='OPEN', no_show=False
-    )
-    no_shows_all = Booking.objects.filter(
-        event=event, status='OPEN', no_show=True
-    )
+    all_open_bookings = event.bookings.filter(status='OPEN')
+    open_bookings = [bk for bk in all_open_bookings if not bk.no_show]
+    no_shows_all = [bk for bk in all_open_bookings if bk.no_show]
     no_shows = [bk for bk in no_shows_all if bk.paid or bk.deposit_paid]
     open_block_bookings = [
         bk for bk in open_bookings if bk.block and not bk.free_class and not bk.block.expired
-        ]
+    ]
+    open_membership_bookings = [
+        bk for bk in open_bookings if bk.membership
+    ]
     open_expired_block_bookings = [
         bk for bk in open_bookings if bk.block and not bk.free_class and bk.block.expired
-        ]
+    ]
     open_unpaid_bookings = [
-        bk for bk in open_bookings if not bk.deposit_paid and not bk.paid]
+        bk for bk in open_bookings if not bk.deposit_paid and not bk.paid
+    ]
     open_free_non_block = [
         bk for bk in open_bookings if bk.free_class and not bk.block
-        ]
+    ]
     open_free_block = [bk for bk in open_bookings if bk.free_class and bk.block]
     open_direct_paid_deposit_only = [
         bk for bk in open_bookings if not bk.block
         and not bk.free_class and bk.deposit_paid and not bk.paid
     ]
     open_direct_paid = [
-        bk for bk in open_bookings if not bk.block
+        bk for bk in open_bookings if not bk.block and not bk.membership
         and not bk.free_class and bk.paid
     ]
 
@@ -330,6 +331,7 @@ def cancel_event_view(request, slug):
                 transfer_block_created = False
                 block_expires_soon = False
                 block_paid = booking in open_block_bookings
+                membership_paid = booking in open_membership_bookings
                 free_block = booking in open_free_block
                 expired_block = booking in open_expired_block_bookings
                 direct_paid = booking in open_direct_paid or \
@@ -338,7 +340,12 @@ def cancel_event_view(request, slug):
                 block_expiry_date = booking.block.expiry_date.strftime('%d %b %Y') \
                     if booking.block else None
 
-                if booking.block and not booking.block.expired:
+                if booking.membership:
+                    booking.membership = None
+                    booking.paid = False
+                    booking.payment_confirmed = False
+
+                elif booking.block and not booking.block.expired:
                     one_month_ahead = timezone.now() + relativedelta(months=1)
                     if booking.block.expiry_date < one_month_ahead:
                         block_expires_soon = True
@@ -379,6 +386,7 @@ def cancel_event_view(request, slug):
                         'host': host,
                         'event_type': ev_type,
                         'block_paid': block_paid,
+                        'membership_paid': membership_paid,
                         'direct_paid': direct_paid or deposit_only_paid,
                         'free_block': free_block,
                         'expired_block': expired_block,
@@ -425,6 +433,7 @@ def cancel_event_view(request, slug):
                     'event_type': ev_type,
                     'transfer_direct_paid': transfer_direct_paid,
                     'open_bookings': open_bookings,
+                    'open_membership_bookings': open_membership_bookings,
                     'open_direct_paid_bookings': open_direct_paid,
                     'open_block_bookings': open_block_bookings,
                     'open_expired_block_bookings': open_expired_block_bookings,
@@ -507,6 +516,7 @@ def cancel_event_view(request, slug):
         'open_bookings': bool(open_bookings),
         'open_direct_paid_bookings': open_direct_paid,
         'open_block_bookings': open_block_bookings,
+        'open_membership_bookings': open_membership_bookings,
         'open_expired_block_bookings': open_expired_block_bookings,
         'open_deposit_only_paid_bookings': open_direct_paid_deposit_only,
         'open_unpaid_bookings': open_unpaid_bookings,

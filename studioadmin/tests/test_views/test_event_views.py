@@ -12,6 +12,7 @@ import pytest
 from django.conf import settings
 from django.urls import reverse
 from django.core import mail
+from django.contrib.sites.models import Site
 from django.test import TestCase
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
@@ -27,6 +28,7 @@ from studioadmin.views import (
     EventAdminUpdateView,
 )
 from studioadmin.tests.test_views.helpers import TestPermissionMixin
+from stripe_payments.tests.mock_connector import MockConnector
 
 
 class EventAdminListViewTests(TestPermissionMixin, TestCase):
@@ -807,7 +809,14 @@ class EventAdminCreateViewTests(TestPermissionMixin, TestCase):
         self.assertEqual(event1.paypal_email, settings.DEFAULT_PAYPAL_EMAIL)
 
 
-class CancelEventTests(TestPermissionMixin, TestCase):
+from common.tests.helpers import create_configured_user
+class CancelEventTests(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = create_configured_user("test", "user@example.com", "test")
+        cls.instructor_user = create_configured_user("instructor", "instructor@example.com", "test", instructor=True)
+        cls.staff_user = create_configured_user("staff", "staff@example.com", "test", staff=True)
 
     def setUp(self):
         self.event = baker.make_recipe(
@@ -816,37 +825,15 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         self.lesson = baker.make_recipe(
             'booking.future_PC', cost=10, booking_open=True, payment_open=True
         )
-        super(CancelEventTests, self).setUp()
-
-    def _get_response(self, user, event):
-        url = reverse('studioadmin:cancel_event', kwargs={'slug': event.slug})
-        session = _create_session()
-        request = self.factory.get(url)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        return cancel_event_view(request, event.slug)
-
-    def _post_response(self, user, event, form_data):
-        url = reverse('studioadmin:cancel_event', kwargs={'slug': event.slug})
-        session = _create_session()
-        request = self.factory.post(url, form_data)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        return cancel_event_view(request, event.slug)
+        self.event_url = reverse('studioadmin:cancel_event', kwargs={'slug': self.event.slug})
+        self.lesson_url = reverse('studioadmin:cancel_event', kwargs={'slug': self.lesson.slug})
 
     def test_cannot_access_if_not_logged_in(self):
         """
         test that the page redirects if user is not logged in
         """
-        url = reverse(
-            'studioadmin:cancel_event', kwargs={'slug': self.event.slug}
-        )
-        resp = self.client.get(url)
-        redirected_url = reverse('account_login') + "?next={}".format(url)
+        resp = self.client.get(self.event_url)
+        redirected_url = reverse('account_login') + "?next={}".format(self.event_url)
         self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
@@ -854,7 +841,8 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         """
         test that the page redirects if user is not a staff user
         """
-        resp = self._get_response(self.user, self.event)
+        self.client.force_login(self.user)
+        resp = self.client.get(self.event_url)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
@@ -862,12 +850,14 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         """
         test that the page can be accessed by a staff user
         """
-        resp = self._get_response(self.staff_user, self.event)
+        self.client.force_login(self.staff_user)
+        resp = self.client.get(self.event_url)
         self.assertEqual(resp.status_code, 200)
 
     def test_get_cancel_page_with_no_bookings(self):
         # no open bookings displayed on page
-        resp = self._get_response(self.staff_user, self.event)
+        self.client.force_login(self.staff_user)
+        resp = self.client.get(self.event_url)
         self.assertEqual(resp.context_data['open_bookings'], False)
 
     def test_get_cancel_page_with_cancelled_bookings_only(self):
@@ -876,7 +866,8 @@ class CancelEventTests(TestPermissionMixin, TestCase):
             'booking.booking', event=self.event, status="CANCELLED", _quantity=3
         )
 
-        resp = self._get_response(self.staff_user, self.event)
+        self.client.force_login(self.staff_user)
+        resp = self.client.get(self.event_url)
         self.assertEqual(resp.context_data['open_bookings'], False)
 
     def test_get_cancel_page_open_unpaid_bookings(self):
@@ -886,7 +877,8 @@ class CancelEventTests(TestPermissionMixin, TestCase):
             paid=False,
             _quantity=3
         )
-        resp = self._get_response(self.staff_user, self.event)
+        self.client.force_login(self.staff_user)
+        resp = self.client.get(self.event_url)
         self.assertEqual(
             sorted([bk.id for bk in resp.context_data['open_unpaid_bookings']]),
             sorted([bk.id for bk in bookings])
@@ -922,7 +914,8 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         )
         bookings = Booking.objects.all()
 
-        resp = self._get_response(self.staff_user, self.event)
+        self.client.force_login(self.staff_user)
+        resp = self.client.get(self.event_url)
         self.assertEqual(
             sorted([bk.id for bk in resp.context_data['open_block_bookings']]),
             sorted([bk.id for bk in bookings])
@@ -950,7 +943,8 @@ class CancelEventTests(TestPermissionMixin, TestCase):
             free_class=True, paid=True,
             _quantity=3
         )
-        resp = self._get_response(self.staff_user, self.event)
+        self.client.force_login(self.staff_user)
+        resp = self.client.get(self.event_url)
         self.assertEqual(
             sorted(
                 [bk.id for bk in
@@ -977,7 +971,8 @@ class CancelEventTests(TestPermissionMixin, TestCase):
             paid=True, free_class=False,
             _quantity=3
         )
-        resp = self._get_response(self.staff_user, self.event)
+        self.client.force_login(self.staff_user)
+        resp = self.client.get(self.event_url)
 
         self.assertEqual(
             sorted(
@@ -1057,7 +1052,8 @@ class CancelEventTests(TestPermissionMixin, TestCase):
 
         self.assertEqual(Booking.objects.filter(event=self.event).count(), 21)
 
-        resp = self._get_response(self.staff_user, self.event)
+        self.client.force_login(self.staff_user)
+        resp = self.client.get(self.event_url)
 
         self.assertEqual(resp.context_data['open_bookings'], True)
         self.assertEqual(
@@ -1097,6 +1093,68 @@ class CancelEventTests(TestPermissionMixin, TestCase):
             sorted([bk.id for bk in block_bookings])
         )
 
+    @patch("booking.models.membership_models.StripeConnector", MockConnector)
+    def test_get_cancel_page_open_membership_paid_bookings(self):
+        # open bookings displayed on page, not in due_refunds list
+        baker.make("stripe_payments.Seller", site=Site.objects.get_current())
+        self.client.force_login(self.staff_user)
+        users = baker.make_recipe('booking.user', _quantity=3)
+        for user in users:
+            membership = baker.make(
+                'booking.UserMembership', 
+                user=user,
+                membership__name="mem"
+            )
+            baker.make_recipe(
+                'booking.booking', event=self.event, status="OPEN", membership=membership,
+                paid=True
+        )
+        bookings = Booking.objects.all()
+
+        url = reverse('studioadmin:cancel_event', kwargs={'slug': self.event.slug})
+        resp = self.client.get(url)
+        assert (
+            sorted([bk.id for bk in resp.context_data['open_membership_bookings']]) == 
+            sorted([bk.id for bk in bookings])
+        )
+        assert resp.context_data['open_bookings'] 
+        assert not resp.context_data['open_block_bookings']
+        assert not resp.context_data['open_unpaid_bookings']
+        assert not resp.context_data['open_deposit_only_paid_bookings']
+        assert not resp.context_data['open_free_block_bookings']
+        assert not resp.context_data['open_free_non_block_bookings']
+        assert not resp.context_data['open_direct_paid_bookings']
+
+    @patch("booking.models.membership_models.StripeConnector", MockConnector)
+    def test_cancel_event_with_open_membership_paid_bookings(self):
+        # open bookings displayed on page, not in due_refunds list
+        baker.make("stripe_payments.Seller", site=Site.objects.get_current())
+        self.client.force_login(self.staff_user)
+        users = baker.make_recipe('booking.user', _quantity=3)
+        for user in users:
+            membership = baker.make(
+                'booking.UserMembership', 
+                user=user,
+                membership__name="mem"
+            )
+            baker.make_recipe(
+                'booking.booking', event=self.event, status="OPEN", membership=membership,
+                paid=True
+        )
+        bookings = Booking.objects.all()
+        for booking in bookings:
+            assert booking.membership is not None
+            assert booking.paid
+            assert booking.status == "OPEN"
+
+        url = reverse('studioadmin:cancel_event', kwargs={'slug': self.event.slug})
+        self.client.post(url, {"confirm": "Confirm"})
+        bookings = Booking.objects.all()
+        for booking in bookings:
+            assert booking.membership is None
+            assert booking.paid is False
+            assert booking.status == "CANCELLED"
+    
     def test_cancelling_event_sets_booking_and_payment_closed(self):
         """
         Cancelling and event sets cancelled to True, booking_open and
@@ -1105,10 +1163,8 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         self.assertTrue(self.event.booking_open)
         self.assertTrue(self.event.payment_open)
         self.assertFalse(self.event.cancelled)
-
-        self._post_response(
-            self.staff_user, self.event, {'confirm': 'Yes, cancel this event'}
-        )
+        self.client.force_login(self.staff_user)
+        resp = self.client.post(self.event_url, {'confirm': 'Yes, cancel this event'})
         self.event.refresh_from_db()
         self.assertFalse(self.event.booking_open)
         self.assertFalse(self.event.payment_open)
@@ -1134,9 +1190,8 @@ class CancelEventTests(TestPermissionMixin, TestCase):
             self.assertIsNotNone(booking.block)
             self.assertEqual(booking.status, 'OPEN')
 
-        self._post_response(
-            self.staff_user, self.event, {'confirm': 'Yes, cancel this event'}
-        )
+        self.client.force_login(self.staff_user)
+        resp = self.client.post(self.event_url, {'confirm': 'Yes, cancel this event'})
         for booking in Booking.objects.filter(event=self.event):
             self.assertIsNone(booking.block)
             self.assertEqual(booking.status, 'CANCELLED')
@@ -1161,9 +1216,8 @@ class CancelEventTests(TestPermissionMixin, TestCase):
             self.assertTrue(booking.free_class)
             self.assertEqual(booking.status, 'OPEN')
 
-        self._post_response(
-            self.staff_user, self.event, {'confirm': 'Yes, cancel this event'}
-        )
+        self.client.force_login(self.staff_user)
+        resp = self.client.post(self.event_url, {'confirm': 'Yes, cancel this event'})
 
         for booking in non_block_free:
             booking.refresh_from_db()
@@ -1193,9 +1247,8 @@ class CancelEventTests(TestPermissionMixin, TestCase):
             self.assertTrue(booking.payment_confirmed)
             self.assertEqual(booking.status, 'OPEN')
 
-        self._post_response(
-            self.staff_user, self.event, {'confirm': 'Yes, cancel this event'}
-        )
+        self.client.force_login(self.staff_user)
+        resp = self.client.post(self.event_url, {'confirm': 'Yes, cancel this event'})
 
         for booking in Booking.objects.filter(event=self.event):
             self.assertTrue(booking.paid)
@@ -1203,27 +1256,24 @@ class CancelEventTests(TestPermissionMixin, TestCase):
             self.assertEqual(booking.status, 'CANCELLED')
 
     def test_cancelling_event_redirects_to_events_list(self):
-        resp = self._post_response(
-            self.staff_user, self.event, {'confirm': 'Yes, cancel this event'}
-        )
+        self.client.force_login(self.staff_user)
+        resp = self.client.post(self.event_url, {'confirm': 'Yes, cancel this event'})
         self.event.refresh_from_db()
         self.assertTrue(self.event.cancelled)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('studioadmin:events'))
 
     def test_cancelling_class_redirects_to_classes_list(self):
-        resp = self._post_response(
-            self.staff_user, self.lesson, {'confirm': 'Yes, cancel this event'}
-        )
+        self.client.force_login(self.staff_user)
+        resp = self.client.post(self.lesson_url, {'confirm': 'Yes, cancel this event'})
         self.lesson.refresh_from_db()
         self.assertTrue(self.lesson.cancelled)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('studioadmin:lessons'))
 
     def test_can_abort_cancel_event_request(self):
-        resp = self._post_response(
-            self.staff_user, self.event, {'cancel': 'No, take me back'}
-        )
+        self.client.force_login(self.staff_user)
+        resp = self.client.post(self.event_url, {'confirm': 'Yes, cancel this event'})
         self.assertFalse(self.event.cancelled)
         self.assertTrue(self.event.booking_open)
         self.assertTrue(self.event.payment_open)
@@ -1231,9 +1281,8 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         self.assertEqual(resp.url, reverse('studioadmin:events'))
 
     def test_can_abort_cancel_class_request(self):
-        resp = self._post_response(
-            self.staff_user, self.lesson, {'cancel': 'No, take me back'}
-        )
+        self.client.force_login(self.staff_user)
+        resp = self.client.post(self.lesson_url, {'confirm': 'Yes, cancel this event'})
         self.assertFalse(self.lesson.cancelled)
         self.assertTrue(self.lesson.booking_open)
         self.assertTrue(self.lesson.payment_open)
@@ -1245,9 +1294,8 @@ class CancelEventTests(TestPermissionMixin, TestCase):
             'booking.booking', event=self.event, status="OPEN",
             _quantity=3
         )
-        self._post_response(
-            self.staff_user, self.event, {'cancel': 'No, take me back'}
-        )
+        self.client.force_login(self.staff_user)
+        resp = self.client.post(self.event_url, {'cancel': 'No, take me back'})
         self.assertFalse(self.event.cancelled)
         for booking in Booking.objects.filter(event=self.event):
             self.assertEqual(booking.status, 'OPEN')
@@ -1284,9 +1332,8 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         _add_user_email_addresses(Booking)
         self.assertEqual(Booking.objects.filter(event=self.event).count(), 12)
 
-        self._post_response(
-            self.staff_user, self.event, {'confirm': 'Yes, cancel this event'}
-        )
+        self.client.force_login(self.staff_user)
+        resp = self.client.post(self.event_url, {'confirm': 'Yes, cancel this event'})
         # sends one email per open booking and one to studio
         self.assertEqual(len(mail.outbox), 13)
 
@@ -1326,9 +1373,8 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         _add_user_email_addresses(Booking)
         self.assertEqual(Booking.objects.filter(event=self.event).count(), 15)
 
-        self._post_response(
-            self.staff_user, self.event, {'confirm': 'Yes, cancel this event'}
-        )
+        self.client.force_login(self.staff_user)
+        resp = self.client.post(self.event_url, {'confirm': 'Yes, cancel this event'})
         # sends one email per open booking (not already cancelled) and one to
         # studio
         self.assertEqual(len(mail.outbox), 13)
@@ -1368,9 +1414,9 @@ class CancelEventTests(TestPermissionMixin, TestCase):
 
         open_bookings = Booking.objects.filter(event=self.event, status='OPEN')
         _add_user_email_addresses(Booking)
-        self._post_response(
-            self.staff_user, self.event, {'confirm': 'Yes, cancel this event'}
-        )
+        self.client.force_login(self.staff_user)
+        resp = self.client.post(self.event_url, {'confirm': 'Yes, cancel this event'})
+
         # sends one email per open booking and one email to studio
         self.assertEqual(len(mail.outbox), 8)
         self.assertIn('(unpaid) - no action required', mail.outbox[-1].body)
@@ -1473,9 +1519,8 @@ class CancelEventTests(TestPermissionMixin, TestCase):
         )
 
         self.assertEqual(Booking.objects.filter(event=self.event).count(), 14)
-        self._post_response(
-            self.staff_user, self.event, {'confirm': 'Yes, cancel this event'}
-        )
+        self.client.force_login(self.staff_user)
+        resp = self.client.post(self.event_url, {'confirm': 'Yes, cancel this event'})
         # sends one email per open booking (not already cancelled) and one to
         # studio
         self.assertEqual(len(mail.outbox), 13)
@@ -1517,9 +1562,8 @@ class CancelEventTests(TestPermissionMixin, TestCase):
 
         self.assertEqual(Booking.objects.filter(event=self.event).count(), 1)
 
-        self._post_response(
-            self.staff_user, self.event, {'confirm': 'Yes, cancel this event'}
-        )
+        self.client.force_login(self.staff_user)
+        resp = self.client.post(self.event_url, {'confirm': 'Yes, cancel this event'})
         # sends one error email per open booking and one to studio
         self.assertEqual(len(mail.outbox), 2)
         for email in mail.outbox:
@@ -1593,7 +1637,7 @@ class CancelEventTests(TestPermissionMixin, TestCase):
             deposit_paid=True
         )
 
-        self.client.login(username=self.staff_user.username, password='test')
+        self.client.force_login(self.staff_user)
         url = reverse(
             'studioadmin:cancel_event', kwargs={'slug': pole_class.slug}
         )
