@@ -3,12 +3,10 @@ from model_bakery import baker
 
 from django.urls import reverse
 from django.test import TestCase
-from django.contrib.messages.storage.fallback import FallbackStorage
 from django.utils import timezone
 
 from booking.models import Block
-from common.tests.helpers import _create_session, format_content
-from studioadmin.views import user_blocks_view
+from common.tests.helpers import format_content
 from studioadmin.tests.test_views.helpers import TestPermissionMixin
 
 
@@ -17,32 +15,11 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
     def setUp(self):
         super(UserBlocksViewTests, self).setUp()
         self.block = baker.make_recipe('booking.block', user=self.user)
-
-    def _get_response(self, user, user_id):
-        url = reverse(
+        self.url = reverse(
             'studioadmin:user_blocks_list',
-            kwargs={'user_id': user_id}
+            kwargs={'user_id': self.user.id}
         )
-        session = _create_session()
-        request = self.factory.get(url)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        return user_blocks_view(request, user_id)
-
-    def _post_response(self, user, user_id, form_data):
-        url = reverse(
-            'studioadmin:user_blocks_list',
-            kwargs={'user_id': user_id}
-        )
-        session = _create_session()
-        request = self.factory.post(url, form_data, follow=True)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        return user_blocks_view(request, user_id)
+        self.client.force_login(self.staff_user)
 
     def formset_data(self, extra_data={}):
 
@@ -64,12 +41,9 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
         """
         test that the page redirects if user is not logged in
         """
-        url = reverse(
-            'studioadmin:user_blocks_list',
-            kwargs={'user_id': self.user.id}
-        )
-        resp = self.client.get(url)
-        redirected_url = reverse('account_login') + "?next={}".format(url)
+        self.client.logout()
+        resp = self.client.get(self.url)
+        redirected_url = reverse('account_login') + "?next={}".format(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
@@ -77,7 +51,8 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
         """
         test that the page redirects if user is not a staff user
         """
-        resp = self._get_response(self.user, self.user.id)
+        self.client.force_login(self.user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
@@ -86,7 +61,8 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
         test that the page redirects if user is in the instructor group but is
         not a staff user
         """
-        resp = self._get_response(self.instructor_user, self.user.id)
+        self.client.force_login(self.instructor_user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
@@ -94,7 +70,7 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
         """
         test that the page can be accessed by a staff user
         """
-        resp = self._get_response(self.staff_user, self.user.id)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 200)
 
     def test_view_users_blocks(self):
@@ -106,7 +82,11 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
             'booking.block', user=new_user, _quantity=2
         )
         self.assertEqual(Block.objects.count(), 3)
-        resp = self._get_response(self.staff_user, new_user.id)
+        url = reverse(
+            'studioadmin:user_blocks_list',
+            kwargs={'user_id': new_user.id}
+        )
+        resp = self.client.get(url)
         # get all but last form (last form is the empty extra one)
         block_forms = resp.context_data['userblockformset'].forms[:-1]
         self.assertEqual(len(block_forms), 2)
@@ -119,8 +99,8 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
 
     def test_can_update_block(self):
         self.assertFalse(self.block.paid)
-        self._post_response(
-            self.staff_user, self.user.id,
+        self.client.post(
+            self.url,
             self.formset_data({'blocks-0-paid': True})
         )
         block = Block.objects.get(id=self.block.id)
@@ -129,8 +109,8 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
     def test_can_create_block(self):
         block_type = baker.make_recipe('booking.blocktype')
         self.assertEqual(Block.objects.count(), 1)
-        self._post_response(
-            self.staff_user, self.user.id,
+        self.client.post(
+            self.url,
             self.formset_data(
                 {
                     'blocks-TOTAL_FORMS': 2,
@@ -143,8 +123,8 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
     def test_can_create_block_without_start_date(self):
         block_type = baker.make_recipe('booking.blocktype')
         self.assertEqual(Block.objects.count(), 1)
-        self._post_response(
-            self.staff_user, self.user.id,
+        self.client.post(
+            self.url,
             self.formset_data(
                 {
                     'blocks-TOTAL_FORMS': 2,
@@ -162,8 +142,8 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
         """
         test formset submitted unchanged redirects back to user block list
         """
-        resp = self._post_response(
-            self.staff_user, self.user.id, self.formset_data()
+        resp = self.client.post(
+            self.url, self.formset_data()
         )
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(
@@ -176,8 +156,8 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
 
     def test_delete_block(self):
         self.assertFalse(self.block.paid)
-        self._post_response(
-            self.staff_user, self.user.id,
+        self.client.post(
+            self.url,
             self.formset_data({'blocks-0-DELETE': True})
         )
         with self.assertRaises(Block.DoesNotExist):
@@ -193,12 +173,7 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
                 'blocks-1-start_date': '34 Jan 2023'
             }
         )
-        url = reverse(
-            'studioadmin:user_blocks_list',
-            kwargs={'user_id': self.user.id}
-        )
-        self.client.login(username=self.staff_user.username, password='test')
-        resp = self.client.post(url, data)
+        resp = self.client.post(self.url, data)
 
         self.assertIn(
             'There were errors in the following fields:start_date',
@@ -216,46 +191,29 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
 
         self.assertEqual(Block.objects.filter(user=self.user).count(), 21)
 
-        self.client.login(username=self.staff_user.username, password='test')
         # no page in url, shows first page
-        resp = self.client.get(
-            reverse(
-                'studioadmin:user_blocks_list', args=[self.user.id]
-            )
-        )
+        resp = self.client.get(self.url)
         blocks = resp.context_data['userblockformset'].queryset
         self.assertEqual(blocks.count(), 10)
         paginator = resp.context_data['page_obj']
         self.assertEqual(paginator.number, 1)
 
         # page 1
-        resp = self.client.get(
-            reverse(
-                'studioadmin:user_blocks_list', args=[self.user.id]
-            ) + '?page=1'
-        )
+        resp = self.client.get(self.url + '?page=1')
         blocks = resp.context_data['userblockformset'].queryset
         self.assertEqual(blocks.count(), 10)
         paginator = resp.context_data['page_obj']
         self.assertEqual(paginator.number, 1)
 
         # page number > max pages gets last page
-        resp = self.client.get(
-            reverse(
-                'studioadmin:user_blocks_list', args=[self.user.id]
-            ) + '?page=4'
-        )
+        resp = self.client.get(self.url + '?page=4')
         blocks = resp.context_data['userblockformset'].queryset
         self.assertEqual(blocks.count(), 1)
         paginator = resp.context_data['page_obj']
         self.assertEqual(paginator.number, 3)
 
         # page not a number > gets first page
-        resp = self.client.get(
-            reverse(
-                'studioadmin:user_blocks_list', args=[self.user.id]
-            ) + '?page=foo'
-        )
+        resp = self.client.get(self.url + '?page=foo')
         blocks = resp.context_data['userblockformset'].queryset
         self.assertEqual(blocks.count(), 10)
         paginator = resp.context_data['page_obj']
@@ -265,8 +223,6 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
         # Post return same page number
         new_blocks = baker.make_recipe('booking.block', user=self.user, _quantity=15)
         self.assertEqual(Block.objects.filter(user=self.user).count(), 16)
-
-        self.client.login(username=self.staff_user.username, password='test')
 
         data = self.formset_data(
             {
@@ -285,9 +241,7 @@ class UserBlocksViewTests(TestPermissionMixin, TestCase):
             data['blocks-{}-paid'.format(i)] = self.block.paid
 
         resp = self.client.post(
-            reverse(
-                'studioadmin:user_blocks_list', args=[self.user.id]
-            ), data
+           self.url, data
         )
 
         self.assertEqual(

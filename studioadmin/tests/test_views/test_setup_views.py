@@ -1,11 +1,9 @@
-from django.contrib.auth.models import Group, User, Permission
 from django.urls import reverse
 
 import pytest
 
 from model_bakery import baker
 
-from notices.models import Notice
 from booking.models import AllowedGroup
 
 pytestmark = pytest.mark.django_db

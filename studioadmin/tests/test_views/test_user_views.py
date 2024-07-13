@@ -1,5 +1,6 @@
 from datetime import datetime
 from datetime import timezone as dt_timezone
+from unittest.mock import Mock, patch
 
 from model_bakery import baker
 import pytest
@@ -7,15 +8,13 @@ import pytest
 from django.urls import reverse
 from django.db.models import Q
 from django.test import TestCase
-from django.contrib.auth.models import Group, User, Permission
-from django.contrib.messages.storage.fallback import FallbackStorage
+from django.contrib.auth.models import Group, User
 from django.core import mail
 from django.utils import timezone
 
 from accounts.models import DisclaimerContent, OnlineDisclaimer, PrintDisclaimer
-from common.tests.helpers import _create_session, assert_mailchimp_post_data
+from common.tests.helpers import assert_mailchimp_post_data
 from studioadmin.utils import int_str, chaffify
-from studioadmin.views import UserListView
 from studioadmin.views.users import NAME_FILTERS
 from studioadmin.tests.test_views.helpers import TestPermissionMixin
 
@@ -26,6 +25,13 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         super().setUp()
         self.url = reverse('studioadmin:users')
         self.client.force_login(self.staff_user)
+        mockresponse = Mock()
+        mockresponse.status_code = 200
+        self.patcher = patch('requests.request', return_value = mockresponse)
+        self.mock_request = self.patcher.start()
+
+    def tearDown(self):
+        self.patcher.stop()
 
     def test_cannot_access_if_not_logged_in(self):
         """

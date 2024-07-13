@@ -3,18 +3,11 @@ from model_bakery import baker
 import pytest
 
 from django.urls import reverse
-from django.contrib.auth.models import User
 from django.core import mail
 from django.test import TestCase
-from django.contrib.messages.storage.fallback import FallbackStorage
 from django.contrib.sites.models import Site
 
 from booking.models import Booking, Block, TicketBooking, Ticket
-from common.tests.helpers import _create_session
-from studioadmin.views import (
-    ConfirmPaymentView,
-    ConfirmRefundView,
-)
 from stripe_payments.models import Invoice
 from studioadmin.tests.test_views.helpers import TestPermissionMixin
 
@@ -27,38 +20,16 @@ class ConfirmPaymentViewTests(TestPermissionMixin, TestCase):
             'booking.booking', user=self.user,
             paid=False,
             payment_confirmed=False)
-
-    def _get_response(self, user, booking):
-        url = reverse('studioadmin:confirm-payment', args=[booking.id])
-        session = _create_session()
-        request = self.factory.get(url)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-
-        view = ConfirmPaymentView.as_view()
-        return view(request, pk=booking.id)
-
-    def _post_response(self, user, booking, form_data):
-        url = reverse('studioadmin:confirm-payment', args=[booking.id])
-        session = _create_session()
-        request = self.factory.post(url, form_data)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-
-        view = ConfirmPaymentView.as_view()
-        return view(request, pk=booking.id)
+        self.url = reverse('studioadmin:confirm-payment', args=[self.booking.id])
+        self.client.force_login(self.staff_user)
 
     def test_cannot_access_if_not_logged_in(self):
         """
         test that the page redirects if user is not logged in
         """
-        url = reverse('studioadmin:confirm-payment', args=[self.booking.id])
-        resp = self.client.get(url)
-        redirected_url = reverse('account_login') + "?next={}".format(url)
+        self.client.logout()
+        redirected_url = reverse('account_login') + "?next={}".format(self.url)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
@@ -66,7 +37,8 @@ class ConfirmPaymentViewTests(TestPermissionMixin, TestCase):
         """
         test that the page redirects if user is not a staff user
         """
-        resp = self._get_response(self.user, self.booking)
+        self.client.force_login(self.user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
@@ -75,7 +47,8 @@ class ConfirmPaymentViewTests(TestPermissionMixin, TestCase):
         test that the page redirects if user is in the instructor group but is
         not a staff user
         """
-        resp = self._get_response(self.instructor_user, self.booking)
+        self.client.force_login(self.instructor_user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
@@ -83,7 +56,7 @@ class ConfirmPaymentViewTests(TestPermissionMixin, TestCase):
         """
         test that the page can be accessed by a staff user
         """
-        resp = self._get_response(self.staff_user, self.booking)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 200)
 
     def test_with_unpaid_booking(self):
@@ -97,7 +70,7 @@ class ConfirmPaymentViewTests(TestPermissionMixin, TestCase):
             'paid': 'true',
             'payment_confirmed': 'true'
         }
-        resp = self._post_response(self.staff_user, self.booking, form_data)
+        resp = self.client.post(self.url, form_data)
         booking = Booking.objects.get(id=self.booking.id)
         self.assertTrue(booking.paid)
         self.assertTrue(booking.payment_confirmed)
@@ -116,7 +89,7 @@ class ConfirmPaymentViewTests(TestPermissionMixin, TestCase):
         form_data = {
             'payment_confirmed': 'true'
         }
-        resp = self._post_response(self.staff_user, self.booking, form_data)
+        resp = self.client.post(self.url, form_data)
         booking = Booking.objects.get(id=self.booking.id)
         self.assertTrue(booking.paid)
         self.assertTrue(booking.payment_confirmed)
@@ -140,7 +113,7 @@ class ConfirmPaymentViewTests(TestPermissionMixin, TestCase):
             'paid': 'false',
             'payment_confirmed': 'true'
         }
-        resp = self._post_response(self.staff_user, self.booking, form_data)
+        resp = self.client.post(self.url, form_data)
         booking = Booking.objects.get(id=self.booking.id)
         self.assertFalse(booking.paid)
         self.assertFalse(booking.payment_confirmed)
@@ -162,7 +135,7 @@ class ConfirmPaymentViewTests(TestPermissionMixin, TestCase):
             'paid': 'false',
             'payment_confirmed': 'true'
         }
-        self._post_response(self.staff_user, self.booking, form_data)
+        resp = self.client.post(self.url, form_data)
         booking = Booking.objects.get(id=self.booking.id)
         self.assertTrue(booking.paid)
         self.assertTrue(booking.payment_confirmed)
@@ -172,7 +145,7 @@ class ConfirmPaymentViewTests(TestPermissionMixin, TestCase):
             'paid': 'true',
             'payment_confirmed': 'false'
         }
-        self._post_response(self.staff_user, self.booking, form_data)
+        resp = self.client.post(self.url, form_data)
         booking = Booking.objects.get(id=self.booking.id)
         self.assertTrue(booking.paid)
         self.assertFalse(booking.payment_confirmed)
@@ -186,7 +159,7 @@ class ConfirmPaymentViewTests(TestPermissionMixin, TestCase):
             'paid': 'false',
             'payment_confirmed': 'false'
         }
-        resp = self._post_response(self.staff_user, self.booking, form_data)
+        resp = self.client.post(self.url, form_data)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('studioadmin:users'))
 
@@ -202,7 +175,7 @@ class ConfirmPaymentViewTests(TestPermissionMixin, TestCase):
         form_data = {
             'payment_confirmed': 'true'
         }
-        self._post_response(self.staff_user, self.booking, form_data)
+        resp = self.client.post(self.url, form_data)
         booking = Booking.objects.get(id=self.booking.id)
         self.assertTrue(booking.paid)
         self.assertTrue(booking.payment_confirmed)
@@ -218,35 +191,14 @@ class ConfirmRefundViewTests(TestPermissionMixin, TestCase):
             'booking.booking', user=self.user,
             paid=True,
             payment_confirmed=True)
-
-    def _get_response(self, user, booking):
-        url = reverse('studioadmin:confirm-refund', args=[booking.id])
-        session = _create_session()
-        request = self.factory.get(url)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-
-        view = ConfirmRefundView.as_view()
-        return view(request, pk=booking.id)
-
-    def _post_response(self, user, booking, form_data):
-        url = reverse('studioadmin:confirm-refund', args=[booking.id])
-        session = _create_session()
-        request = self.factory.post(url, form_data)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-
-        view = ConfirmRefundView.as_view()
-        return view(request, pk=booking.id)
+        self.url = reverse('studioadmin:confirm-refund', args=[self.booking.id])
+        self.client.force_login(self.staff_user)
 
     def test_cannot_access_if_not_logged_in(self):
         """
         test that the page redirects if user is not logged in
         """
+        self.client.logout()
         url = reverse('studioadmin:confirm-refund', args=[self.booking.id])
         resp = self.client.get(url)
         redirected_url = reverse('account_login') + "?next={}".format(url)
@@ -257,7 +209,8 @@ class ConfirmRefundViewTests(TestPermissionMixin, TestCase):
         """
         test that the page redirects if user is not a staff user
         """
-        resp = self._get_response(self.user, self.booking)
+        self.client.force_login(self.user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
@@ -266,7 +219,8 @@ class ConfirmRefundViewTests(TestPermissionMixin, TestCase):
         test that the page redirects if user is in the instructor group but is
         not a staff user
         """
-        resp = self._get_response(self.instructor_user, self.booking)
+        self.client.force_login(self.instructor_user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
@@ -274,7 +228,7 @@ class ConfirmRefundViewTests(TestPermissionMixin, TestCase):
         """
         test that the page can be accessed by a staff user
         """
-        resp = self._get_response(self.staff_user, self.booking)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 200)
 
     def test_confirm_refund_for_paid_booking(self):
@@ -283,9 +237,7 @@ class ConfirmRefundViewTests(TestPermissionMixin, TestCase):
         """
         self.assertTrue(self.booking.paid)
         self.assertTrue(self.booking.payment_confirmed)
-        resp = self._post_response(
-            self.staff_user, self.booking, form_data={'confirmed': ['Confirm']}
-            )
+        resp = self.client.post(self.url, {'confirmed': ['Confirm']})
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('studioadmin:users'))
         booking = Booking.objects.get(id=self.booking.id)
@@ -302,9 +254,7 @@ class ConfirmRefundViewTests(TestPermissionMixin, TestCase):
 
         self.assertTrue(self.booking.paid)
         self.assertTrue(self.booking.payment_confirmed)
-        resp = self._post_response(
-            self.staff_user, self.booking, form_data={'confirmed': ['Confirm']}
-            )
+        resp = self.client.post(self.url, {'confirmed': ['Confirm']})
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('studioadmin:users'))
         booking = Booking.objects.get(id=self.booking.id)
@@ -325,9 +275,7 @@ class ConfirmRefundViewTests(TestPermissionMixin, TestCase):
         """
         self.assertTrue(self.booking.paid)
         self.assertTrue(self.booking.payment_confirmed)
-        resp = self._post_response(
-            self.staff_user, self.booking, form_data={'cancelled': ['Cancel']}
-            )
+        resp = self.client.post(self.url, {'cancelled': ['Cancel']})
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('studioadmin:users'))
         booking = Booking.objects.get(id=self.booking.id)
@@ -372,7 +320,7 @@ class TestPaypalViewTests(TestPermissionMixin, TestCase):
         self.assertEqual(paypal_data['amount'], 0.01)
         self.assertEqual(
             paypal_data['custom'],
-            'obj=paypal_test ids=0 inv={} pp=testpp@test.com usr=test@test.com'.format(
+            'obj=paypal_test ids=0 inv={} pp=testpp@test.com usr=staff@example.com'.format(
                 paypal_data['invoice']
             )
         )

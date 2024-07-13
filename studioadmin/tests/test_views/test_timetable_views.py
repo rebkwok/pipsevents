@@ -9,16 +9,9 @@ from model_bakery import baker
 from django.conf import settings
 from django.urls import reverse
 from django.test import TestCase
-from django.contrib.messages.storage.fallback import FallbackStorage
 
 from booking.models import Event, FilterCategory
-from common.tests.helpers import _create_session, format_content
-from studioadmin.views import (
-    timetable_admin_list,
-    TimetableSessionUpdateView,
-    TimetableSessionCreateView,
-    upload_timetable_view,
-)
+from common.tests.helpers import format_content
 
 from timetable.models import Session
 from studioadmin.tests.test_views.helpers import TestPermissionMixin
@@ -29,26 +22,8 @@ class TimetableAdminListViewTests(TestPermissionMixin, TestCase):
     def setUp(self):
         super(TimetableAdminListViewTests, self).setUp()
         self.session = baker.make_recipe('booking.mon_session', cost=10)
-
-    def _get_response(self, user):
-        url = reverse('studioadmin:timetable')
-        session = _create_session()
-        request = self.factory.get(url)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        return timetable_admin_list(request)
-
-    def _post_response(self, user, form_data):
-        url = reverse('studioadmin:timetable')
-        session = _create_session()
-        request = self.factory.post(url, form_data)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        return timetable_admin_list(request)
+        self.client.force_login(self.staff_user)
+        self.url = reverse('studioadmin:timetable')
 
     def formset_data(self, extra_data={}):
 
@@ -70,9 +45,9 @@ class TimetableAdminListViewTests(TestPermissionMixin, TestCase):
         """
         test that the page redirects if user is not logged in
         """
-        url = reverse('studioadmin:timetable')
-        resp = self.client.get(url)
-        redirected_url = reverse('account_login') + "?next={}".format(url)
+        self.client.logout()
+        resp = self.client.get(self.url)
+        redirected_url = reverse('account_login') + "?next={}".format(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
@@ -80,7 +55,8 @@ class TimetableAdminListViewTests(TestPermissionMixin, TestCase):
         """
         test that the page redirects if user is not a staff user
         """
-        resp = self._get_response(self.user)
+        self.client.force_login(self.user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
@@ -89,7 +65,8 @@ class TimetableAdminListViewTests(TestPermissionMixin, TestCase):
         test that the page redirects if user is in the instructor group but is
         not a staff user
         """
-        resp = self._get_response(self.instructor_user)
+        self.client.force_login(self.instructor_user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
@@ -97,7 +74,7 @@ class TimetableAdminListViewTests(TestPermissionMixin, TestCase):
         """
         test that the page can be accessed by a staff user
         """
-        resp = self._get_response(self.staff_user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 200)
 
     def test_can_delete_sessions(self):
@@ -119,14 +96,13 @@ class TimetableAdminListViewTests(TestPermissionMixin, TestCase):
 
         data['form-0-DELETE'] = 'on'
 
-        self._post_response(self.staff_user, data)
+        resp = self.client.post(self.url, data)
         self.assertEqual(Session.objects.count(), 4)
 
     def test_can_update_existing_session(self):
         self.assertEqual(self.session.advance_payment_required, True)
 
-        self._post_response(
-            self.staff_user, self.formset_data(
+        self.client.post(self.url, self.formset_data(
                 extra_data={'form-0-advance_payment_required': False}
             )
         )
@@ -134,9 +110,7 @@ class TimetableAdminListViewTests(TestPermissionMixin, TestCase):
         self.assertEqual(self.session.advance_payment_required, False)
 
     def test_submitting_valid_form_redirects_back_to_timetable(self):
-        resp = self._post_response(
-            self.staff_user, self.formset_data()
-        )
+        resp = self.client.post(self.url, self.formset_data())
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('studioadmin:timetable'))
 
@@ -146,29 +120,8 @@ class TimetableSessionUpdateViewTests(TestPermissionMixin, TestCase):
     def setUp(self):
         super(TimetableSessionUpdateViewTests, self).setUp()
         self.session = baker.make_recipe('booking.mon_session')
-
-    def _get_response(self, user, ttsession):
-        url = reverse('studioadmin:edit_session', args=[ttsession.id])
-        session = _create_session()
-        request = self.factory.get(url)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        view = TimetableSessionUpdateView.as_view()
-        return view(request, pk=ttsession.id)
-
-    def _post_response(self, user, ttsession, form_data):
-        url = reverse('studioadmin:edit_session', args=[ttsession.id])
-        session = _create_session()
-        request = self.factory.post(url, form_data)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-
-        view = TimetableSessionUpdateView.as_view()
-        return view(request, pk=ttsession.id)
+        self.url = reverse('studioadmin:edit_session', args=[self.session.id])
+        self.client.force_login(self.staff_user)
 
     def form_data(self, ttsession, extra_data={}):
         data = {
@@ -194,9 +147,9 @@ class TimetableSessionUpdateViewTests(TestPermissionMixin, TestCase):
         """
         test that the page redirects if user is not logged in
         """
-        url = reverse('studioadmin:edit_session', args=[self.session.id])
-        resp = self.client.get(url)
-        redirected_url = reverse('account_login') + "?next={}".format(url)
+        self.client.logout()
+        resp = self.client.get(self.url)
+        redirected_url = reverse('account_login') + "?next={}".format(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
@@ -204,7 +157,8 @@ class TimetableSessionUpdateViewTests(TestPermissionMixin, TestCase):
         """
         test that the page redirects if user is not a staff user
         """
-        resp = self._get_response(self.user, self.session)
+        self.client.force_login(self.user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
@@ -213,7 +167,8 @@ class TimetableSessionUpdateViewTests(TestPermissionMixin, TestCase):
         test that the page redirects if user is in the instructor group but is
         not a staff user
         """
-        resp = self._get_response(self.instructor_user, self.session)
+        self.client.force_login(self.instructor_user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
@@ -221,27 +176,22 @@ class TimetableSessionUpdateViewTests(TestPermissionMixin, TestCase):
         """
         test that the page can be accessed by a staff user
         """
-        resp = self._get_response(self.staff_user, self.session)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 200)
 
     def test_submitting_valid_session_form_redirects_back_to_timetable(self):
-        resp = self._post_response(
-            self.staff_user, self.session, self.form_data(self.session)
-        )
+        resp = self.client.post(self.url, self.form_data(self.session))
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('studioadmin:timetable'))
 
     def test_context_data(self):
-        resp = self._get_response(self.staff_user, self.session)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.context_data['sidenav_selection'], 'timetable')
         self.assertEqual(resp.context_data['session_day'], 'Monday')
 
     def test_can_edit_session_data(self):
         self.assertEqual(self.session.day, '01MON')
-        resp = self._post_response(
-            self.staff_user, self.session,
-            self.form_data(self.session, extra_data={'day': '03WED'})
-        )
+        resp = self.client.post(self.url, self.form_data(self.session, extra_data={'day': '03WED'}))
         session = Session.objects.get(id=self.session.id)
         self.assertEqual(session.day, '03WED')
 
@@ -252,11 +202,7 @@ class TimetableSessionUpdateViewTests(TestPermissionMixin, TestCase):
         form_data = self.form_data(
             ttsession=session, extra_data={'categories': [category.id]}
         )
-        self.client.login(username=self.staff_user.username, password="test")
-        self.client.post(
-            reverse('studioadmin:edit_session', args=[session.id]),
-            data=form_data
-        )
+        resp = self.client.post(reverse('studioadmin:edit_session', args=[session.id]), form_data)
         session.refresh_from_db()
         assert FilterCategory.objects.count() == 1
         assert session.categories.first().category == "test ghi"
@@ -266,19 +212,13 @@ class TimetableSessionUpdateViewTests(TestPermissionMixin, TestCase):
         form_data = self.form_data(
             ttsession=self.session, extra_data={'new_category': "Test 1b"}
         )
-        self.client.login(username=self.staff_user.username, password="test")
-        self.client.post(
-            reverse('studioadmin:edit_session', args=[self.session.id]),
-            data=form_data
-        )
+        resp = self.client.post(self.url, form_data)
         self.session.refresh_from_db()
         assert FilterCategory.objects.count() == 2
         assert self.session.categories.first().category == "Test 1b"
 
     def test_submitting_with_no_changes_does_not_change_session(self):
-        self._post_response(
-            self.staff_user, self.session, self.form_data(self.session)
-        )
+        resp = self.client.post(self.url, self.form_data(self.session))
         ttsession = Session.objects.get(id=self.session.id)
 
         self.assertEqual(self.session.id, ttsession.id)
@@ -305,11 +245,7 @@ class TimetableSessionUpdateViewTests(TestPermissionMixin, TestCase):
                 'paypal_email_check': 'testpaypal@test.com'
             }
         )
-        self.client.login(username=self.staff_user.username, password='test')
-        resp = self.client.post(
-            reverse('studioadmin:edit_session', args=[self.session.id]),
-            form_data, follow=True
-        )
+        resp = self.client.post(self.url, form_data, follow=True)
 
         self.assertIn(
             "You have changed the paypal receiver email. If you haven't used "
@@ -336,10 +272,7 @@ class TimetableSessionUpdateViewTests(TestPermissionMixin, TestCase):
                 'paypal_email_check': settings.DEFAULT_PAYPAL_EMAIL
             }
         )
-        resp = self.client.post(
-            reverse('studioadmin:edit_session', args=[self.session.id]),
-            form_data, follow=True
-        )
+        resp = self.client.post(self.url, form_data, follow=True)
         self.assertNotIn(
             "You have changed the paypal receiver email.",
             format_content(str(resp.content)).replace('\\', '')
@@ -359,38 +292,19 @@ class TimetableSessionUpdateViewTests(TestPermissionMixin, TestCase):
                 'advance_payment_required': self.session.advance_payment_required,
             }
         )
-        resp = self.client.post(
-            reverse('studioadmin:edit_session', args=[self.session.id]),
-            form_data, follow=True
-        )
+        resp = self.client.post(self.url, form_data, follow=True)
         self.assertIn('No changes made', format_content(str(resp.content)))
 
 
 class TimetableSessionCreateViewTests(TestPermissionMixin, TestCase):
 
-    def _get_response(self, user):
-        url = reverse('studioadmin:add_session')
-        session = _create_session()
-        request = self.factory.get(url)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-
-        view = TimetableSessionCreateView.as_view()
-        return view(request)
-
-    def _post_response(self, user, form_data):
-        url = reverse('studioadmin:add_session')
-        session = _create_session()
-        request = self.factory.post(url, form_data)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-
-        view = TimetableSessionCreateView.as_view()
-        return view(request)
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.url = reverse('studioadmin:add_session')
+    
+    def setUp(self):
+        self.client.force_login(self.staff_user)
 
     def form_data(self, extra_data={}):
         ev_type = baker.make_recipe('booking.event_type_PC')
@@ -415,9 +329,9 @@ class TimetableSessionCreateViewTests(TestPermissionMixin, TestCase):
         """
         test that the page redirects if user is not logged in
         """
-        url = reverse('studioadmin:add_session')
-        resp = self.client.get(url)
-        redirected_url = reverse('account_login') + "?next={}".format(url)
+        self.client.logout()
+        resp = self.client.get(self.url)
+        redirected_url = reverse('account_login') + "?next={}".format(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
@@ -425,7 +339,8 @@ class TimetableSessionCreateViewTests(TestPermissionMixin, TestCase):
         """
         test that the page redirects if user is not a staff user
         """
-        resp = self._get_response(self.user)
+        self.client.force_login(self.user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
@@ -434,7 +349,8 @@ class TimetableSessionCreateViewTests(TestPermissionMixin, TestCase):
         test that the page redirects if user is in the instructor group but is
         not a staff user
         """
-        resp = self._get_response(self.instructor_user)
+        self.client.force_login(self.instructor_user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
@@ -442,21 +358,21 @@ class TimetableSessionCreateViewTests(TestPermissionMixin, TestCase):
         """
         test that the page can be accessed by a staff user
         """
-        resp = self._get_response(self.staff_user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 200)
 
     def test_submitting_valid_session_form_redirects_back_to_timetable(self):
-        resp = self._post_response(self.staff_user, self.form_data())
+        resp = self.client.post(self.url, self.form_data())
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('studioadmin:timetable'))
 
     def test_context_data(self):
-        resp = self._get_response(self.staff_user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.context_data['sidenav_selection'], 'add_session')
 
     def test_can_add_event(self):
         self.assertEqual(Session.objects.count(), 0)
-        resp = self._post_response(self.staff_user, self.form_data())
+        resp = self.client.post(self.url, self.form_data())
         self.assertEqual(Session.objects.count(), 1)
         ttsession = Session.objects.first()
         self.assertEqual(ttsession.name, 'test_event')
@@ -468,11 +384,7 @@ class TimetableSessionCreateViewTests(TestPermissionMixin, TestCase):
                 'paypal_email_check': 'testpaypal@test.com'
             }
         )
-        self.client.login(username=self.staff_user.username, password='test')
-        resp = self.client.post(
-            reverse('studioadmin:add_session'),
-            form_data, follow=True
-        )
+        resp = self.client.post(self.url, form_data, follow=True)
 
         self.assertIn(
             "You have changed the paypal receiver email from the default value. "
@@ -490,10 +402,7 @@ class TimetableSessionCreateViewTests(TestPermissionMixin, TestCase):
         self.assertEqual(session.paypal_email, 'testpaypal@test.com')
 
         form_data = self.form_data()
-        resp = self.client.post(
-            reverse('studioadmin:add_session'),
-            form_data, follow=True
-        )
+        resp = self.client.post(self.url, form_data, follow=True)
         self.assertNotIn(
             "You have changed the paypal receiver email from the default value.",
             format_content(str(resp.content)).replace('\\', '')
@@ -504,33 +413,21 @@ class TimetableSessionCreateViewTests(TestPermissionMixin, TestCase):
 
 class UploadTimetableTests(TestPermissionMixin, TestCase):
 
-    def _get_response(self, user):
-        url = reverse('studioadmin:upload_timetable')
-        session = _create_session()
-        request = self.factory.get(url)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        return upload_timetable_view(request)
-
-    def _post_response(self, user, form_data):
-        url = reverse('studioadmin:upload_timetable')
-        session = _create_session()
-        request = self.factory.post(url, form_data)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        return upload_timetable_view(request)
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.url = reverse('studioadmin:upload_timetable')
+    
+    def setUp(self):
+        self.client.force_login(self.staff_user)
 
     def test_cannot_access_if_not_logged_in(self):
         """
         test that the page redirects if user is not logged in
         """
-        url = reverse('studioadmin:upload_timetable')
-        resp = self.client.get(url)
-        redirected_url = reverse('account_login') + "?next={}".format(url)
+        self.client.logout()
+        resp = self.client.get(self.url)
+        redirected_url = reverse('account_login') + "?next={}".format(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
@@ -538,7 +435,8 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
         """
         test that the page redirects if user is not a staff user
         """
-        resp = self._get_response(self.user)
+        self.client.force_login(self.user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
@@ -547,15 +445,15 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
         test that the page redirects if user is in the instructor group but is
         not a staff user
         """
-        resp = self._get_response(self.instructor_user)
-        self.assertEqual(resp.status_code, 302)
+        self.client.force_login(self.instructor_user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
     def test_can_access_as_staff_user(self):
         """
         test that the page can be accessed by a staff user
         """
-        resp = self._get_response(self.staff_user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 200)
 
     @patch('studioadmin.forms.timetable_forms.timezone')
@@ -573,7 +471,7 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
             'override_options_booking_open': "default",
             'override_options_payment_open': "default",
         }
-        self._post_response(self.staff_user, form_data)
+        self.client.post(self.url, form_data)
         self.assertEqual(Event.objects.count(), 5)
         event_names = [event.name for event in Event.objects.all()]
         session_names =  [session.name for session in Session.objects.all()]
@@ -594,7 +492,7 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
             'override_options_booking_open': "0",
             'override_options_payment_open': "0",
         }
-        self._post_response(self.staff_user, form_data)
+        self.client.post(self.url, form_data)
         self.assertEqual(Event.objects.filter(booking_open=False, payment_open=False, visible_on_site=False).count(), 5)
 
     @patch('studioadmin.forms.timetable_forms.timezone')
@@ -612,7 +510,7 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
             'override_options_booking_open': "default",
             'override_options_payment_open': "default",
         }
-        self._post_response(self.staff_user, form_data)
+        self.client.post(self.url, form_data)
         self.assertEqual(Event.objects.count(), 5)
 
         baker.make_recipe('booking.tue_session', _quantity=2)
@@ -620,7 +518,7 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
             {'sessions': [session.id for session in Session.objects.all()]}
         )
         self.assertEqual(Session.objects.count(), 7)
-        self._post_response(self.staff_user, form_data)
+        self.client.post(self.url, form_data)
         self.assertEqual(Event.objects.count(), 7)
 
     @patch('studioadmin.forms.timetable_forms.timezone')
@@ -656,10 +554,7 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
             'override_options_booking_open': "default",
             'override_options_payment_open': "default",
         }
-        self.client.login(username=self.staff_user.username, password='test')
-        resp = self.client.post(
-            reverse('studioadmin:upload_timetable'), data=form_data
-        )
+        resp = self.client.post(self.url, form_data)
         # no new classes created
         self.assertEqual(Event.objects.count(), 2)
 
@@ -680,8 +575,7 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
         session_dm = baker.make_recipe(
             'booking.tue_session', name='test1', location="Davidson's Mains"
         )
-        self.client.login(username=self.staff_user.username, password='test')
-        resp = self.client.get(reverse('studioadmin:upload_timetable'))
+        resp = self.client.get(self.url)
 
         # returns 3 location form with all locations, BP and DM
         self.assertEqual(
@@ -736,10 +630,7 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
             'override_options_payment_open': "default",
         }
 
-        self.client.login(username=self.staff_user.username, password='test')
-        resp = self.client.post(
-            reverse('studioadmin:upload_timetable'), data=form_data
-        )
+        resp = self.client.post(self.url, form_data)
 
         # returns one location form with all locations
         self.assertEqual(
@@ -778,8 +669,7 @@ class UploadTimetableTests(TestPermissionMixin, TestCase):
             'override_options_payment_open': "default",
         }
 
-        self.client.login(username=self.staff_user.username, password="test")
-        self.client.post(reverse('studioadmin:upload_timetable'), data=form_data)
+        self.client.post(self.url, form_data)
         assert Event.objects.count() == 3
         mon = Event.objects.get(name="Mon")
         assert list(mon.categories.all()) == [cat1]

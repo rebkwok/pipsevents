@@ -7,9 +7,7 @@ from django.urls import reverse
 from django.test import TestCase, override_settings
 
 from booking.models import Booking, WaitingListUser
-from common.tests.helpers import _create_session, TestSetupMixin
-from studioadmin.tests.test_views import TestPermissionMixin
-from studioadmin.views import user_bookings_view_old
+from common.tests.helpers import TestSetupMixin
 
 
 class WaitingListTests(TestSetupMixin, TestCase):

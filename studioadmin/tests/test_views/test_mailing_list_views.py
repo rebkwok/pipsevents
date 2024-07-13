@@ -1,6 +1,6 @@
-from model_bakery import baker
+from unittest.mock import Mock, patch
 
-import pytest
+from model_bakery import baker
 
 from django.contrib.auth.models import Group, User
 from django.urls import reverse
@@ -18,6 +18,15 @@ class MailingListViewTests(TestPermissionMixin, TestCase):
         super(MailingListViewTests, cls).setUpTestData()
         cls.subscribed = baker.make(Group, name='subscribed')
 
+    def setUp(self):
+        mockresponse = Mock()
+        mockresponse.status_code = 200
+        self.patcher = patch('requests.request', return_value = mockresponse)
+        self.mock_request = self.patcher.start()
+
+    def tearDown(self):
+        self.patcher.stop()
+        
     def test_staff_login_required(self):
         url = reverse('studioadmin:mailing_list')
         resp = self.client.get(url)

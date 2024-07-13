@@ -11,23 +11,17 @@ from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.test import TestCase
-from django.contrib.messages.storage.fallback import FallbackStorage
 
 from accounts.models import DisclaimerContent, NonRegisteredDisclaimer, OnlineDisclaimer
-from common.tests.helpers import _create_session, format_content
+from common.tests.helpers import format_content
 from studioadmin.utils import int_str, chaffify
-from studioadmin.views import (
-    user_disclaimer,
-    DisclaimerDeleteView,
-    DisclaimerUpdateView
-)
 from studioadmin.tests.test_views.helpers import TestPermissionMixin
 
 
 class UserDisclamersTests(TestPermissionMixin, TestCase):
 
     def setUp(self):
-        super(UserDisclamersTests, self).setUp()
+        super().setUp()
         self.user.set_password('password')
         self.user.save()
         self.disclaimer = baker.make(
@@ -56,38 +50,15 @@ class UserDisclamersTests(TestPermissionMixin, TestCase):
             'age_over_18_confirmed': True,
             'password': 'password'
         }
+        self.client.force_login(self.staff_user)
 
     def _get_user_disclaimer(self, user, encoded_user_id):
+        self.client.force_login(user)
         url = reverse('studioadmin:user_disclaimer', args=[encoded_user_id])
-        session = _create_session()
-        request = self.factory.get(url)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        return user_disclaimer(request, encoded_user_id=encoded_user_id)
-
-    def _get_response(self, url, view, user, encoded_user_id):
-        session = _create_session()
-        request = self.factory.get(url)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        view = view.as_view()
-        return view(request, encoded_user_id=encoded_user_id)
-
-    def _post_response(self, url, view, user, encoded_user_id, form_data):
-        session = _create_session()
-        request = self.factory.post(url, form_data)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        view = view.as_view()
-        return view(request, encoded_user_id=encoded_user_id)
+        return self.client.get(url)
 
     def test_only_staff_or_instructor_can_access_user_disclaimer(self):
+        self.client.logout()
         # no logged in user
         encoded_user_id = int_str(chaffify(self.user.id))
         resp = self.client.get(
@@ -122,6 +93,7 @@ class UserDisclamersTests(TestPermissionMixin, TestCase):
 
     def test_only_staff_or_instructor_can_access_update_user_disclaimer(self):
         # no logged in user
+        self.client.logout()
         encoded_user_id = int_str(chaffify(self.user.id))
         url = reverse(
             'studioadmin:update_user_disclaimer', args=[encoded_user_id]
@@ -148,6 +120,7 @@ class UserDisclamersTests(TestPermissionMixin, TestCase):
 
     def test_only_staff_can_access_delete_user_disclaimer(self):
         # no logged in user
+        self.client.logout()
         encoded_user_id = int_str(chaffify(self.user.id))
         url = reverse(
             'studioadmin:delete_user_disclaimer', args=[encoded_user_id]
@@ -203,10 +176,7 @@ class UserDisclamersTests(TestPermissionMixin, TestCase):
         update_url = reverse(
             'studioadmin:update_user_disclaimer', args=[encoded_user_id]
         )
-        resp = self._post_response(
-            update_url, DisclaimerUpdateView, self.staff_user, encoded_user_id,
-            self.post_data
-        )
+        resp = self.client.post(update_url, self.post_data)
         self.disclaimer.refresh_from_db()
         self.assertEqual(self.disclaimer.address, '1 test st')
 
@@ -231,10 +201,7 @@ class UserDisclamersTests(TestPermissionMixin, TestCase):
         update_url = reverse(
             'studioadmin:update_user_disclaimer', args=[encoded_user_id]
         )
-        resp = self._post_response(
-            update_url, DisclaimerUpdateView, self.staff_user, encoded_user_id,
-            self.post_data
-        )
+        resp = self.client.post(update_url, self.post_data)
         self.disclaimer.refresh_from_db()
         self.assertIsNotNone(self.disclaimer.date_updated)
 
@@ -244,10 +211,7 @@ class UserDisclamersTests(TestPermissionMixin, TestCase):
         update_url = reverse(
             'studioadmin:update_user_disclaimer', args=[encoded_user_id]
         )
-        resp = self._post_response(
-            update_url, DisclaimerUpdateView, self.staff_user, encoded_user_id,
-            self.post_data
-        )
+        resp = self.client.post(update_url, self.post_data)
         self.disclaimer.refresh_from_db()
         self.assertEqual(self.disclaimer.home_phone, '123445')
 
@@ -256,9 +220,7 @@ class UserDisclamersTests(TestPermissionMixin, TestCase):
         delete_url = reverse(
             'studioadmin:delete_user_disclaimer', args=[encoded_user_id]
         )
-        resp = self._get_response(
-            delete_url, DisclaimerDeleteView, self.staff_user, encoded_user_id,
-        )
+        resp = self.client.get(delete_url)
         self.assertEqual(resp.context_data['user'], self.user)
 
     def test_delete_disclaimer(self):
@@ -267,10 +229,7 @@ class UserDisclamersTests(TestPermissionMixin, TestCase):
         delete_url = reverse(
             'studioadmin:delete_user_disclaimer', args=[encoded_user_id]
         )
-        resp = self._post_response(
-            delete_url, DisclaimerDeleteView, self.staff_user, encoded_user_id,
-            self.post_data
-        )
+        resp = self.client.post(delete_url, self.post_data)
         self.assertEqual(OnlineDisclaimer.objects.count(), 0)
 
     def test_no_changes_made(self):

@@ -18,6 +18,7 @@ class VoucherListViewTests(TestPermissionMixin, TestCase):
 
     @classmethod
     def setUpTestData(cls):
+        super().setUpTestData()
         cls.pc_event_type = baker.make_recipe('booking.event_type_PC')
         cls.url = reverse('studioadmin:vouchers')
 
@@ -115,6 +116,7 @@ class GiftVoucherListViewTests(TestPermissionMixin, TestCase):
 
     @classmethod
     def setUpTestData(cls):
+        super().setUpTestData()
         cls.pc_event_type = baker.make_recipe('booking.event_type_PC')
         cls.block_type = baker.make_recipe('booking.blocktype')
         cls.url = reverse('studioadmin:gift_vouchers')
@@ -155,6 +157,7 @@ class VoucherCreateViewTests(TestPermissionMixin, TestCase):
 
     @classmethod
     def setUpTestData(cls):
+        super().setUpTestData()
         cls.pc_event_type = baker.make_recipe('booking.event_type_PC')
         cls.url = reverse('studioadmin:add_voucher')
 
@@ -281,6 +284,7 @@ class VoucherUpdateViewTests(TestPermissionMixin, TestCase):
 
     @classmethod
     def setUpTestData(cls):
+        super().setUpTestData()
         cls.pc_event_type = baker.make_recipe('booking.event_type_PC')
         cls.block_type = baker.make_recipe('booking.blocktype')
 
@@ -438,6 +442,7 @@ class BlockVoucherListViewTests(TestPermissionMixin, TestCase):
 
     @classmethod
     def setUpTestData(cls):
+        super().setUpTestData()
         cls.block_type = baker.make_recipe('booking.blocktype')
         cls.url = reverse('studioadmin:block_vouchers')
 
@@ -536,7 +541,7 @@ class VoucherUsesViewTests(TestPermissionMixin, TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        super(VoucherUsesViewTests, cls).setUpTestData()
+        super().setUpTestData()
         cls.voucher = baker.make(EventVoucher)
         cls.block_voucher = baker.make(BlockVoucher)
         cls.voucher_url = reverse(

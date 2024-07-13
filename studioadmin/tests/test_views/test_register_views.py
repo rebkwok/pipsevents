@@ -7,38 +7,36 @@ from unittest.mock import patch
 from model_bakery import baker
 
 from django.contrib.auth.models import User
-from django.contrib.messages.storage.fallback import FallbackStorage
 from django.core import mail
 from django.urls import reverse
 from django.utils import timezone
-from django.test import TestCase
+from django.test import TestCase, RequestFactory
 
 from booking.models import Event, Block, BlockType, WaitingListUser
-from common.tests.helpers import _create_session, format_content
-from studioadmin.views.register import EventRegisterListView, process_event_booking_updates, register_print_day
+from common.tests.helpers import format_content
+from studioadmin.views.register import process_event_booking_updates
 from studioadmin.forms.register_forms import AddRegisterBookingForm
 from studioadmin.tests.test_views.helpers import TestPermissionMixin
 
 
 class EventRegisterListViewTests(TestPermissionMixin, TestCase):
 
-    def _get_response(self, user, ev_type, url=None):
-        if not url:
-            url = reverse('studioadmin:event_register_list')
-        session = _create_session()
-        request = self.factory.get(url)
-        request.session = session
-        request.user = user
-        view = EventRegisterListView.as_view()
-        return view(request, ev_type=ev_type)
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.url = reverse('studioadmin:event_register_list')
+        cls.lessons_url = reverse('studioadmin:class_register_list')
+    
+    def setUp(self):
+        self.client.force_login(self.staff_user)
 
     def test_cannot_access_if_not_logged_in(self):
         """
         test that the page redirects if user is not logged in
         """
-        url = reverse('studioadmin:event_register_list')
-        resp = self.client.get(url)
-        redirected_url = reverse('account_login') + "?next={}".format(url)
+        self.client.logout()
+        resp = self.client.get(self.url)
+        redirected_url = reverse('account_login') + "?next={}".format(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
@@ -46,11 +44,12 @@ class EventRegisterListViewTests(TestPermissionMixin, TestCase):
         """
         test that the page redirects if user is not a staff user
         """
-        resp = self._get_response(self.user, 'events')
+        self.client.force_login(self.user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
-        resp = self._get_response(self.user, 'lessons')
+        resp = self.client.get(self.lessons_url)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
@@ -58,7 +57,7 @@ class EventRegisterListViewTests(TestPermissionMixin, TestCase):
         """
         test that the page can be accessed by a staff user
         """
-        resp = self._get_response(self.staff_user, 'events')
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 200)
 
     def test_can_access_class_registers_if_instructor(self):
@@ -66,14 +65,15 @@ class EventRegisterListViewTests(TestPermissionMixin, TestCase):
         test that the page can be accessed by a non staff user if in the
         instructors group for both classes and events
         """
-        resp = self._get_response(self.instructor_user, 'events')
+        self.client.force_login(self.instructor_user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 200)
 
-        resp = self._get_response(self.instructor_user, 'lessons')
+        resp = self.client.get(self.lessons_url)
         self.assertEqual(resp.status_code, 200)
 
     def test_event_context(self):
-        resp = self._get_response(self.staff_user, 'events')
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.context_data['type'], 'events')
         self.assertEqual(
@@ -82,8 +82,7 @@ class EventRegisterListViewTests(TestPermissionMixin, TestCase):
         self.assertIn("Events", resp.rendered_content)
 
     def test_lesson_context(self):
-        url = reverse('studioadmin:class_register_list')
-        resp = self._get_response(self.staff_user, 'lessons', url=url)
+        resp = self.client.get(self.lessons_url)
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.context_data['type'], 'lessons')
         self.assertEqual(
@@ -94,27 +93,26 @@ class EventRegisterListViewTests(TestPermissionMixin, TestCase):
     def test_event_register_list_shows_future_events_only(self):
         baker.make_recipe('booking.future_EV', _quantity=4)
         baker.make_recipe('booking.past_event', _quantity=4)
-        resp = self._get_response(self.staff_user, 'events')
+        resp = self.client.get(self.url)
         self.assertEqual(len(resp.context_data['events']), 4)
 
     def test_event_register_list_shows_todays_events(self):
         baker.make_recipe('booking.future_EV', _quantity=4)
         baker.make_recipe('booking.past_event', _quantity=4)
         past_today = baker.make_recipe('booking.past_event', date=timezone.now().replace(hour=0, minute=1))
-        resp = self._get_response(self.staff_user, 'events')
+        resp = self.client.get(self.url)
         self.assertEqual(len(resp.context_data['events']), 5)
 
     def test_event_register_list_shows_events_only(self):
         baker.make_recipe('booking.future_EV', _quantity=4)
         baker.make_recipe('booking.future_PC', _quantity=5)
-        resp = self._get_response(self.staff_user, 'events')
+        resp = self.client.get(self.url)
         self.assertEqual(len(resp.context_data['events']), 4)
 
     def test_class_register_list_excludes_events(self):
         baker.make_recipe('booking.future_EV', _quantity=4)
         baker.make_recipe('booking.future_PC', _quantity=5)
-        url = reverse('studioadmin:class_register_list')
-        resp = self._get_response(self.staff_user, 'lessons', url=url)
+        resp = self.client.get(self.lessons_url)
         self.assertEqual(len(resp.context_data['events']), 5)
 
     def test_class_register_list_shows_room_hire_with_classes(self):
@@ -122,8 +120,7 @@ class EventRegisterListViewTests(TestPermissionMixin, TestCase):
         baker.make_recipe('booking.future_PC', _quantity=5)
         baker.make_recipe('booking.future_RH', _quantity=5)
 
-        url = reverse('studioadmin:class_register_list')
-        resp = self._get_response(self.staff_user, 'lessons', url=url)
+        resp = self.client.get(self.lessons_url)
         self.assertEqual(len(resp.context_data['events']), 10)
 
     def test_event_register_list_shows_correct_booking_count(self):
@@ -131,7 +128,7 @@ class EventRegisterListViewTests(TestPermissionMixin, TestCase):
         baker.make_recipe('booking.booking', event=event, _quantity=2)
         baker.make_recipe('booking.booking', event=event, status='CANCELLED')
         baker.make_recipe('booking.booking', event=event, no_show=True)
-        resp = self._get_response(self.staff_user, 'events')
+        resp = self.client.get(self.url)
         self.assertIn(
             '{} {} 2'.format(
                 event.date.astimezone(
@@ -385,7 +382,8 @@ class RegisterAjaxAddBookingViewsTests(TestPermissionMixin, TestCase):
         baker.make_recipe('booking.booking', user=self.user, event=self.pc, status='OPEN')
 
         # try to process the form
-        request = self.factory.get(self.pc_url)
+        factory = RequestFactory()
+        request = factory.get(self.pc_url)
         process_event_booking_updates(form, self.pc, request)
 
         mock_messages.assert_called_once_with(request, 'Open booking for this user already exists')
@@ -826,33 +824,21 @@ class RegisterAjaxDisplayUpdateTests(TestPermissionMixin, TestCase):
 
 class RegisterByDateTests(TestPermissionMixin, TestCase):
 
-    def _get_response(self, user):
-        url = reverse('studioadmin:register-day')
-        session = _create_session()
-        request = self.factory.get(url)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        return register_print_day(request)
-
-    def _post_response(self, user,form_data):
-        url = reverse('studioadmin:register-day')
-        session = _create_session()
-        request = self.factory.post(url, form_data)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        return register_print_day(request)
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.url = reverse('studioadmin:register-day')
+    
+    def setUp(self):
+        self.client.force_login(self.staff_user)
 
     def test_cannot_access_if_not_logged_in(self):
         """
         test that the page redirects if user is not logged in
         """
-        url = reverse('studioadmin:register-day')
-        resp = self.client.get(url)
-        redirected_url = reverse('account_login') + "?next={}".format(url)
+        self.client.logout()
+        resp = self.client.get(self.url)
+        redirected_url = reverse('account_login') + "?next={}".format(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
@@ -860,7 +846,8 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
         """
         test that the page redirects if user is not a staff user
         """
-        resp = self._get_response(self.user)
+        self.client.force_login(self.user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
@@ -868,7 +855,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
         """
         test that the page can be accessed by a staff user
         """
-        resp = self._get_response(self.staff_user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 200)
 
     @patch('studioadmin.forms.register_forms.date')
@@ -876,6 +863,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
     def test_events_and_classes_in_form_for_instructors(
             self, mock_tz, mock_date
     ):
+        self.client.force_login(self.instructor_user)
         mock_tz.now.return_value = datetime(
             year=2015, month=9, day=7, hour=10, tzinfo=dt_timezone.utc
         )
@@ -896,7 +884,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
             ),
             _quantity=3
         )
-        resp = self._get_response(self.instructor_user)
+        resp = self.client.get(self.url)
 
         form = resp.context_data['form']
         self.assertEqual(len(form.events), 6)
@@ -925,14 +913,13 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
             ),
             _quantity=3
         )
-
-        resp = self._post_response(
-            self.staff_user, {
-                'register_date': 'Mon 07 Sep 2015',
-                'exclude_ext_instructor': True,
-                'register_format': 'full',
-                'show': 'show'}
-        )
+        data = {
+            'register_date': 'Mon 07 Sep 2015',
+            'exclude_ext_instructor': True,
+            'register_format': 'full',
+            'show': 'show'
+        }
+        resp = self.client.post(self.url, data)
         self.assertEqual(Event.objects.count(), 6)
 
         form = resp.context_data['form']
@@ -945,6 +932,7 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
         )
 
     def test_show_events_by_selected_date_for_instructor(self):
+        self.client.force_login(self.instructor_user)
         events = baker.make_recipe(
             'booking.future_EV',
             date=datetime(
@@ -978,13 +966,14 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
             _quantity=3
         )
 
-        resp = self._post_response(
-            self.instructor_user, {
+        data = {
                 'register_date': 'Mon 07 Sep 2015',
                 'exclude_ext_instructor': True,
                 'register_format': 'full',
-                'show': 'show'}
-        )
+                'show': 'show'
+        }
+        resp = self.client.post(self.url, data)
+        
         self.assertEqual(Event.objects.count(), 12)
 
         form = resp.context_data['form']
@@ -1007,18 +996,13 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
             _quantity=3
         )
 
-        url = reverse('studioadmin:register-day')
-        self.client.login(username=self.staff_user.username, password='test')
-        resp = self.client.post(
-            url,
-            {
-                'register_date': 'Mon 06 Sep 2015',
-                'exclude_ext_instructor': True,
-                'register_format': 'full',
-                'show': 'show'
-            },
-            follow=True
-        )
+        data = {
+            'register_date': 'Mon 06 Sep 2015',
+            'exclude_ext_instructor': True,
+            'register_format': 'full',
+            'show': 'show'
+        }
+        resp = self.client.post(self.url, data, follow=True)
         self.assertEqual(Event.objects.count(), 3)
 
         content = format_content(resp.rendered_content)
@@ -1038,17 +1022,13 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
         )
 
         url = reverse('studioadmin:register-day')
-        self.client.login(username=self.staff_user.username, password='test')
-        resp = self.client.post(
-            url,
-            {
-                'register_date': 'Mon 07 Sep 2015',
-                'exclude_ext_instructor': True,
-                'register_format': 'full',
-                'print': 'print'
-            },
-            follow=True
-        )
+        data = {
+            'register_date': 'Mon 07 Sep 2015',
+            'exclude_ext_instructor': True,
+            'register_format': 'full',
+            'print': 'print'
+        }
+        resp = self.client.post(self.url, data, follow=True)
         self.assertEqual(Event.objects.count(), 3)
 
         content = format_content(resp.rendered_content)
@@ -1067,14 +1047,14 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
             _quantity=3
         )
 
-        resp = self._post_response(
-            self.staff_user, {
-                'register_date': 'Mon 07 Sep 2015',
-                'exclude_ext_instructor': True,
-                'register_format': 'full',
-                'print': 'print',
-                'select_events': [events[0].id, events[1].id]}
-        )
+        data = {
+            'register_date': 'Mon 07 Sep 2015',
+            'exclude_ext_instructor': True,
+            'register_format': 'full',
+            'print': 'print',
+            'select_events': [events[0].id, events[1].id]
+        }
+        resp = self.client.post(self.url, data)
         self.assertEqual(len(resp.context_data['events']), 2)
 
         for event in resp.context_data['events']:
@@ -1096,15 +1076,14 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
             _quantity=3
         )
 
-        resp = self._post_response(
-            self.staff_user, {
+        data = {
                 'register_date': 'Mon 07 Sep 2015',
                 'exclude_ext_instructor': True,
                 'register_format': 'full',
                 'print': 'print',
                 'select_events': [event.id for event in events]
-            }
-        )
+        }
+        resp = self.client.post(self.url, data)
         self.assertEqual(len(resp.context_data['events']), 3)
 
         for event in resp.context_data['events']:
@@ -1144,15 +1123,14 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
             _quantity=2
         )
 
-        resp = self._post_response(
-            self.staff_user, {
-                'register_date': 'Mon 07 Sep 2015',
-                'exclude_ext_instructor': True,
-                'register_format': 'full',
-                'print': 'print',
-                'select_events': [event1.id, event2.id]
-            }
-        )
+        data = {
+            'register_date': 'Mon 07 Sep 2015',
+            'exclude_ext_instructor': True,
+            'register_format': 'full',
+            'print': 'print',
+            'select_events': [event1.id, event2.id]
+        }
+        resp = self.client.post(self.url, data)
 
         self.assertEqual(len(resp.context_data['events']), 2)
 
@@ -1184,15 +1162,14 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
         )
 
         # event has max_participants; extra lines are max - open bookings
-        resp = self._post_response(
-            self.staff_user, {
-                'register_date': 'Mon 07 Sep 2015',
-                'exclude_ext_instructor': True,
-                'register_format': 'full',
-                'print': 'print',
-                'select_events': [event1.id]
-            }
-        )
+        data = {
+            'register_date': 'Mon 07 Sep 2015',
+            'exclude_ext_instructor': True,
+            'register_format': 'full',
+            'print': 'print',
+            'select_events': [event1.id]
+        }
+        resp = self.client.post(self.url, data)
 
         self.assertEqual(len(resp.context_data['events']), 1)
         self.assertEqual(resp.context_data['events'][0]['extra_lines'], 8)
@@ -1201,30 +1178,28 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
         event1.save()
         # event has no max_participants and <15 bookings; extra lines are
         # 15 - open bookings
-        resp = self._post_response(
-            self.staff_user, {
-                'register_date': 'Mon 07 Sep 2015',
-                'exclude_ext_instructor': True,
-                'register_format': 'full',
-                'print': 'print',
-                'select_events': [event1.id]
-            }
-        )
+        data = {
+            'register_date': 'Mon 07 Sep 2015',
+            'exclude_ext_instructor': True,
+            'register_format': 'full',
+            'print': 'print',
+            'select_events': [event1.id]
+        }
+        resp = self.client.post(self.url, data)
 
         self.assertEqual(len(resp.context_data['events']), 1)
         self.assertEqual(resp.context_data['events'][0]['extra_lines'], 13)
 
         baker.make_recipe('booking.booking', event=event1,  _quantity=14)
         # event has no max_participants and >15 bookings; extra lines = 2
-        resp = self._post_response(
-            self.staff_user, {
-                'register_date': 'Mon 07 Sep 2015',
-                'exclude_ext_instructor': True,
-                'register_format': 'full',
-                'print': 'print',
-                'select_events': [event1.id]
-            }
-        )
+        data = {
+            'register_date': 'Mon 07 Sep 2015',
+            'exclude_ext_instructor': True,
+            'register_format': 'full',
+            'print': 'print',
+            'select_events': [event1.id]
+        }
+        resp = self.client.post(self.url, data)
 
         self.assertEqual(len(resp.context_data['events']), 1)
         self.assertEqual(resp.context_data['events'][0]['extra_lines'], 2)
@@ -1239,15 +1214,14 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
             ),
         )
 
-        resp = self._post_response(
-            self.staff_user, {
-                'register_date': 'Mon 07 Sep 2015',
-                'exclude_ext_instructor': True,
-                'register_format': 'full',
-                'print': 'print',
-                'select_events': [event.id]
-            }
-        )
+        data = {
+            'register_date': 'Mon 07 Sep 2015',
+            'exclude_ext_instructor': True,
+            'register_format': 'full',
+            'print': 'print',
+            'select_events': [event.id]
+        }
+        resp = self.client.post(self.url, data)
 
         self.assertEqual(len(resp.context_data['events']), 1)
         # check correct headings are present
@@ -1257,15 +1231,14 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
         self.assertIn('>Deposit Paid<', resp.rendered_content)
         self.assertIn('>Fully Paid<', resp.rendered_content)
 
-        resp = self._post_response(
-            self.staff_user, {
-                'register_date': 'Mon 07 Sep 2015',
-                'exclude_ext_instructor': True,
-                'register_format': 'namesonly',
-                'print': 'print',
-                'select_events': [event.id]
-            }
-        )
+        data = {
+            'register_date': 'Mon 07 Sep 2015',
+            'exclude_ext_instructor': True,
+            'register_format': 'namesonly',
+            'print': 'print',
+            'select_events': [event.id]
+        }
+        resp = self.client.post(self.url, data)
 
         self.assertEqual(len(resp.context_data['events']), 1)
         # check correct headings are present
@@ -1290,49 +1263,55 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
             event_type=event.event_type
         )
 
-        resp = self._post_response(
-            self.staff_user, {
-                'register_date': 'Mon 07 Sep 2015',
-                'exclude_ext_instructor': True,
-                'register_format': 'full',
-                'print': 'print',
-                'select_events': [event.id]
-            }
-        )
+        data = {
+            'register_date': 'Mon 07 Sep 2015',
+            'exclude_ext_instructor': True,
+            'register_format': 'full',
+            'print': 'print',
+            'select_events': [event.id]
+        }
+        resp = self.client.post(self.url, data)
 
         self.assertEqual(len(resp.context_data['events']), 1)
         # check correct headings are present
-        self.assertIn('>Attended<', resp.rendered_content)
-        self.assertIn('>Status<', resp.rendered_content)
-        self.assertIn('>User<', resp.rendered_content)
-        self.assertIn('>Deposit Paid<', resp.rendered_content)
-        self.assertIn('>Fully Paid<', resp.rendered_content)
-        self.assertIn('>Booked with<br/>block<', resp.rendered_content)
-        self.assertIn('>User\'s block</br>expiry date<', resp.rendered_content)
-        self.assertIn('>Block size<', resp.rendered_content)
-        self.assertIn('>Block bookings</br>used<', resp.rendered_content)
-
-        resp = self._post_response(
-            self.staff_user, {
-                'register_date': 'Mon 07 Sep 2015',
-                'exclude_ext_instructor': True,
-                'register_format': 'namesonly',
-                'print': 'print',
-                'select_events': [event.id]
-            }
-        )
+        headings = [
+            '>Attended<', 
+            '>Status<',
+            '>Disclaimer<',
+            '>User<', 
+            '>Deposit Paid<',
+            '>Fully Paid<', 
+            '>Booked with<br/>block<',
+            '>User\'s block</br>expiry date<', 
+            '>Block size<',
+            '>Block bookings</br>used<'
+        ]
+        for heading in headings:
+            assert heading in resp.rendered_content
+        data = {
+            'register_date': 'Mon 07 Sep 2015',
+            'exclude_ext_instructor': True,
+            'register_format': 'namesonly',
+            'print': 'print',
+            'select_events': [event.id]
+        }
+        resp = self.client.post(self.url, data, follow=True)
 
         self.assertEqual(len(resp.context_data['events']), 1)
         # check correct headings are present
-        self.assertIn('>Attended<', resp.rendered_content)
-        self.assertIn('>User<', resp.rendered_content)
-        self.assertNotIn('>Status<', resp.rendered_content)
-        self.assertNotIn('>Deposit Paid<', resp.rendered_content)
-        self.assertNotIn('>Fully Paid<', resp.rendered_content)
-        self.assertNotIn('>Book with<br/>available block<', resp.rendered_content)
-        self.assertNotIn('>User\'s block</br>expiry date<', resp.rendered_content)
-        self.assertNotIn('>Block size<', resp.rendered_content)
-        self.assertNotIn('>Bookings used<', resp.rendered_content)
+        for heading in ['>Attended<', '>User<', '>Disclaimer<']:
+            assert heading in resp.rendered_content
+
+        for heading in [
+            '>Status<',
+            '>Deposit Paid<',
+            '>Fully Paid<', 
+            '>Booked with<br/>block<',
+            '>User\'s block</br>expiry date<', 
+            '>Block size<',
+            '>Block bookings</br>used<'
+        ]:
+            assert heading not in resp.rendered_content    
 
     def test_print_with_invalid_date_format(self):
         baker.make_recipe(
@@ -1342,18 +1321,13 @@ class RegisterByDateTests(TestPermissionMixin, TestCase):
                 hour=18, minute=0, tzinfo=dt_timezone.utc
             ),
         )
-        url = reverse('studioadmin:register-day')
-        self.client.login(username=self.staff_user.username, password='test')
-        resp = self.client.post(
-            url,
-            {
-                'register_date': 'Mon 33 Sep 2015',
-                'exclude_ext_instructor': True,
-                'register_format': 'full',
-                'print': 'print'
-            },
-            follow=True
-        )
+        data = {
+            'register_date': 'Mon 33 Sep 2015',
+            'exclude_ext_instructor': True,
+            'register_format': 'full',
+            'print': 'print'
+        }
+        resp = self.client.post(self.url, data, follow=True)
 
         content = format_content(resp.rendered_content)
         self.assertIn(

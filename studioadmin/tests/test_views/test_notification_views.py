@@ -1,4 +1,4 @@
-from django.contrib.auth.models import Group, User, Permission
+from django.contrib.auth.models import Group, User
 from django.urls import reverse
 
 import pytest

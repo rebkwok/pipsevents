@@ -5,31 +5,26 @@ from model_bakery import baker
 
 from django.urls import reverse
 from django.test import TestCase
-from django.contrib.messages.storage.fallback import FallbackStorage
 
 from booking.models import Block
-from common.tests.helpers import _create_session
-from studioadmin.views import BlockListView
 from studioadmin.tests.test_views.helpers import TestPermissionMixin
 
 
 class BlockListViewTests(TestPermissionMixin, TestCase):
 
-    def _get_response(self, user, form_data={}):
-        url = reverse('studioadmin:blocks')
-        session = _create_session()
-        request = self.factory.get(url, form_data)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        view = BlockListView.as_view()
-        return view(request)
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.url = reverse('studioadmin:blocks')
+
+    def setUp(self):
+        self.client.force_login(self.staff_user)
 
     def test_cannot_access_if_not_logged_in(self):
         """
         test that the page redirects if user is not logged in
         """
+        self.client.logout()
         url = reverse('studioadmin:blocks')
         resp = self.client.get(url)
         redirected_url = reverse('account_login') + "?next={}".format(url)
@@ -40,7 +35,9 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
         """
         test that the page redirects if user is not a staff user
         """
-        resp = self._get_response(self.user)
+        self.client.logout()
+        self.client.force_login(self.user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
@@ -49,7 +46,9 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
         test that the page redirects if user is in the instructor group but is
         not a staff user
         """
-        resp = self._get_response(self.instructor_user)
+        self.client.logout()
+        self.client.force_login(self.instructor_user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
@@ -57,7 +56,7 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
         """
         test that the page can be accessed by a staff user
         """
-        resp = self._get_response(self.staff_user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 200)
 
     def test_current_blocks_returned_on_get(self):
@@ -73,7 +72,7 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
         )
         baker.make_recipe('booking.booking', block=full_block)
 
-        resp = self._get_response(self.staff_user)
+        resp = self.client.get(self.url)
         self.assertEqual(
             list(resp.context_data['blocks']),
             list(Block.objects.filter(
@@ -123,23 +122,17 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
             baker.make_recipe('booking.booking', block=block)
 
         # all blocks
-        resp = self._get_response(
-            self.staff_user, form_data={'block_status': 'all'}
-        )
+        resp = self.client.get(self.url, {'block_status': 'all'})
         self.assertCountEqual(
             list(resp.context_data['blocks']),
             list(Block.objects.all().order_by('user__first_name'))
         )
         # unknown status returns all
-        resp = self._get_response(
-            self.staff_user, form_data={'block_status': 'foo'}
-        )
+        resp = self.client.get(self.url, {'block_status': 'foo'})
         assert len(resp.context_data['blocks']) == Block.objects.count()
 
         # active blocks are paid and not expired
-        resp = self._get_response(
-            self.staff_user, form_data={'block_status': 'active'}
-        )
+        resp = self.client.get(self.url, {'block_status': 'active'})
         active = active_blocks + transferred_blocks1 + transferred_blocks2
         self.assertCountEqual(
             list(resp.context_data['blocks']),
@@ -152,9 +145,7 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
 
         # unpaid blocks are unpaid but not expired; should not show any
         # from unpaid_expired_blocks
-        resp = self._get_response(
-            self.staff_user, form_data={'block_status': 'unpaid'}
-        )
+        resp = self.client.get(self.url, {'block_status': 'unpaid'})
         self.assertCountEqual(
             list(resp.context_data['blocks']),
             list(
@@ -165,9 +156,7 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
         )
 
         #current blocks are paid or unpaid, not expired, not full
-        resp = self._get_response(
-            self.staff_user, form_data={'block_status': 'current'}
-        )
+        resp = self.client.get(self.url, {'block_status': 'current'})
         self.assertCountEqual(
             list(resp.context_data['blocks']),
             list(Block.objects.filter(
@@ -177,9 +166,7 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
         )
 
         # expired blocks are past expiry date or full
-        resp = self._get_response(
-            self.staff_user, form_data={'block_status': 'expired'}
-        )
+        resp = self.client.get(self.url, {'block_status': 'expired'})
         expired = expired_blocks + unpaid_expired_blocks + full_blocks
         self.assertCountEqual(
             list(resp.context_data['blocks']),
@@ -191,9 +178,7 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
         )
 
         # transferred blocks
-        resp = self._get_response(
-            self.staff_user, form_data={'block_status': 'transfers'}
-        )
+        resp = self.client.get(self.url, {'block_status': 'transfers'})
         transfers = transferred_blocks1 + transferred_blocks2
         self.assertCountEqual(
             list(resp.context_data['blocks']),
@@ -211,14 +196,10 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
             block_type__size=1, block_type__identifier='transferred',
             transferred_booking_id='182893429'
         )
-        resp = self._get_response(
-            self.staff_user, form_data={'block_status': 'transfers'}
-        )
+        resp = self.client.get(self.url, {'block_status': 'transfers'})
         self.assertIn('(182893429)', resp.rendered_content)
 
-        resp = self._get_response(
-            self.staff_user, form_data={'block_status': 'all'}
-        )
+        resp = self.client.get(self.url, {'block_status': 'all'})
         self.assertNotIn('(182893429)', resp.rendered_content)
 
     def test_transferred_from_display_with_valid_booking(self):
@@ -230,9 +211,7 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
             block_type__size=1, block_type__identifier='transferred',
             transferred_booking_id=booking.id
         )
-        resp = self._get_response(
-            self.staff_user, form_data={'block_status': 'transfers'}
-        )
+        resp = self.client.get(self.url, {'block_status': 'transfers'})
         self.assertIn(
             '{} {} ({})'.format(
                 booking.event.name, booking.event.date.strftime('%d%b%y'),
@@ -241,9 +220,7 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
             resp.rendered_content
         )
 
-        resp = self._get_response(
-            self.staff_user, form_data={'block_status': 'all'}
-        )
+        resp = self.client.get(self.url, {'block_status': 'all'})
         self.assertNotIn(
             '{} {} ({})'.format(
                 booking.event.name, booking.event.date.strftime('%d%b%y'),
@@ -257,11 +234,11 @@ class BlockListViewTests(TestPermissionMixin, TestCase):
             'booking.block', paid=True,
             block_type__size=1, block_type__identifier='transferred',
         )
-        resp = self._get_response(self.staff_user)
+        resp = self.client.get(self.url)
         self.assertIn('(transfer)', resp.rendered_content)
 
         baker.make_recipe(
             'booking.block', paid=True, block_type__identifier='other id'
         )
-        resp = self._get_response(self.staff_user)
+        resp = self.client.get(self.url)
         self.assertIn('(other id)', resp.rendered_content)
