@@ -306,16 +306,11 @@ class SignedDataPrivacyCreateView(LoginRequiredMixin, FormView):
 
     def form_valid(self, form):        
         user = self.request.user
-        
-        try:
-            SignedDataPrivacy.objects.create(
-                user=user, version=form.data_privacy_policy.version
-            )
-        except IntegrityError:
-            cache.set(
-                active_data_privacy_cache_key(self.user), True, timeout=600
-            )
-            return HttpResponseRedirect(self.get_success_url(form))
+        next_url = self.request.POST.get("next_url")
+
+        SignedDataPrivacy.objects.get_or_create(
+            user=user, version=form.data_privacy_policy.version
+        )
 
         mailing_list = form.cleaned_data.get('mailing_list') == 'yes'
 
@@ -353,11 +348,11 @@ class SignedDataPrivacyCreateView(LoginRequiredMixin, FormView):
                     user.username
                 )
             )
-        return HttpResponseRedirect(self.get_success_url(form))
+        return HttpResponseRedirect(self.get_success_url(next_url))
 
-    def get_success_url(self, form=None):
-        if form and form.next_url:
-            return form.next_url
+    def get_success_url(self, next_url):
+        if next_url:
+            return next_url
         return reverse('booking:lessons')
 
 

@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 
 from model_bakery import baker
 
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 from django.contrib.sites.models import Site
 from django.conf import settings
 from django.test import RequestFactory
@@ -83,12 +83,21 @@ class TestSetupMixin(object):
         self.patcher.stop()
 
 
-def create_configured_user(username, email, password):
+def create_configured_user(username, email, password, staff=False, instructor=False):
     user = User.objects.create_user(
         username=username, email=email, password=password
     )
     baker.make(PrintDisclaimer, user=user)
     make_data_privacy_agreement(user)
+
+    if staff:
+        user.is_staff = True
+        user.save()
+
+    if instructor:
+        group, _ = Group.objects.get_or_create(name="instructors")
+        user.groups.add(group)
+
     return user
 
 

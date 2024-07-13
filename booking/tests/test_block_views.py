@@ -640,3 +640,10 @@ def test_block_modal_with_memberships(client, seller, configured_user):
     resp = client.get(reverse('booking:blocks_modal'))
     # with end date first
     assert list(resp.context['active_memberships']) == [user_membership1, user_membership]
+
+
+@pytest.mark.django_db
+def test_payment_plans(client):
+    # no login required
+    resp = client.get(reverse("booking:payment_plans"))
+    assert resp.status_code == 200

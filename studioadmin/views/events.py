@@ -5,7 +5,7 @@ from datetime import timedelta
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.core.paginator import Paginator
 from django.urls import reverse
 from django.template.loader import get_template
 from django.template.response import TemplateResponse
@@ -21,7 +21,7 @@ from dateutil.relativedelta import relativedelta
 from booking.models import Block, BlockType, Booking, Event, FilterCategory
 from booking.email_helpers import send_support_email
 from studioadmin.forms import EventFormSet,  EventAdminForm, OnlineTutorialAdminForm
-from studioadmin.views.helpers import staff_required, StaffUserMixin, set_cloned_name
+from studioadmin.views.helpers import staff_required, StaffUserMixin, set_cloned_name, get_page
 from activitylog.models import ActivityLog
 
 
@@ -53,16 +53,7 @@ def _get_events(ev_type, request, past, page=None):
             date__gte=timezone.now() - timedelta(hours=1)
         ).order_by('date', "name")
     paginator = Paginator(nonpag_events, 30)
-    if page is None:
-        page = request.GET.get('page')
-    try:
-        event_page = paginator.page(page)
-    except PageNotAnInteger:
-        # If page is not an integer, deliver first page.
-        event_page = paginator.page(1)
-    except EmptyPage:
-        # If page is out of range (e.g. 9999), deliver last page of results.
-        event_page = paginator.page(paginator.num_pages)
+    event_page = get_page(request, paginator, page)
     events = event_page.object_list
     eventformset = EventFormSet(queryset=events)
     return events, event_page, eventformset

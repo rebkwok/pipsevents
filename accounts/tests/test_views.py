@@ -797,6 +797,16 @@ class SignedDataPrivacyCreateViewTests(TestSetupMixin, TestCase):
         self.assertTrue(has_active_data_privacy_agreement(self.user))
         self.assertFalse(self.user.subscribed())
 
+    def test_create_new_agreement_with_next_url(self):
+        # make new policy
+        baker.make(DataPrivacyPolicy, version=None)
+        assert not has_active_data_privacy_agreement(self.user)
+        resp = self.client.post(
+            self.url, data={'confirm': True, 'mailing_list': 'no', "next_url": "/events/"}
+        )
+        assert has_active_data_privacy_agreement(self.user)
+        assert resp.url == "/events/"        
+
     def test_create_new_agreement_with_subscribe(self):
         # make new policy
         baker.make(DataPrivacyPolicy, version=None)
@@ -825,3 +835,13 @@ class SignedDataPrivacyCreateViewTests(TestSetupMixin, TestCase):
         assert_mailchimp_post_data(
             self.mock_request, self.user, 'unsubscribed'
         )
+
+
+@pytest.mark.django_db
+def test_user_disclaimer_view(client, configured_user):
+    client.force_login(configured_user)
+    content = baker.make(DisclaimerContent)
+    baker.make(OnlineDisclaimer, user=configured_user, version=content.version)
+    resp = client.get(reverse("profile:view_latest_disclaimer"))
+    assert resp.status_code == 200
+    assert "Expire" not in resp.rendered_content

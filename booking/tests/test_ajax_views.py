@@ -490,14 +490,17 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
     @pytest.mark.freeze_time("2024, 2, 20")
     def test_creating_booking_with_active_user_block_and_membership(self):
         """
-        Test that an active membership is automatically used before a block when booking
+        Test that by default an active membership is automatically used before a block when booking
+        Unless prefernces are set to block
         """
         self.user.userprofile.stripe_customer_id = "cus1"
         self.user.userprofile.save()
 
         event_type = baker.make_recipe('booking.event_type_PC')
-        event = baker.make_recipe('booking.future_PC', event_type=event_type, cost=5)
-        url = reverse('booking:ajax_create_booking', args=[event.id]) + "?ref=events"
+        event1 = baker.make_recipe('booking.future_PC', event_type=event_type, cost=5)
+        event2 = baker.make_recipe('booking.future_PC', event_type=event_type, cost=5)
+        event1_url = reverse('booking:ajax_create_booking', args=[event1.id]) + "?ref=events"
+        event2_url = reverse('booking:ajax_create_booking', args=[event2.id]) + "?ref=events"
 
         blocktype = baker.make_recipe(
             'booking.blocktype5', event_type=event_type
@@ -517,13 +520,61 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
             subscription_status="active",
             start_date=datetime(2024, 2, 1, tzinfo=dt_timezone.utc)
         )
-        assert user_membership.valid_for_event(event)
 
         self.client.login(username=self.user.username, password='test')
-        resp = self.client.post(url)
+        resp = self.client.post(event1_url)
         assert resp.context['alert_message']['message'] == "Booked with membership."
 
-        booking = Booking.objects.filter(user=self.user).first()
+        booking = Booking.objects.get(user=self.user, event=event1)
+        assert booking.block is None
+        assert booking.membership == user_membership
+        assert booking.paid
+
+        # change preferences
+        self.user.userprofile.booking_preference = "block"
+        self.user.userprofile.save()
+        # membership still valid for both events
+        for event in [event1, event2]:
+            assert user_membership.valid_for_event(event)
+
+        resp = self.client.post(event2_url)
+        assert resp.context['alert_message']['message'].strip() == "Booked with block."
+
+        booking = Booking.objects.get(user=self.user, event=event2)
+        assert booking.block == block
+        assert booking.membership is None
+        assert booking.paid
+
+    @patch("booking.models.membership_models.StripeConnector", MockConnector)
+    @pytest.mark.freeze_time("2024, 2, 20")
+    def test_creating_booking_with_active_membership_block_preference(self):
+        """
+        Test that by default an active membership is used when prefernces are set to block
+        """
+        self.user.userprofile.stripe_customer_id = "cus1"
+        self.user.userprofile.booking_preference = "block"
+        self.user.userprofile.save()
+
+        event_type = baker.make_recipe('booking.event_type_PC')
+        event1 = baker.make_recipe('booking.future_PC', event_type=event_type, cost=5)
+        event1_url = reverse('booking:ajax_create_booking', args=[event1.id]) + "?ref=events"
+
+        m1 = baker.make(Membership, name="m1", active=True)
+        baker.make(MembershipItem, membership=m1, event_type=event_type, quantity=2)
+        user_membership = baker.make(
+            UserMembership, 
+            user=self.user, 
+            membership=m1, 
+            subscription_id="sub-1",
+            subscription_status="active",
+            start_date=datetime(2024, 2, 1, tzinfo=dt_timezone.utc)
+        )
+
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.post(event1_url)
+        assert resp.context['alert_message']['message'] == "Booked with membership."
+
+        booking = Booking.objects.get(user=self.user, event=event1)
         assert booking.block is None
         assert booking.membership == user_membership
         assert booking.paid

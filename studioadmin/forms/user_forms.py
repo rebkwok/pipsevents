@@ -653,8 +653,9 @@ class EditPastBookingForm(forms.ModelForm):
                              'to OPEN.'
                 )
 
+            # this should be prevented by the disabled attribute on the field
             if block and 'paid' in self.changed_data \
-                    and 'block' not in self.changed_data:
+                    and 'block' not in self.changed_data:  # pragma: no cover
                 self.add_error('paid', 'Cannot make block booking unpaid.')
 
             if attended and no_show:

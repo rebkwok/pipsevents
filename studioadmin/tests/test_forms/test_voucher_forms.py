@@ -15,6 +15,7 @@ class VoucherStudioAdminFormTests(TestCase):
 
     def setUp(self):
         self.event_type = baker.make_recipe('booking.event_type_PC')
+        self.other_event_type = baker.make_recipe('booking.event_type_PC', hide=True)
         self.data = {
             'code': 'test_code',
             'discount': 10,
@@ -158,6 +159,17 @@ class VoucherStudioAdminFormTests(TestCase):
         self.data.update({'max_vouchers': 3})
         form = VoucherStudioadminForm(data=self.data, instance=voucher)
         self.assertTrue(form.is_valid())
+
+    def test_edit_voucher_event_types(self):
+        voucher = baker.make(EventVoucher)
+        voucher.event_types.add(self.event_type)
+        voucher1 = baker.make(EventVoucher)
+        voucher1.event_types.add(self.other_event_type)
+        form = VoucherStudioadminForm(instance=voucher)
+        assert {et.id for et in form.fields["event_types"].queryset} == {self.event_type.id}
+
+        form = VoucherStudioadminForm(instance=voucher1)
+        assert {et.id for et in form.fields["event_types"].queryset} == {self.event_type.id, self.other_event_type.id}
 
 
 class BlockVoucherStudioadminFormTests(TestCase):

@@ -461,6 +461,16 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
             'Voucher code has already been used the maximum number of times (2)'
         )
 
+    def test_block_voucher_not_valid_for_user(self):
+        baker.make_recipe(
+            'booking.block', block_type__cost=20, user=self.user, paid=False
+        )
+        resp = self.client.get(self.url + '?block_code=foo')
+        self.assertEqual(
+            resp.context['block_voucher_error'],
+            'Code is not valid for any of your currently unpaid blocks'
+        )
+
     def test_booking_voucher_will_be_used_up_for_user_with_basket_bookings(self):
         booking = Booking.objects.first()
         ev_type = booking.event.event_type
@@ -525,6 +535,20 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
             resp.context['booking_voucher_error'],
             'Voucher has limited number of total uses and has now expired'
         )
+    
+    def test_booking_voucher_not_activated_yet(self):
+        booking = Booking.objects.first()
+        ev_type = booking.event.event_type
+        self.voucher.event_types.add(ev_type)
+        self.voucher.activated = False
+        self.voucher.save()
+
+        resp = self.client.get(self.url + '?booking_code=foo')
+        self.assertEqual(
+            resp.context['booking_voucher_error'],
+            'Voucher has not been activated yet'
+        )
+
 
     def test_block_voucher_used_max_total_times(self):
         block = baker.make_recipe(

@@ -6,6 +6,7 @@ from django.core.cache import cache
 from django.contrib.auth.models import Group
 from django.urls import reverse
 from django.shortcuts import HttpResponseRedirect
+from django.core.paginator import EmptyPage, PageNotAnInteger
 
 
 def staff_required(func):
@@ -137,3 +138,15 @@ def set_cloned_name(cloning_cls, event_or_session, cloned_event_or_session):
     while cloning_cls.objects.filter(name=cloned_event_or_session.name).exists():
         cloned_event_or_session.name = f"{base_name}_{counter}"
         counter += 1
+
+
+def get_page(request, paginator, page=None):
+    page = page or request.GET.get('page', 1)
+    try:
+        return paginator.page(page)
+    except PageNotAnInteger:
+        # If page is not an integer, deliver first page.
+        return paginator.page(1)
+    except EmptyPage:
+        # If page is out of range (e.g. 9999), deliver last page of results.
+        return paginator.page(paginator.num_pages)

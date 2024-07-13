@@ -1246,16 +1246,45 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         self.assertEqual(booking.status, 'CANCELLED')
 
         # waiting list emailed
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertEqual(mail.outbox[0].bcc, ['test@test.com'])
-        self.assertEqual(
-            mail.outbox[0].subject,
-            '{} {}'.format(settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, event)
+        assert len(mail.outbox) == 1
+        assert mail.outbox[0].bcc == ['test@test.com']
+        assert str(event) in mail.outbox[0].subject
+        assert f'A space has become available for {event}' in mail.outbox[0].body
+
+    def test_cancel_booking_for_non_full_event_emails_waiting_list(self):
+        event = baker.make_recipe(
+            'booking.future_EV', name='Test event', max_participants=2
         )
-        self.assertIn(
-            'A space has become available for {}'.format(event),
-            mail.outbox[0].body
-        )
+        user = baker.make_recipe('booking.user')
+        booking = baker.make_recipe(
+            'booking.booking', user=user, event=event, status='OPEN')
+
+        # make a waiting list but not a full event
+        user1 = baker.make_recipe('booking.user', email='test@test.com')
+        baker.make(WaitingListUser, event=event, user=user1)
+
+        data = {
+            'bookings-TOTAL_FORMS': 1,
+            'bookings-INITIAL_FORMS': 1,
+            'bookings-0-id': booking.id,
+            'bookings-0-event': event.id,
+            'bookings-0-status': 'CANCELLED',
+            'bookings-0-paid': booking.paid,
+            }
+
+        self.client.force_login(self.staff_user)
+        self.client.post(
+            reverse('studioadmin:user_bookings_list', kwargs={'user_id': user.id}), data)
+
+        booking.refresh_from_db()
+        # booking now cancelled
+        assert booking.status == 'CANCELLED'
+
+        # waiting list emailed
+        assert len(mail.outbox) == 1
+        assert mail.outbox[0].bcc == ['test@test.com']
+        assert str(event) in mail.outbox[0].subject
+        assert f'A space has become available for {event}' in mail.outbox[0].body
 
     def test_make_booking_no_show_for_full_event_emails_waiting_list(self):
         event = baker.make_recipe(
@@ -1713,6 +1742,38 @@ class UserBookingsViewTests(TestPermissionMixin, TestCase):
         self.assertEqual(bookings.count(), 20)
         paginator = resp.context_data['page_obj']
         self.assertEqual(paginator.number, 1)
+
+    def test_create_booking_for_user_on_waiting_list(self):
+        """
+        Creating a booking for a user on the waiting list for an
+        event removes the user from the waiting list
+        """
+        self.client.force_login(self.staff_user)
+        # make full event
+        event = baker.make_recipe(
+            'booking.future_PC', max_participants=3)
+
+        # add self.user to waiting list users
+        baker.make_recipe(
+            'booking.waiting_list_user', event=event,
+            user=self.user
+        )
+
+        data = {
+            'bookings-TOTAL_FORMS': 1,
+            'bookings-INITIAL_FORMS': 0,
+            'bookings-0-event': event.id,
+            'bookings-0-status': 'OPEN',
+            'bookings-0-paid': 'on',
+            }
+
+        assert event.bookings.count() == 0
+        assert WaitingListUser.objects.count() == 1
+
+        url = reverse('studioadmin:user_bookings_list', kwargs={'user_id': self.user.id})
+        self.client.post(url, data)
+        assert event.bookings.count() == 1
+        assert WaitingListUser.objects.count() == 0
 
 
 class BookingEditViewTests(TestPermissionMixin, TestCase):

@@ -8,7 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group, User
 from django.contrib import messages
 from django.core.cache import cache
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.core.paginator import Paginator
 from django.urls import reverse
 from django.db.models import Count, Q
 from django.template.loader import get_template
@@ -33,7 +33,7 @@ from studioadmin.forms import AddBookingForm, EditPastBookingForm, \
     UserBlockFormSet,  UserListSearchForm, AttendanceSearchForm
 
 from studioadmin.views.helpers import InstructorOrStaffUserMixin,  \
-    staff_required, StaffUserMixin
+    staff_required, StaffUserMixin, get_page
 from activitylog.models import ActivityLog
 
 
@@ -104,15 +104,8 @@ class UserListView(LoginRequiredMixin,  InstructorOrStaffUserMixin,  ListView):
         context = super(UserListView,  self).get_context_data()
         queryset = self.get_queryset()
         paginator = Paginator(queryset, 30)
-        page = self.request.GET.get('page', 1)
-        try:
-            page = paginator.page(page)
-        except PageNotAnInteger:
-            # If page is not an integer, deliver first page.
-            page = paginator.page(1)
-        except EmptyPage:
-            # If page is out of range (e.g. 9999), deliver last page of results.
-            page = paginator.page(paginator.num_pages)
+
+        page = get_page(self.request, paginator)
         context["page_obj"] = page
         context["users"] = page.object_list
         _set_pagination_context(context)
@@ -208,15 +201,7 @@ def users_status(request):
     )
 
     paginator = Paginator(list(sorted_counts.items()), 100)
-    page = request.GET.get('page', 1)
-    try:
-        page = paginator.page(page)
-    except PageNotAnInteger:
-        # If page is not an integer, deliver first page.
-        page = paginator.page(1)
-    except EmptyPage:
-        # If page is out of range (e.g. 9999), deliver last page of results.
-        page = paginator.page(paginator.num_pages)
+    page = get_page(request, paginator)
 
     context = {
         "user_counts": dict(page.object_list),
@@ -361,15 +346,7 @@ def user_modal_bookings_view(request, user_id, past=False):
         ).order_by('event__date')
 
     paginator = Paginator(all_bookings, 20)
-    page = request.GET.get('page')
-    try:
-        page = paginator.page(page)
-    except PageNotAnInteger:
-        # If page is not an integer, deliver first page.
-        page = paginator.page(1)
-    except EmptyPage:
-        # If page is out of range (e.g. 9999), deliver last page of results.
-        page = paginator.page(paginator.num_pages)
+    page = get_page(request, paginator)
     bookings = page.object_list
 
     template = 'studioadmin/user_booking_list.html'
@@ -467,15 +444,7 @@ def user_blocks_view(request,  user_id):
         user=user).order_by('-start_date')
 
     paginator = Paginator(queryset, 10)
-    page = request.GET.get('page', 1)
-    try:
-        page = paginator.page(page)
-    except PageNotAnInteger:
-        # If page is not an integer, deliver first page.
-        page = paginator.page(1)
-    except EmptyPage:
-        # If page is out of range (e.g. 9999), deliver last page of results.
-        page = paginator.page(paginator.num_pages)
+    page = get_page(request, paginator)
     userblockformset = UserBlockFormSet(
         instance=user,
         queryset=queryset.filter(id__in=page.object_list.values_list("id", flat=True)),

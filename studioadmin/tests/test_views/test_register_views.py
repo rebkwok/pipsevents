@@ -153,6 +153,8 @@ class RegisterViewTests(TestPermissionMixin, TestCase):
         cls.pc_url = reverse('studioadmin:event_register', args=(cls.pc.slug,))
         cls.pc_no_max_url = reverse('studioadmin:event_register', args=(cls.pc_no_max.slug,))
         cls.ev_url = reverse('studioadmin:event_register', args=(cls.ev.slug,))
+        cls.ot = baker.make_recipe('booking.future_OT', max_participants=3)
+        cls.ot_url = reverse('studioadmin:event_register', args=(cls.ot.slug,))
 
     def setUp(self):
         super().setUp()
@@ -186,6 +188,9 @@ class RegisterViewTests(TestPermissionMixin, TestCase):
 
         resp = self.client.get(self.ev_url)
         self.assertEqual(resp.context_data['sidenav_selection'], 'events_register')
+
+        resp = self.client.get(self.ot_url)
+        self.assertEqual(resp.context_data['sidenav_selection'], 'online_tutorials_register')
 
     def test_register_no_bookings(self):
         resp = self.client.get(self.pc_url)
@@ -239,23 +244,47 @@ class RegisterViewTests(TestPermissionMixin, TestCase):
     def test_status_choices(self):
         open_bookings = baker.make_recipe('booking.booking', status='OPEN', event=self.pc, _quantity=2)
         cancelled_bookings = baker.make_recipe('booking.booking', status='CANCELLED', event=self.pc, _quantity=2)
+        no_shows =  baker.make_recipe(
+            'booking.booking', status='OPEN', no_show=True, event=self.pc, instructor_confirmed_no_show=True, _quantity=2
+        )
+        late_cancel =  baker.make_recipe(
+            'booking.booking', status='OPEN', no_show=True, event=self.pc, instructor_confirmed_no_show=False, _quantity=2
+        )
 
         resp = self.client.get(self.pc_url + '?status_choice=CANCELLED')
         self.assertEqual(
             sorted([booking.id for booking in resp.context_data['bookings']]),
-            sorted([booking.id for booking in cancelled_bookings])
+            sorted([booking.id for booking in cancelled_bookings + late_cancel])
         )
 
         resp = self.client.get(self.pc_url + '?status_choice=OPEN')
         self.assertEqual(
             sorted([booking.id for booking in resp.context_data['bookings']]),
-            sorted([booking.id for booking in open_bookings])
+            sorted([booking.id for booking in open_bookings + no_shows])
+        )
+
+        resp = self.client.get(self.pc_url + '?status_choice=NO_SHOWS')
+        self.assertEqual(
+            sorted([booking.id for booking in resp.context_data['bookings']]),
+            sorted([booking.id for booking in no_shows])
+        )
+
+        resp = self.client.get(self.pc_url + '?status_choice=LATE_CANCELLATIONS')
+        self.assertEqual(
+            sorted([booking.id for booking in resp.context_data['bookings']]),
+            sorted([booking.id for booking in late_cancel])
         )
 
         resp = self.client.get(self.pc_url + '?status_choice=ALL')
         self.assertEqual(
             sorted([booking.id for booking in resp.context_data['bookings']]),
-            sorted([booking.id for booking in open_bookings + cancelled_bookings])
+            sorted([booking.id for booking in [*open_bookings, *cancelled_bookings, *no_shows, *late_cancel]])
+        )
+
+        resp = self.client.get(self.pc_url + '?status_choice=INVALID_CHOICE')
+        self.assertEqual(
+            sorted([booking.id for booking in resp.context_data['bookings']]),
+            sorted([booking.id for booking in [*open_bookings, *cancelled_bookings, *no_shows, *late_cancel]])
         )
 
 

@@ -11,6 +11,7 @@ import pytest
 
 from django.conf import settings
 from django.core import mail
+from django.contrib.sites.models import Site
 from django.urls import reverse
 from django.test import override_settings, TestCase
 from django.contrib.messages.storage.fallback import FallbackStorage
@@ -25,6 +26,7 @@ from common.tests.helpers import _create_session, \
     TestSetupMixin, format_content, make_data_privacy_agreement
 
 from payments.helpers import create_booking_paypal_transaction
+from stripe_payments.tests.mock_connector import MockConnector
 
 
 @pytest.mark.django_db
@@ -1512,6 +1514,26 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         self.assertFalse(
             Block.objects.filter(block_type__identifier='transferred').exists()
         )
+
+    @patch("booking.models.membership_models.StripeConnector", MockConnector)
+    def test_cancel_booking_with_membership(self):
+        baker.make("stripe_payments.Seller", site=Site.objects.get_current())
+        user_membership = baker.make("booking.UserMembership", membership__name="mem", user=self.user)
+        event = baker.make_recipe('booking.future_PC', cost=10)
+        booking = baker.make_recipe(
+            'booking.booking', user=self.user, event=event, block=None, membership=user_membership,
+        )
+        assert booking.paid
+        assert booking.payment_confirmed
+
+        url = reverse('booking:delete_booking', args=[booking.id])
+        self.client.force_login(self.user)
+        self.client.post(url)
+
+        booking.refresh_from_db()
+        assert not Block.objects.filter(block_type__identifier='transferred').exists()
+        assert booking.membership is None
+        assert not booking.paid
 
     def test_cancel_free_with_block_does_not_create_transfer_block(self):
         """

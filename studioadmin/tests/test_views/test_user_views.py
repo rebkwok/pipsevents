@@ -9,6 +9,7 @@ from django.db.models import Q
 from django.test import TestCase
 from django.contrib.auth.models import Group, User, Permission
 from django.contrib.messages.storage.fallback import FallbackStorage
+from django.core import mail
 from django.utils import timezone
 
 from accounts.models import DisclaimerContent, OnlineDisclaimer, PrintDisclaimer
@@ -152,6 +153,18 @@ class UserListViewTests(TestPermissionMixin, TestCase):
             reverse('studioadmin:toggle_permission', args=[not_reg_student.id, pp.allowed_group.id])
         )
         assert pp.has_permission_to_book(not_reg_student)
+
+    def test_change_permission_to_experienced_sends_email(self):
+        pc = baker.make_recipe("booking.event_type_PC", allowed_group__group__name="experienced")
+        student = baker.make_recipe('booking.user', email="test@example.com")
+
+        self.client.force_login(self.staff_user)
+        self.client.get(
+            reverse('studioadmin:toggle_permission', args=(student.id, pc.allowed_group.id))
+        )
+        assert pc.has_permission_to_book(student)
+        assert len(mail.outbox) == 1
+        assert "Account upgraded" in mail.outbox[0].subject
 
     def test_user_search(self):
 
@@ -511,6 +524,13 @@ def test_attendance_list_with_dates(client):
     # booking on end date
     url = reverse("studioadmin:users_status") + "?start_date=01 Jun 2022&end_date=01 Oct 2022"
     resp = client.get(url)
+    assert resp.context["user_counts"] == {
+        user1: {event.event_type.subtype: 1}
+    }
+
+    # post start/end
+    url = reverse("studioadmin:users_status")
+    resp = client.post(url, data={"start_date": "01 Jun 2022", "end_date": "01 Oct 2022"})
     assert resp.context["user_counts"] == {
         user1: {event.event_type.subtype: 1}
     }

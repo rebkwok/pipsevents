@@ -775,12 +775,12 @@ class Booking(models.Model):
         """
         return the active block for this booking with the soonest expiry date
         """
-        membersips = self.user.memberships.filter(
+        memberships = self.user.memberships.filter(
             subscription_status="active",
         )
         # already sorted by expiry date, so we can just get the next active one
         return next(
-            (membersips for membersips in membersips if membersips.valid_for_event(self.event)), None
+            (membership for membership in memberships if membership.valid_for_event(self.event)), None
         )
 
     @property

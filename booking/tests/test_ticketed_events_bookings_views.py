@@ -14,7 +14,7 @@ from django.http.response import Http404
 from django.test import override_settings, TestCase
 from django.utils import timezone
 
-from booking.models import TicketedEvent, TicketBooking, Ticket
+from booking.models import TicketedEvent, TicketBooking, Ticket, TicketedEventWaitingListUser
 from booking.views import TicketedEventListView, TicketCreateView, \
     TicketBookingListView, TicketBookingHistoryListView, TicketBookingView, \
     TicketBookingCancelView
@@ -22,15 +22,15 @@ from common.tests.helpers import _create_session, format_content, \
     TestSetupMixin, make_data_privacy_agreement
 
 
-class EventListViewTests(TestSetupMixin, TestCase):
+class TicketedEventListViewTests(TestSetupMixin, TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        super(EventListViewTests, cls).setUpTestData()
+        super().setUpTestData()
         baker.make_recipe('booking.ticketed_event_max10', _quantity=3)
 
     def setUp(self):
-        super(EventListViewTests, self).setUp()
+        super().setUp()
         self.staff_user = baker.make_recipe('booking.user')
         self.staff_user.is_staff = True
         self.staff_user.save()
@@ -1455,3 +1455,36 @@ class TicketBookingCancelViewTests(TestSetupMixin, TestCase):
         self.ticket_booking.refresh_from_db()
         self.assertTrue(self.ticket_booking.cancelled)
         self.assertEqual(len(mail.outbox), 0)
+
+
+class ToggleTicketedEventWaitingListTests(TestSetupMixin, TestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.ticketed_event = baker.make_recipe(
+            'booking.ticketed_event_max10'
+        )
+        self.url = reverse('booking:toggle_ticketed_event_waiting_list', args=[self.ticketed_event.id])
+        self.client.login(username=self.user.username, password='test')
+
+    def test_join_waiting_list(self):
+        """
+        Test that joining waiting list add WaitingListUser to event
+        """
+        assert TicketedEventWaitingListUser.objects.count() == 0
+        
+        resp = self.client.get(self.url)
+        assert resp.status_code == 200
+        waiting_list = TicketedEventWaitingListUser.objects.filter(ticketed_event=self.ticketed_event)
+        assert len(waiting_list) == 1
+        assert waiting_list[0].user == self.user
+
+    def test_leave_waiting_list(self):
+        baker.make('booking.TicketedEventWaitingListUser', ticketed_event=self.ticketed_event, user=self.user)
+
+        assert TicketedEventWaitingListUser.objects.count() == 1
+        resp = self.client.get(self.url)
+        assert resp.status_code == 200
+
+        waiting_list = TicketedEventWaitingListUser.objects.filter(ticketed_event=self.ticketed_event)
+        assert len(waiting_list) == 0

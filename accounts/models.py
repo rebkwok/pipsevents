@@ -591,10 +591,4 @@ def has_active_data_privacy_agreement(user):
     #     cache.set(key, has_active_agreement, timeout=600)
     # else:
     #     has_active_agreement = bool(cache.get(key))
-    has_active_agreement = bool(
-        [
-            True for dp in user.data_privacy_agreement.all()
-            if dp.is_active
-        ]
-    )
-    return has_active_agreement
+    return user.data_privacy_agreement.filter(version=DataPrivacyPolicy.current_version()).exists()
