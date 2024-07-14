@@ -17,6 +17,7 @@ from studioadmin.forms.user_forms import EditPastBookingForm, \
 from studioadmin.forms.utils import StatusFilter
 from studioadmin.forms.voucher_forms import BlockVoucherStudioadminForm, \
     VoucherStudioadminForm
+from studioadmin.forms.membership_forms import MembershipAddEditForm, MembershipItemFormset
 
 __all__ = [
     'ActivityLogSearchForm', 'BlockVoucherStudioadminForm',
@@ -31,5 +32,6 @@ __all__ = [
     'UserBookingFormSet', 'UserFilterForm', 'UserListSearchForm',
     'VoucherStudioadminForm', 'EditPastBookingForm', 'EditBookingForm',
     'AddBookingForm', 'AddRegisterBookingForm', 'OnlineTutorialAdminForm',
-    'AttendanceSearchForm'
+    'AttendanceSearchForm',
+    'MembershipAddEditForm', "MembershipItemFormset"
 ]

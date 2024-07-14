@@ -502,7 +502,8 @@ SHOW_VAT = env("SHOW_VAT")
 VAT_NUMBER = env("VAT_NUMBER")
 
 # for crispy forms
-CRISPY_TEMPLATE_PACK = 'bootstrap4'
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap4"
+CRISPY_TEMPLATE_PACK = "bootstrap4"
 USE_CRISPY = True
 
 

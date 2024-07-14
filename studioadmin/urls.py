@@ -77,6 +77,11 @@ from studioadmin.views import (BookingEditView,
                                toggle_permission,
                                AllowedGroupListView,
                                EventTypeListView,
+                               # memberships
+                               memberships_list,
+                               membership_edit,
+                               membership_add,
+                               membership_delete,
                                )
 
 app_name = 'studioadmin'
@@ -349,6 +354,12 @@ urlpatterns = [
     path("payment/stripe-test/", stripe_test, name="stripe_test"),
     path("setup/event-types/", EventTypeListView.as_view(), name="setup_event_types"),
     path("setup/allowed_groups/", AllowedGroupListView.as_view(), name="setup_allowed_groups"),
+    # memberships
+     path("memberships/<int:pk>/delete", membership_delete, name="membership_delete"),
+    path("memberships/<int:pk>/", membership_edit, name="membership_edit"),
+    path("memberships/new/", membership_add, name="membership_add"),
+    path("memberships/", memberships_list, name="memberships_list"),
+    
     path('jsi18n/', JavaScriptCatalog.as_view(), name='jsi18n'),
     path('', RedirectView.as_view(url='/studioadmin/class-registers/', permanent=True)),
     ]

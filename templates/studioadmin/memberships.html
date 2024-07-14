@@ -1,0 +1,46 @@
+{%  extends "studioadmin/base.html" %}
+
+
+{% block studioadmincontent %}
+    <h1>Membership Configuration</h1>
+
+    <table class="table table-responsive table-striped">
+        <thead>
+            <th>Name</th>
+            <th>Items</th>
+            <th>Price</th>
+            <th>Active</th>
+            <th>Purchased</th>
+            <th>Delete<br/><span class="studioadmin-help text-muted">Unpurchased only</span></th>
+        </thead>
+        <tbody>
+            {% for membership in memberships %}
+                <tr>
+                    <td><a href={% url 'studioadmin:membership_edit' membership.id %}>{{ membership.name }}</a></td>
+                    <td>
+                            {% for mem_item in membership.membership_items.all %}
+                            <dd>{{ mem_item }}</<dd>
+                            {% endfor %}
+                    </td>
+                    <td>£{{ membership.price }}</td>
+                    <td>{{ membership.active|yesno:"Yes,No"}} 
+                        {%if not membership.membership_items.exists %}<span class="text-warning"><i class="fas fa-exclamation-triangle"></i></span>{% endif %}
+                    <td>{{ membership.purchased }}</td>
+                    <td class="text-center">
+                        {% if not membership.purchased %}
+                        <form action={% url "studioadmin:membership_delete" membership.id %} method="post">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-light text-danger p-0" ><i class="fas fa-times"></i></button>    
+                        </form>
+                        {% else %}
+                            <span class="text-muted"><i class="fas fa-ban"></i></span>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+{% endblock studioadmincontent %}
+{% block extra_js %}
+{% endblock %}

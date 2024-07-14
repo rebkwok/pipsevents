@@ -1,0 +1,35 @@
+{% extends "studioadmin/base.html" %}
+{% load static %}
+{% load bookingtags crispy_forms_tags %}
+
+{% block studioadmincontent %}
+
+       <div class="card card-wm">
+            <div class="card-header">
+                {% if membership %}
+                <h2 class="card-title">Edit Membership Configuration</h2>
+                <p class="text-danger">
+                    NOTE: changing a membership's price will affect all students who have purchased this membership already.
+                    Changes take effect from the beginning of the next month.
+                </p>
+                {% else %}
+                <h2 class="card-title">Add New  Membership Configuration</h2>
+                {% endif %}
+            </div>
+
+            <div class="card-body">
+
+                {% if form.errors %}
+                    <div class="form-error">
+                        <p>Please correct the errors below:</p>
+                    </div>
+                    {% endif %}
+
+                <form method="post" action="">
+                        {% csrf_token %}
+                        {% crispy form %}
+                </form>
+
+        </div>
+    </div>
+{% endblock studioadmincontent %}

@@ -381,7 +381,7 @@ def test_membership_item_str(seller):
     mitem = baker.make(
         MembershipItem, event_type=event_type, membership=membership, quantity=4
     )
-    assert str(mitem) == "Test membership - Level class - 4"
+    assert str(mitem) == "Level class x 4"
 
 
 @patch("booking.models.membership_models.StripeConnector", MockConnector)

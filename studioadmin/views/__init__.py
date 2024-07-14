@@ -34,7 +34,7 @@ from studioadmin.views.waiting_list import event_waiting_list_view, email_waitin
     ticketed_event_waiting_list_view, email_ticketed_event_waiting_list
 from studioadmin.views.notifications import all_users_banner_view, new_users_banner_view, popup_notification_view
 from studioadmin.views.setup_views import AllowedGroupListView, EventTypeListView
-
+from studioadmin.views.memberships import memberships_list, membership_edit, membership_add, membership_delete
 
 __all__ = [
     'ActivityLogListView', 'BlockListView', 'BlockVoucherCreateView',
@@ -68,6 +68,7 @@ __all__ = [
     'all_users_banner_view', 'new_users_banner_view', 'popup_notification_view',
     "InvoiceListView", "stripe_test",
     "ticketed_event_waiting_list_view", "email_ticketed_event_waiting_list",
-    "AllowedGroupListView", "EventTypeListView"
+    "AllowedGroupListView", "EventTypeListView",
+    "memberships_list", "membership_edit", "membership_add", "membership_delete",
 ]
 

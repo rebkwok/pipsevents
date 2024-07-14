@@ -96,13 +96,13 @@ class MembershipItem(models.Model):
     """
     membership = models.ForeignKey(Membership, on_delete=models.CASCADE, related_name="membership_items")
     event_type = models.ForeignKey(EventType, on_delete=models.CASCADE)
-    quantity = models.PositiveIntegerField(null=True, help_text="Number allowed per month; leave blank for unlimited")
+    quantity = models.PositiveIntegerField(null=True, help_text="Number allowed per month")
 
     class Meta:
         unique_together = ("membership", "event_type")
 
     def __str__(self) -> str:
-        return f"{self.membership.name} - {self.event_type.subtype} - {self.quantity}"
+        return f"{self.event_type.subtype} x {self.quantity}"
     
 
 class UserMembership(models.Model):
