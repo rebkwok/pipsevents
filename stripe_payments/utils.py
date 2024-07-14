@@ -12,7 +12,7 @@ import stripe
 from activitylog.models import ActivityLog
 from .emails import send_processed_payment_emails, send_gift_voucher_email
 from .exceptions import StripeProcessingError
-from .models import Invoice, Seller
+from .models import Invoice, Seller, StripePaymentIntent
 
 
 logger = logging.getLogger(__name__)
@@ -92,6 +92,24 @@ def process_invoice_items(invoice, payment_method, request=None):
     ActivityLog.objects.create(
         log=f"Invoice {invoice.invoice_id} (user {invoice.username}) paid by {payment_method}"
     )
+
+
+def process_completed_stripe_payment(payment_intent, invoice, seller=None, request=None):
+    if invoice is None:
+        # no invoice == subscription payment (handled with subscription events) or oob payment (direct from stripe)
+        # nothing to do
+        return
+    if not invoice.paid:
+        logger.info("Updating items to paid for invoice %s", invoice.invoice_id)
+        check_stripe_data(payment_intent, invoice)
+        logger.info("Stripe check OK")
+        process_invoice_items(invoice, payment_method="Stripe", request=request)
+        # update/create the django model PaymentIntent - this is just for records
+        StripePaymentIntent.update_or_create_payment_intent_instance(payment_intent, invoice, seller)
+    else:
+        logger.info(
+            "Payment Intents signal received for invoice %s; already processed", invoice.invoice_id
+        )
 
 
 class StripeConnector:

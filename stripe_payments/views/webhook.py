@@ -9,13 +9,11 @@ import stripe
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
-from django.shortcuts import render, HttpResponse, HttpResponseRedirect
-from django.urls import reverse
+from django.shortcuts import HttpResponse
 
 from activitylog.models import ActivityLog
 from booking.models import UserMembership, Membership
-from .emails import (
+from ..emails import (
     send_failed_payment_emails, 
     send_processed_refund_emails, 
     send_updated_membership_email_to_support,
@@ -24,167 +22,18 @@ from .emails import (
     send_subscription_renewal_upcoming_email,
     send_subscription_created_email
 )
-from .exceptions import StripeProcessingError
-from .models import Seller, StripePaymentIntent, StripeSubscriptionInvoice
-from .utils import (
+from ..exceptions import StripeProcessingError
+from ..models import Seller, StripeSubscriptionInvoice
+from ..utils import (
     get_invoice_from_event_metadata, 
-    check_stripe_data, 
-    process_invoice_items, 
     StripeConnector, 
     get_first_of_next_month_from_timestamp,
-    get_utcdate_from_timestamp
+    get_utcdate_from_timestamp,
+    process_completed_stripe_payment
 )
 
 
 logger = logging.getLogger(__name__)
-
-
-def stripe_portal(request, customer_id):
-    client = StripeConnector()
-    return HttpResponseRedirect(client.customer_portal_url(customer_id))
-
-
-def _process_completed_stripe_payment(payment_intent, invoice, seller=None, request=None):
-    if invoice is None:
-        # no invoice == subscription payment (handled with subscription events) or oob payment (direct from stripe)
-        # nothing to do
-        return
-    if not invoice.paid:
-        logger.info("Updating items to paid for invoice %s", invoice.invoice_id)
-        check_stripe_data(payment_intent, invoice)
-        logger.info("Stripe check OK")
-        process_invoice_items(invoice, payment_method="Stripe", request=request)
-        # update/create the django model PaymentIntent - this is just for records
-        StripePaymentIntent.update_or_create_payment_intent_instance(payment_intent, invoice, seller)
-    else:
-        logger.info(
-            "Payment Intents signal received for invoice %s; already processed", invoice.invoice_id
-        )
-
-
-def stripe_payment_complete(request):
-    payment_intent_id = request.GET.get("payment_intent", "unk")
-    client = StripeConnector(request)
-    try:
-        payment_intent = stripe.PaymentIntent.retrieve(payment_intent_id, stripe_account=client.connected_account_id)
-    except stripe.error.InvalidRequestError as e:
-        error = f"Error retrieving Stripe payment intent: {e}"
-        logger.error(e)
-        send_failed_payment_emails(
-            payment_intent={"id": payment_intent_id, "status": "Not found"}, 
-            error=error
-        )
-        return render(request, 'stripe_payments/non_valid_payment.html')
-    
-    failed = False
-    if payment_intent.status == "succeeded":
-        invoice = get_invoice_from_event_metadata(payment_intent, raise_immediately=False)
-        if invoice is not None:
-            try:
-                _process_completed_stripe_payment(payment_intent, invoice, client.connected_account, request=request)
-            except StripeProcessingError as e:
-                error = f"Error processing Stripe payment: {str(e)}"
-                logger.error(e)
-                failed = True
-        else:
-            # No invoice retrieved, fail
-            failed = True
-            error = f"No invoice could be retrieved from succeeded payment intent {payment_intent.id}"
-            logger.error(error)
-    elif payment_intent.status == "processing":
-        error = f"Payment intent {payment_intent.id} still processing."
-        logger.error(error)
-        send_failed_payment_emails(payment_intent=payment_intent, error=error)
-        return render(request, 'stripe_payments/processing_payment.html')
-    else:
-        failed = True
-        error = f"Payment intent id {payment_intent.id} status: {payment_intent.status}"
-        logger.error(error)
-    payment_intent.metadata.pop("invoice_id", None)
-    payment_intent.metadata.pop("invoice_signature", None)
-    if not failed:
-        context = {
-            "cart_items": invoice.items_dict().values(),
-            "item_types": invoice.item_types(),
-            "total_charged": invoice.amount,
-        }
-        return render(request, 'stripe_payments/valid_payment.html', context)
-    else:
-        send_failed_payment_emails(payment_intent=payment_intent, error=error)
-        return render(request, 'stripe_payments/non_valid_payment.html')
-
-
-def stripe_subscribe_complete(request):
-    subscribe_type = None
-    intent_id = request.GET.get("payment_intent")
-    updating = request.GET.get("updating", False)
-    if intent_id:
-        subscribe_type = "payment"
-    else:
-        intent_id = request.GET.get("setup_intent")
-        subscribe_type = "setup"
-
-    if subscribe_type is None:
-        error = f"Could not identify payment or setup intent for subscription"
-        logger.error(error)
-        return render(request, 'stripe_payments/non_valid_payment.html')
-
-    client = StripeConnector(request)
-    
-    # PaymentIntents can retrieve the subscription (via invoice), SetupIntents can't
-    # All confirmation emails are handled in the webhook
-    if subscribe_type == "payment":
-        try:
-            intent = stripe.PaymentIntent.retrieve(intent_id, stripe_account=client.connected_account_id)
-        except stripe.error.InvalidRequestError as e:
-            error = f"Error retrieving Stripe payment intent: {e}"
-            logger.error(e)
-            send_failed_payment_emails(
-                payment_intent={"id": intent_id, "status": "Not found"}, 
-                error=error
-            )
-            return render(request, 'stripe_payments/non_valid_payment.html')
-    else:
-        assert subscribe_type == "setup"
-        try:
-            intent = stripe.SetupIntent.retrieve(intent_id, stripe_account=client.connected_account_id)
-        except stripe.error.InvalidRequestError as e:
-            error = f"Error retrieving Stripe setup intent: {e}"
-            logger.error(e)
-            send_failed_payment_emails(
-                payment_intent={"id": intent_id, "status": "Not found"}, 
-                error=error
-            )
-            return render(request, 'stripe_payments/non_valid_payment.html')
-    
-    if subscribe_type == "payment":
-        if intent.status == "succeeded":
-            return render(request, 'stripe_payments/valid_subscription_setup.html', {"payment": True, "updating": updating})
-        elif intent.status == "processing":
-            error = f"Payment intent {intent.id} still processing."
-            logger.error(error)
-            send_failed_payment_emails(payment_intent=intent, error=error)
-            return render(request, 'stripe_payments/processing_payment.html')
-        else:
-            error = f"Payment intent id {intent.id} status: {intent.status}"
-            logger.error(error)
-            send_failed_payment_emails(payment_intent=intent, error=error)
-            return render(request, 'stripe_payments/non_valid_payment.html')
-    
-    assert subscribe_type == "setup"
-    if intent.status == "succeeded":
-        # _process_completed_stripe_subscription(intent, client.connected_account, subscribe_type=subscribe_type, request=request)
-        return render(request, 'stripe_payments/valid_subscription_setup.html', {"setup": True, "updating": updating})
-    elif intent.status == "processing":
-        error = f"Setup intent {intent.id} still processing."
-        logger.error(error)
-        send_failed_payment_emails(payment_intent=intent, error=error)
-        return render(request, 'stripe_payments/processing_payment.html')
-    else:
-        error = f"Setup intent id {intent.id} status: {intent.status}"
-        logger.error(error)
-        send_failed_payment_emails(payment_intent=intent, error=error)
-        return render(request, 'stripe_payments/non_valid_payment.html')
 
 
 @csrf_exempt
@@ -257,7 +106,7 @@ def stripe_webhook(request):
         
         if event.type == "payment_intent.succeeded":
             try:
-                _process_completed_stripe_payment(event_object, invoice, request=request)
+                process_completed_stripe_payment(event_object, invoice, request=request)
             except StripeProcessingError as e:
                 # capture known errors, log and acknowledge. We only want to return 400s to stripe for unexpected
                 # errors
