@@ -225,10 +225,24 @@ class EventListViewTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.context['events'].count(), 0)
 
     def test_filter_events_by_spaces(self):
+        # full envent
         event = baker.make_recipe('booking.future_EV', max_participants=1)
-        baker.make_recipe('booking.future_EV', max_participants=1)
         baker.make_recipe('booking.booking', event=event)
+        # non-full event
+        baker.make_recipe('booking.future_EV', max_participants=1)
+        
+        # full event for this user
 
+        self.client.force_login(self.user)
+        user_event = baker.make_recipe('booking.future_EV', max_participants=1)
+        baker.make_recipe('booking.booking', event=user_event, user=self.user)
+
+        resp = self.client.get(self.url, {'spaces_only': 'true'})
+        # 3 from setup plus one non-full in this test and one full but booked by user
+        self.assertEqual(resp.context['events'].count(), 5)
+
+        self.client.logout()
+        # anonymous user doesn't see the full booking for self.user
         resp = self.client.get(self.url, {'spaces_only': 'true'})
         # 3 from setup plus one in this test
         self.assertEqual(resp.context['events'].count(), 4)

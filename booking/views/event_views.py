@@ -73,13 +73,19 @@ class EventListView(DataPolicyAgreementRequiredMixin, ListView):
                 events = events.filter(date__date__in=selected_dates)
 
             if spaces_only:
-                event_ids = [
-                    event.id for event in events if event.spaces_left > 0
-                    or (not self.request.user.is_anonymous
-                    and self.request.user.bookings.filter(
-                        event=event, status='OPEN', no_show=False
-                    ).exists())
-                ]
+                if self.request.user.is_anonymous:
+                    event_ids = [
+                        event.id for event in events if event.spaces_left > 0
+                    ]
+                else:
+                    event_ids = [
+                        event.id for event in events
+                        if (
+                            # show if there are spaces
+                            event.spaces_left > 0
+                            # or if the user has an open booking
+                            or event.bookings.filter(user=self.request.user, status='OPEN', no_show=False).exists())
+                    ]
                 events = events.filter(id__in=event_ids)
             self._queryset = events
         return self._queryset
@@ -117,7 +123,7 @@ class EventListView(DataPolicyAgreementRequiredMixin, ListView):
                 self.request.user
             )
 
-        # TODO: Tabbed querysets not currently used
+        # NOTE: Tabbed querysets not currently used
         # paginate each queryset
         # tab = self.request.GET.get('tab', 0)
 
@@ -142,7 +148,7 @@ class EventListView(DataPolicyAgreementRequiredMixin, ListView):
             'location': 'All locations',
             'paginator_range': queryset.paginator.get_elided_page_range(queryset.number)
         }]
-        # TODO: NOTE: this is unnecessary since we only have one location; leaving it in in case there is ever another studio to add
+        # NOTE: this is unnecessary since we only have one location; leaving it in in case there is ever another studio to add
         # for i, location in enumerate([lc[0] for lc in Event.LOCATION_CHOICES], 1):
         #     location_qs = all_events.filter(location=location)
         #     if location_qs:
