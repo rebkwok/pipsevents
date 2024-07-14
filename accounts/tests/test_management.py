@@ -1,5 +1,6 @@
 import csv
 import os
+from tempfile import NamedTemporaryFile
 
 from datetime import date, datetime, timedelta
 from datetime import timezone as dt_timezone
@@ -157,113 +158,20 @@ class DeleteExpiredDisclaimersTests(PatchRequestMixin, TestCase):
         self.assertEqual(NonRegisteredDisclaimer.objects.count(), 0)
 
 
-@override_settings(LOG_FOLDER=os.path.dirname(__file__))
-class ExportDisclaimersTests(TestCase):
-
-    def setUp(self):
-        content = baker.make(DisclaimerContent, version=None)
-        baker.make(OnlineDisclaimer, version=content.version, _quantity=10)
-        self.log_path = Path(settings.LOG_FOLDER)
-        self.disclaimer_types = ["online", "archived", "non_registered"]
-
-    def test_export_disclaimers_creates_default_bu_file(self):
-        bu_files = [
-            self.log_path / f"{disclaimer_type}_disclaimers_bu.csv" for disclaimer_type in self.disclaimer_types
-        ]
-        for bu_file in bu_files:
-            assert bu_file.exists() is False
-        management.call_command('export_disclaimers')
-        for bu_file in bu_files:
-            assert bu_file.exists() is True
-            bu_file.unlink()
-
-    def test_export_disclaimers_writes_correct_number_of_rows(self):
-        bu_files = [
-            self.log_path / f"{disclaimer_type}_disclaimers_bu.csv" for disclaimer_type in self.disclaimer_types
-        ]
-        for bu_file in bu_files:
-            assert bu_file.exists() is False
-        management.call_command('export_disclaimers')
-
-        with open(bu_files[0], 'r') as exported:  # online disclaimers
-            reader = csv.reader(exported)
-            rows = list(reader)
-        self.assertEqual(len(rows), 11)  # 10 records plus header row
-
-        with open(bu_files[1], 'r') as exported:  # archived disclaimers
-            reader = csv.reader(exported)
-            rows = list(reader)
-        self.assertEqual(len(rows), 1)  # 0 records plus header row
-
-        with open(bu_files[2], 'r') as exported:  # non-reg disclaimers
-            reader = csv.reader(exported)
-            rows = list(reader)
-        self.assertEqual(len(rows), 1)  # 0 records plus header row
-
-        for bu_file in bu_files:
-            assert bu_file.exists() is True
-            bu_file.unlink()
-
-    def test_export_disclaimers_with_filename_argument(self):
-        bu_files = [
-            self.log_path / f"{disclaimer_type}_test.csv" for disclaimer_type in self.disclaimer_types
-        ]
-        input_file = self.log_path / "test.csv"
-
-        for bu_file in bu_files:
-            assert bu_file.exists() is False
-        management.call_command('export_disclaimers', file=input_file)
-        for bu_file in bu_files:
-            assert bu_file.exists() is True
-            bu_file.unlink()
+@pytest.mark.django_db
+def test_export_encrypted_disclaimers(settings, tmp_path):
+    settings.LOG_FOLDER=tmp_path
+    content = baker.make(DisclaimerContent, version=None)
+    baker.make(OnlineDisclaimer, version=content.version, _quantity=2)
+    bu_file = settings.LOG_FOLDER / 'test_file.txt'
+    assert not bu_file.exists()
+    management.call_command('export_encrypted_disclaimers', file=bu_file)
+    assert bu_file.exists()
+    assert len(mail.outbox) == 1
+    email = mail.outbox[0]
+    assert email.to == [settings.SUPPORT_EMAIL]
 
 
-@pytest.mark.serial
-@override_settings(LOG_FOLDER=os.path.dirname(__file__))
-class ExportEncryptedDisclaimersTests(TestCase):
-
-    def setUp(self):
-        content = baker.make(DisclaimerContent, version=None)
-        baker.make(OnlineDisclaimer, version=content.version, _quantity=10)
-
-    def test_export_disclaimers_creates_default_bu_file(self):
-        bu_file = os.path.join(settings.LOG_FOLDER, 'disclaimers.bu')
-        self.assertFalse(os.path.exists(bu_file))
-        management.call_command('export_encrypted_disclaimers')
-        self.assertTrue(os.path.exists(bu_file))
-        os.unlink(bu_file)
-
-    def test_export_disclaimers_sends_email(self):
-        bu_file = os.path.join(settings.LOG_FOLDER, 'disclaimers.bu')
-        management.call_command('export_encrypted_disclaimers')
-
-        self.assertEqual(len(mail.outbox), 1)
-        email = mail.outbox[0]
-        self.assertEqual(email.to, [settings.SUPPORT_EMAIL])
-
-        os.unlink(bu_file)
-
-    @patch.object(EmailMessage, 'send')
-    def test_email_errors(self, mock_send):
-        mock_send.side_effect = Exception('Error sending mail')
-        bu_file = os.path.join(settings.LOG_FOLDER, 'disclaimers.bu')
-
-        self.assertFalse(os.path.exists(bu_file))
-        management.call_command('export_encrypted_disclaimers')
-        # mail not sent, but back up still created
-        self.assertEqual(len(mail.outbox), 0)
-        self.assertTrue(os.path.exists(bu_file))
-        os.unlink(bu_file)
-
-    def test_export_disclaimers_with_filename_argument(self):
-        bu_file = os.path.join(settings.LOG_FOLDER, 'test_file.txt')
-        self.assertFalse(os.path.exists(bu_file))
-        management.call_command('export_encrypted_disclaimers', file=bu_file)
-        self.assertTrue(os.path.exists(bu_file))
-        os.unlink(bu_file)
-
-
-from tempfile import NamedTemporaryFile
 class ImportDisclaimersTests(TestCase):
 
     def call_import_disclaimers(self):

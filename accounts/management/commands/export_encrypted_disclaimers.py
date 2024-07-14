@@ -29,7 +29,6 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         outputfile = options.get('file')
-
         output_text = []
 
         output_text.append(
@@ -115,20 +114,17 @@ class Command(BaseCommand):
 
         with open(outputfile, 'rb') as file:
             filename = os.path.split(outputfile)[1]
-            try:
-                msg = EmailMessage(
-                    '{} disclaimer backup'.format(
-                        settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
-                    ),
-                    'Encrypted disclaimer back up file attached. '
-                    '{} records.'.format(OnlineDisclaimer.objects.count()),
-                    settings.DEFAULT_FROM_EMAIL,
-                    to=[settings.SUPPORT_EMAIL],
-                    attachments=[(filename, file.read(), 'bytes/bytes')]
-                )
-                msg.send(fail_silently=False)
-            except:
-                pass
+            msg = EmailMessage(
+                '{} disclaimer backup'.format(
+                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
+                ),
+                'Encrypted disclaimer back up file attached. '
+                '{} records.'.format(OnlineDisclaimer.objects.count()),
+                settings.DEFAULT_FROM_EMAIL,
+                to=[settings.SUPPORT_EMAIL],
+                attachments=[(filename, file.read(), 'bytes/bytes')]
+            )
+            msg.send(fail_silently=False)
 
         self.stdout.write(
             '{} disclaimer records encrypted and written to {}'.format(
