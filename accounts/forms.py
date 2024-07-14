@@ -5,6 +5,7 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
 from django import forms
+from django.conf import settings
 from django.contrib.auth.models import Group, User
 from django.utils import timezone
 
@@ -102,6 +103,8 @@ class UserProfileForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["pronouns"].initial = self.instance.userprofile.pronouns
         self.fields["booking_preference"].initial = self.instance.userprofile.booking_preference
+        if not settings.SHOW_MEMBERSHIPS:
+            self.fields["booking_preference"].widget = forms.HiddenInput()
 
     class Meta:
         model = User

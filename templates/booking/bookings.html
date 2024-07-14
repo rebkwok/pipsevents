@@ -19,6 +19,9 @@
     <div class="container-fluid">
         <div class="btn-group btn-group-sm float-right" role="group">
             <a class="btn btn-info-link" href="{% url 'booking:block_list' %}">My blocks</a>
+            {% if show_memberships %}
+                <a class="btn btn-info-link" href="{% url 'membership_list' %}">My memberships</a>
+            {% endif %}
             <a class="btn btn-info-link" href="{% url 'booking:purchased_tutorials' %}">My online tutorials</a>
             <a class="btn btn-info-link" href="{% url 'booking:lessons' %}">All Classes</a>
         </div>

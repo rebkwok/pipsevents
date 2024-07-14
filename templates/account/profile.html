@@ -40,13 +40,14 @@
                 <div class="col-12">
                     <a class="btn btn-sm btn-profile btn-wm float-right mt-4" href="{% url 'profile:update_profile' %}">Edit</a>
                 </div>
-
+                {% if show_memberships %}
                 <div>
                     <span class="col-3"><strong>Booking preferences:</strong></span>
                     <span class="col-9">
                         Use <strong>{{ user.userprofile.booking_preference }}s</strong> first when making bookings.
                     </span>
-                </div> 
+                </div>
+                {% endif %}
                 
             </div>
 

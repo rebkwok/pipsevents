@@ -8,6 +8,7 @@ from django.conf import settings
 from django.contrib.auth.models import User, Group
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.core import mail
+from django import forms
 from django.urls import reverse
 from django.test import TestCase, override_settings
 
@@ -72,6 +73,26 @@ class ProfileUpdateViewTests(TestSetupMixin, TestCase):
         )
         self.user.refresh_from_db()
         assert self.user.userprofile.pronouns == "they/them"
+
+    @override_settings(SHOW_MEMBERSHIPS=True)
+    def test_updating_booking_preference_memberships_on(self):
+        """
+        Memberships not shown, booking preference is hidden
+        """
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.get(self.url)
+        assert resp.context_data["form"].fields["booking_preference"].initial == "membership"
+        assert isinstance(resp.context_data["form"].fields["booking_preference"].widget, forms.RadioSelect)
+
+    @override_settings(SHOW_MEMBERSHIPS=False)
+    def test_updating_booking_preference_memberships_off(self):
+        """
+        Memberships not shown, booking preference is hidden
+        """
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.get(self.url)
+        assert resp.context_data["form"].fields["booking_preference"].initial == "membership"
+        assert isinstance(resp.context_data["form"].fields["booking_preference"].widget, forms.HiddenInput)
 
     def test_updates_mailchimp_with_first_name(self):
         self.client.login(username=self.user.username, password='test')

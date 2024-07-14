@@ -8,6 +8,7 @@
 
 		</div>
 		<div class="modal-body mb-2">
+			{% if show_memberships %}
 			<h5>Memberships</h5>
 			<ul class="list-group">
 			{% if active_memberships %}
@@ -20,7 +21,7 @@
 			   <li class="list-group-item"><a href="{% url 'membership_create' %}" class="btn btn-wm btn-new-block">Get a new membership!</a></li>
 			{% endif %}
 			</ul>
-
+			{% endif %}
 			<h5>Blocks</h5>
 			<ul class="list-group">
 			{% if active_blocks %}

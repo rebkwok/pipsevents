@@ -60,7 +60,9 @@
                 <div class="col-12">
                 <div class="btn-group btn-group-sm float-right pb-1" role="group">
                     <a class="btn btn-info-link" href="{% url 'booking:bookings' %}">My bookings</a>
+                    {% if show_memberships %}
                     <a class="btn btn-info-link" href="{% url 'membership_list' %}">My memberships</a>
+                    {% endif %}
                     <a class="btn btn-info-link" href="{% url 'booking:block_list' %}">My blocks</a>
                 </div>
                 </div>
