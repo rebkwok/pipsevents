@@ -239,13 +239,14 @@ def test_webhook_authorized_account_no_seller(
         webhook_event_type="account.application.authorized"
     )
     mock_account.list.return_value = Mock(data=[Mock(id="stripe-account-1")])
-
+    Seller.objects.all().delete()
     resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
-    assert resp.status_code == 400
+    assert resp.status_code == 200
+    assert "Stripe account has no associated seller on this site" in resp.content.decode()
 
 
 @patch("stripe_payments.views.webhook.stripe.Webhook")
-def test_webhook_authorized_account_mismatched_seller(
+def test_webhook_payment_intent_succeeded_mismatched_seller(
     mock_webhook, get_mock_webhook_event, client, invoice
 ):     
     baker.make(Block, paid=True, block_type__cost=10, invoice=invoice)
@@ -264,7 +265,7 @@ def test_webhook_authorized_account_mismatched_seller(
 
 
 @patch("stripe_payments.views.webhook.stripe.Webhook")
-def test_webhook_authorized_account_no_seller(
+def test_webhook_payment_intent_succeeded_no_seller(
     mock_webhook, get_mock_webhook_event, client, invoice
 ):  
     baker.make(Block, paid=True, block_type__cost=10, invoice=invoice)
@@ -319,6 +320,30 @@ def test_webhook_subscription_created(
     # membership created, with start date as first of next month
     assert membership.user_memberships.count() == 1
     assert membership.user_memberships.first().start_date.date() == datetime(2024, 7, 1).date()
+
+
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+@patch("stripe_payments.views.webhook.stripe.Webhook")
+def test_webhook_subscription_created_setup_pending(
+    mock_webhook, get_mock_webhook_event, client, configured_stripe_user
+):
+    membership = baker.make(Membership, name="membership1")
+    assert not membership.user_memberships.exists()
+    mock_webhook.construct_event.return_value = get_mock_webhook_event(
+        webhook_event_type="customer.subscription.created",
+        start_date = datetime(2024, 6, 25).timestamp(),
+        pending_setup_intent="su_123",
+        status="active",
+    )
+    resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
+    assert resp.status_code == 200
+    # no emails sent for initial creation with no default payment method (i.e. setup but not paid/confirmed yet)
+    assert len(mail.outbox) == 0
+    # membership created, with start date as first of next month
+    assert membership.user_memberships.count() == 1
+    user_membership = membership.user_memberships.first()
+    assert user_membership.start_date.date() == datetime(2024, 7, 1).date()
+    assert user_membership.subscription_status == "setup_pending"
 
 
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
@@ -506,6 +531,34 @@ def test_webhook_subscription_updated_status_changed_to_active_from_incomplete(
     assert unpaid_booking.membership == user_membership
     assert unpaid_booking.paid == True
     assert paid_booking.membership is None
+
+
+
+@pytest.mark.freeze_time("2024-02-26")
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+@patch("stripe_payments.views.webhook.stripe.Webhook")
+def test_webhook_subscription_updated_status_changed_to_incomplete_expired(
+    mock_webhook, get_mock_webhook_event, client, configured_stripe_user
+):
+    mock_webhook.construct_event.return_value = get_mock_webhook_event(
+        webhook_event_type="customer.subscription.updated"
+    )
+    # status incomplete, changed to incomplete_expired deletes UserMembership
+    membership = baker.make(Membership, name="membership1")
+    baker.make(
+        UserMembership, membership=membership, user=configured_stripe_user, subscription_id="id",
+        start_date=datetime(2024, 1, 25, tzinfo=datetime_tz.utc), subscription_status="incomplete"
+    )
+    assert membership.user_memberships.count() == 1
+    mock_webhook.construct_event.return_value = get_mock_webhook_event(
+        webhook_event_type="customer.subscription.updated", 
+        status="incomplete_expired",
+        canceled_at=None,
+    )
+    resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
+    assert resp.status_code == 200, resp.content
+
+    assert not membership.user_memberships.exists()
 
 
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
@@ -751,5 +804,18 @@ def test_webhook_refund_updated_for_subscription(
     )
     resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
     assert resp.status_code == 200, resp.content
+    assert len(mail.outbox) == 1
+    assert mail.outbox[0].to == [settings.SUPPORT_EMAIL]
+
+
+@patch("stripe_payments.views.webhook.get_invoice_from_event_metadata")
+@patch("stripe_payments.views.webhook.stripe.Webhook")
+def test_webhook_unexpected_exception(
+    mock_webhook, mock_get_invoice, get_mock_webhook_event, client
+):
+    mock_webhook.construct_event.return_value = get_mock_webhook_event()
+    mock_get_invoice.side_effect = Exception("err")
+    resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
+    assert resp.status_code == 400, resp.content
     assert len(mail.outbox) == 1
     assert mail.outbox[0].to == [settings.SUPPORT_EMAIL]

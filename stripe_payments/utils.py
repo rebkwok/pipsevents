@@ -221,9 +221,9 @@ class StripeConnector:
             **kwargs
         )
 
-    def get_payment_intent(self, setup_intent_id):
+    def get_payment_intent(self, payment_intent_id):
         return stripe.PaymentIntent.retrieve(
-            id=setup_intent_id, stripe_account=self.connected_account_id
+            id=payment_intent_id, stripe_account=self.connected_account_id
         )
     
     def get_setup_intent(self, setup_intent_id):

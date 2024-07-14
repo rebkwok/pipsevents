@@ -75,17 +75,22 @@ def stripe_payment_complete(request):
 
 def stripe_subscribe_complete(request):
     subscribe_type = None
-    intent_id = request.GET.get("payment_intent")
-    updating = request.GET.get("updating", False)
-    if intent_id:
+    updating = "updating" in request.GET
+    
+    if "payment_intent" in request.GET:
+        intent_id = request.GET.get("payment_intent")
         subscribe_type = "payment"
-    else:
+    elif "setup_intent" in request.GET:
         intent_id = request.GET.get("setup_intent")
         subscribe_type = "setup"
 
     if subscribe_type is None:
         error = f"Could not identify payment or setup intent for subscription"
         logger.error(error)
+        send_failed_payment_emails(
+            payment_intent=None, 
+            error=error
+        )
         return render(request, 'stripe_payments/non_valid_payment.html')
 
     client = StripeConnector(request)
@@ -94,7 +99,7 @@ def stripe_subscribe_complete(request):
     # All confirmation emails are handled in the webhook
     if subscribe_type == "payment":
         try:
-            intent = stripe.PaymentIntent.retrieve(intent_id, stripe_account=client.connected_account_id)
+            intent = client.get_payment_intent(intent_id)
         except stripe.error.InvalidRequestError as e:
             error = f"Error retrieving Stripe payment intent: {e}"
             logger.error(e)
@@ -106,7 +111,7 @@ def stripe_subscribe_complete(request):
     else:
         assert subscribe_type == "setup"
         try:
-            intent = stripe.SetupIntent.retrieve(intent_id, stripe_account=client.connected_account_id)
+            intent = client.get_setup_intent(intent_id)
         except stripe.error.InvalidRequestError as e:
             error = f"Error retrieving Stripe setup intent: {e}"
             logger.error(e)
@@ -132,7 +137,6 @@ def stripe_subscribe_complete(request):
     
     assert subscribe_type == "setup"
     if intent.status == "succeeded":
-        # _process_completed_stripe_subscription(intent, client.connected_account, subscribe_type=subscribe_type, request=request)
         return render(request, 'stripe_payments/valid_subscription_setup.html', {"setup": True, "updating": updating})
     elif intent.status == "processing":
         error = f"Setup intent {intent.id} still processing."

@@ -145,4 +145,4 @@ class MockConnector:
     
     def customer_portal_url(self, customer_id):
         self._record(self.customer_portal_url, [customer_id])
-        raise NotImplementedError
+        return f"https://example.com/portal/{customer_id}/"

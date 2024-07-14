@@ -8,7 +8,7 @@ from django.shortcuts import reverse
 import stripe
 from model_bakery import baker
 
-from conftest import get_mock_payment_intent
+from conftest import get_mock_payment_intent, get_mock_setup_intent
 from booking.models import Block, Booking, TicketBooking, Ticket
 from ..models import Invoice, StripePaymentIntent
 from .mock_connector import MockConnector
@@ -388,3 +388,109 @@ def test_return_with_processing_payment_intent(mock_payment_intent, client, conf
     assert "Your payment is processing" in resp.content.decode("utf-8")
     assert len(mail.outbox) == 1
     assert mail.outbox[0].to == [settings.SUPPORT_EMAIL]
+
+
+# stripe portal
+@pytest.mark.usefixtures("seller")
+@patch("stripe_payments.views.views.StripeConnector", MockConnector)
+def test_stripe_portal_view(client):
+    resp = client.get(reverse("stripe_payments:stripe_portal", args=("customer-id-123",)))
+    assert resp.status_code == 302
+    assert resp.url == f"https://example.com/portal/customer-id-123/"
+
+
+# stripe subscribe view (stripe return url for subscriptions)
+
+subscribe_complete_url = reverse("stripe_payments:stripe_subscribe_complete")
+
+@pytest.mark.parametrize(
+    "payment_intent_status,updating,success,template_match",
+    [
+        ("succeeded", False, True, "Thank you for setting up your membership"),
+        ("succeeded", True, True, "Thank you for updating your membership"),
+        ("processing", True, False, "Your payment is processing"),
+        ("unknown", False, False, "Error Processing Payment"),
+    ]
+)
+@pytest.mark.usefixtures("seller")
+@patch("stripe_payments.utils.stripe.PaymentIntent")
+def test_stripe_subscribe_complete_with_payment_intent(mock_payment_intent, client, payment_intent_status, updating, success, template_match):
+    mock_payment_intent.retrieve.return_value = get_mock_payment_intent(status=payment_intent_status)
+    url = f"{subscribe_complete_url}?payment_intent=pi_123"
+    if updating:
+        url += "&updating=true"
+    resp = client.get(url)
+    assert resp.status_code == 200
+
+    assert template_match in resp.content.decode()
+    if success:
+        assert resp.context["updating"] == updating
+        assert resp.context["payment"]
+        assert len(mail.outbox) == 0
+    else:
+        assert len(mail.outbox) == 1
+        assert "Something went wrong processing a stripe event" in mail.outbox[0].subject
+       
+
+@pytest.mark.usefixtures("seller")
+@patch("stripe_payments.utils.stripe.PaymentIntent")
+def test_stripe_subscribe_complete_with_payment_intent_error(mock_payment_intent, client):
+    mock_payment_intent.retrieve.side_effect = stripe.InvalidRequestError("err", None)
+    url = f"{subscribe_complete_url}?payment_intent=pi_123"
+    resp = client.get(url)
+    assert resp.status_code == 200
+
+    assert "Error Processing Payment" in resp.content.decode()
+    assert len(mail.outbox) == 1
+    assert "Something went wrong processing a stripe event" in mail.outbox[0].subject
+
+
+@pytest.mark.parametrize(
+    "setup_intent_status,updating,success,template_match",
+    [
+        ("succeeded", False, True, "Thank you for setting up your membership"),
+        ("succeeded", True, True, "Thank you for updating your membership"),
+        ("processing", True, False, "Your payment is processing"),
+        ("unknown", False, False, "Error Processing Payment"),
+    ]
+)
+@pytest.mark.usefixtures("seller")
+@patch("stripe_payments.utils.stripe.SetupIntent")
+def test_stripe_subscribe_complete_with_setup_intent(mock_setup_intent, client, setup_intent_status, updating, success, template_match):
+    mock_setup_intent.retrieve.return_value = get_mock_setup_intent(status=setup_intent_status)
+    url = f"{subscribe_complete_url}?setup_intent=su_123"
+    if updating:
+        url += "&updating=true"
+    resp = client.get(url)
+    assert resp.status_code == 200
+    assert template_match in resp.content.decode()
+    if success:
+        assert resp.context["updating"] == updating
+        assert resp.context["setup"]
+        assert len(mail.outbox) == 0
+    else:
+        assert len(mail.outbox) == 1
+        assert "Something went wrong processing a stripe event" in mail.outbox[0].subject
+       
+
+@pytest.mark.usefixtures("seller")
+@patch("stripe_payments.utils.stripe.SetupIntent")
+def test_stripe_subscribe_complete_with_setup_intent_error(mock_setup_intent, client):
+    mock_setup_intent.retrieve.side_effect = stripe.InvalidRequestError("err", None)
+    url = f"{subscribe_complete_url}?setup_intent=su_123"
+    resp = client.get(url)
+    assert resp.status_code == 200
+
+    assert "Error Processing Payment" in resp.content.decode()
+    assert len(mail.outbox) == 1
+    assert "Something went wrong processing a stripe event" in mail.outbox[0].subject
+
+
+@pytest.mark.usefixtures("seller")
+def test_stripe_subscribe_complete_with_unknown_payment_type(client):
+    resp = client.get(subscribe_complete_url)
+    assert resp.status_code == 200
+
+    assert "Error Processing Payment" in resp.content.decode()
+    assert len(mail.outbox) == 1
+    assert "Something went wrong processing a stripe event" in mail.outbox[0].subject

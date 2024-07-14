@@ -86,6 +86,18 @@ def invoice(configured_user):
     )
 
 
+def get_mock_setup_intent(**params):
+    defaults = {
+        "object": "setup_intent",
+        "id": "mock-intent-id",
+        "status": "succeeded",
+        "currency": "gbp",
+        "client_secret": "secret",
+    }
+    options = {**defaults, **params}
+    return Mock(**options)
+
+
 def get_mock_payment_intent(webhook_event_type=None, **params):
     defaults = {
         "object": "payment_intent",
