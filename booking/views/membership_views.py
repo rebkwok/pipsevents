@@ -55,7 +55,7 @@ def membership_create(request):
             "form": form, 
             "has_ongoing_membership": has_ongoing_membership,
             "has_cancelled_current_membership": has_cancelled_current_membership,
-            "memberships": Membership.objects.filter(active=True)
+            "memberships": Membership.objects.purchasable()
         }
     )
 

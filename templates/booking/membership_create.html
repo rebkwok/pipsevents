@@ -13,7 +13,12 @@
                 <h4>Memerships available:</h4>
                     {% for membership in memberships %}
                         <dt>{{ membership.name }}</dt>
-                        <dd>{{ membership.description }}<br/>
+                        <dd>{{ membership.description }}
+                            <ul>
+                                {% for membership_item in membership.membership_items.all %}
+                                <li>{{ membership_item }}</li>
+                                {% endfor %}
+                            </ul>
                         £{{ membership.price }}{% if show_vat %} (incl VAT){% endif %}
                         <dd>
                     {% endfor %}

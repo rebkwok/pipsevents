@@ -15,6 +15,12 @@ from stripe_payments.utils import StripeConnector, get_first_of_next_month_from_
 logger = logging.getLogger(__name__)
 
 
+
+class MembershipManager(models.Manager):
+    def purchasable(self):
+        return self.get_queryset().filter(active=True, membership_items__id__isnull=False)
+    
+
 class Membership(models.Model):
     """
     Represents a Stripe Product for a monthly Membership plan.
@@ -31,6 +37,8 @@ class Membership(models.Model):
     price = models.DecimalField(max_digits=8, decimal_places=2)
     stripe_price_id = models.TextField(null=True)
     active = models.BooleanField(default=True, help_text="Visible and available for purchase on site")
+
+    objects = MembershipManager()
 
     def __str__(self) -> str:
         return f"{self.name} - £{self.price}"
@@ -88,7 +96,7 @@ class Membership(models.Model):
                         subscription_id=user_membership.subscription_id, new_price_id=self.stripe_price_id
                     )
 
-
+    
 
 class MembershipItem(models.Model):
     """

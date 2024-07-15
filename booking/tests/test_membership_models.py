@@ -15,6 +15,25 @@ from stripe_payments.tests.mock_connector import MockConnector
 pytestmark = pytest.mark.django_db
 
 
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+def test_membership_purchaseable(seller):
+    active_membership = baker.make(
+        Membership, name="Test membership", description="a membership", price=10, active=True
+    )
+    inactive_membership = baker.make(
+        Membership, name="Test membership", description="a membership", price=10, active=False
+    )
+    assert Membership.objects.purchasable().exists() is False
+
+    baker.make(
+        MembershipItem, membership=active_membership, quantity=4
+    )
+    baker.make(
+        MembershipItem, membership=inactive_membership, quantity=4
+    )
+    assert list(Membership.objects.purchasable()) == [active_membership]
+
+
 def test_membership_create(mocked_responses, seller):
     mocked_responses.post(
         "https://api.stripe.com/v1/products",
@@ -261,7 +280,7 @@ def test_membership_change_price_with_user_membership_existing_schedule(mocked_r
     assert membership.stripe_product_id == "memb-1"
     assert membership.stripe_price_id == "price_1"
 
-    user_membership = baker.make(
+    baker.make(
         UserMembership,
         membership=membership,
         subscription_status="active",

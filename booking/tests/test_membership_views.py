@@ -9,9 +9,10 @@ from django.urls import reverse
 
 from model_bakery import baker
 
+from stripe_payments.models import Seller
 from stripe_payments.tests.mock_connector import MockConnector
 
-from booking.models import Membership, UserMembership
+from booking.models import Membership, MembershipItem, UserMembership
 from booking.views.membership_views import ensure_subscription_up_to_date
 
 
@@ -20,6 +21,14 @@ pytestmark = pytest.mark.django_db
 create_url = reverse("membership_create")
 checkout_url = reverse("membership_checkout")
 stripe_subscribe_url = reverse("subscription_create")
+
+
+@pytest.fixture()
+def purchasable_membership(seller):
+    with patch("booking.models.membership_models.StripeConnector", MockConnector):
+        mem = baker.make(Membership, name="m")
+    baker.make(MembershipItem, membership=mem, quantity=5)
+    yield mem
 
 
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
@@ -36,7 +45,10 @@ def test_membership_create_get(client, seller, configured_user):
     client.force_login(configured_user)
     m1 = baker.make(Membership, name="m1", active=True)
     m2 = baker.make(Membership, name="m2", active=True)
-    baker.make(Membership, name="m3", active=False)
+    m3 = baker.make(Membership, name="m3", active=False)
+    baker.make(Membership, name="m4", active=True)
+    for m in [m1, m2, m3]:
+        baker.make(MembershipItem, membership=m)
     resp = client.get(create_url)
     assert resp.status_code == 200
     form = resp.context_data["form"]
@@ -48,7 +60,6 @@ def test_membership_create_get(client, seller, configured_user):
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 def test_membership_create_after_25th_of_month(client, seller, configured_user):
     client.force_login(configured_user)
-    baker.make(Membership, name="m1", active=True)
     resp = client.get(create_url)
     assert resp.status_code == 200
     form = resp.context_data["form"]
@@ -57,23 +68,23 @@ def test_membership_create_after_25th_of_month(client, seller, configured_user):
 
 @pytest.mark.freeze_time("2024-02-12")
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
-def test_membership_create_user_has_cancelled_membership(client, seller, configured_user):
+def test_membership_create_user_has_cancelled_membership(client, seller, configured_user, purchasable_membership):
     client.force_login(configured_user)
-    m1 = baker.make(Membership, name="m1", active=True)
     m2 = baker.make(Membership, name="m2", active=True)
-    baker.make(UserMembership, user=configured_user, membership=m1, subscription_status="cancelled")
+    baker.make(MembershipItem, membership=m2, quantity=5)
+    baker.make(UserMembership, user=configured_user, membership=purchasable_membership, subscription_status="cancelled")
     resp = client.get(create_url)
     form = resp.context_data["form"]
     # membership is fully cancelled, can buy new one
-    assert set(form.fields["membership"].queryset) == {m1, m2}
+    assert set(form.fields["membership"].queryset) == {purchasable_membership, m2}
 
 
 @pytest.mark.freeze_time("2024-02-12")
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
-def test_membership_create_user_has_cancelled_unexpired_membership(client, seller, configured_user):
+def test_membership_create_user_has_cancelled_unexpired_membership(client, seller, configured_user, purchasable_membership):
     client.force_login(configured_user)
     m1 = baker.make(Membership, name="m1", active=True)
-    m2 = baker.make(Membership, name="m2", active=True)
+    baker.make(MembershipItem, membership=m1)
     baker.make(
         UserMembership, user=configured_user, membership=m1, 
         subscription_status="active", 
@@ -83,17 +94,17 @@ def test_membership_create_user_has_cancelled_unexpired_membership(client, selle
     resp = client.get(create_url)
     form = resp.context_data["form"]
     # membership cancels from end of month, only has option for next month
-    assert set(form.fields["membership"].queryset) == {m1, m2}
+    assert set(form.fields["membership"].queryset) == {m1, purchasable_membership}
     assert form.fields["backdate"].choices == [(0, "March")]
 
 
 @pytest.mark.freeze_time("2024-02-12")
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
-def test_membership_create_user_has_current_membership(client, seller, configured_user):
+def test_membership_create_user_has_current_membership(client, seller, configured_user, purchasable_membership):
     # redirect; no options to create new membership
     client.force_login(configured_user)
     m1 = baker.make(Membership, name="m1", active=True)
-    m2 = baker.make(Membership, name="m2", active=True)
+    baker.make(MembershipItem, membership=m1)
     baker.make(
         UserMembership, user=configured_user, membership=m1, 
         subscription_status="active", 
@@ -105,10 +116,10 @@ def test_membership_create_user_has_current_membership(client, seller, configure
 
 @pytest.mark.freeze_time("2024-02-12")
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
-def test_membership_create_user_has_future_membership(client, seller, configured_user):
+def test_membership_create_user_has_future_membership(client, seller, configured_user, purchasable_membership):
     client.force_login(configured_user)
     m1 = baker.make(Membership, name="m1", active=True)
-    m2 = baker.make(Membership, name="m2", active=True)
+    baker.make(MembershipItem, membership=m1)
     baker.make(
         UserMembership, user=configured_user, membership=m1, 
         subscription_status="active", 
@@ -116,24 +127,25 @@ def test_membership_create_user_has_future_membership(client, seller, configured
     )
     resp = client.get(create_url)
     form = resp.context_data["form"]
-    assert set(form.fields["membership"].queryset) == {m1, m2}
+    assert set(form.fields["membership"].queryset) == {m1, purchasable_membership}
     assert "You already have an active membership" in resp.rendered_content
 
 
 @pytest.mark.freeze_time("2024-02-12")
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
-def test_membership_create_post(client, seller, configured_user):
+def test_membership_create_post(client, seller, configured_user, purchasable_membership):
     # can't post to this page; form posts to stripe checkout
     client.force_login(configured_user)
-    m1 = baker.make(Membership, name="m1", active=True)
-    resp = client.post(create_url, {"membership": m1.id, "backdate": 1})
+    resp = client.post(create_url, {"membership": purchasable_membership.id, "backdate": 1})
     assert resp.status_code == 405
 
 
-def test_membership_checkout_no_seller(client, configured_stripe_user):
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+def test_membership_checkout_no_seller(client, configured_stripe_user, purchasable_membership):
+    Seller.objects.all().delete()
     # membership checkout page, with data from membership selection page
     client.force_login(configured_stripe_user)
-    resp = client.post(checkout_url, {"membership": "m1", "backdate": 1})
+    resp = client.post(checkout_url, {"membership": purchasable_membership.id, "backdate": 1})
     assert resp.status_code == 200
     assert resp.context_data["preprocessing_error"]
    
@@ -141,52 +153,49 @@ def test_membership_checkout_no_seller(client, configured_stripe_user):
 @pytest.mark.freeze_time("2024-02-12")
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 @patch("booking.views.membership_views.StripeConnector", MockConnector)
-def test_membership_checkout_new_subscription_backdate(client, seller, configured_stripe_user):
+def test_membership_checkout_new_subscription_backdate(client, seller, configured_stripe_user, purchasable_membership):
     # membership checkout page, with data from membership selection page
     client.force_login(configured_stripe_user)
-    m1 = baker.make(Membership, name="m1", active=True)
-    resp = client.post(checkout_url, {"membership": m1.id, "backdate": 1})
+    resp = client.post(checkout_url, {"membership": purchasable_membership.id, "backdate": 1})
     assert resp.status_code == 200
     assert "/stripe/subscribe-complete/" in resp.context_data["stripe_return_url"]
     assert resp.context_data["backdate"] == 1
-    assert resp.context_data["amount"] == m1.price * 100
+    assert resp.context_data["amount"] == purchasable_membership.price * 100
     assert resp.context_data["creating"] == True
-    assert resp.context_data["membership"] == m1
+    assert resp.context_data["membership"] == purchasable_membership
     assert resp.context_data["customer_id"] == configured_stripe_user.userprofile.stripe_customer_id
 
 
 @pytest.mark.freeze_time("2024-02-12")
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 @patch("booking.views.membership_views.StripeConnector", MockConnector)
-def test_membership_checkout_new_subscription_no_backdate(client, seller, configured_stripe_user):
+def test_membership_checkout_new_subscription_no_backdate(client, seller, configured_stripe_user, purchasable_membership):
     # membership checkout page, with data from membership selection page
     client.force_login(configured_stripe_user)
-    m1 = baker.make(Membership, name="m1", active=True)
-    resp = client.post(checkout_url, {"membership": m1.id, "backdate": 0})
+    resp = client.post(checkout_url, {"membership": purchasable_membership.id, "backdate": 0})
     assert resp.status_code == 200
     assert "/stripe/subscribe-complete/" in resp.context_data["stripe_return_url"]
     assert resp.context_data["backdate"] == 0
     # no backdating, amount charged now is 0
     assert resp.context_data["amount"] == 0
     assert resp.context_data["creating"] == True
-    assert resp.context_data["membership"] == m1
+    assert resp.context_data["membership"] == purchasable_membership
     assert resp.context_data["customer_id"] == configured_stripe_user.userprofile.stripe_customer_id
 
 
 @pytest.mark.freeze_time("2024-02-12")
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 @patch("booking.views.membership_views.StripeConnector")
-def test_membership_checkout_existing_subscription_with_invoice(mock_conn, client, seller, configured_stripe_user):
+def test_membership_checkout_existing_subscription_with_invoice(mock_conn, client, seller, configured_stripe_user, purchasable_membership):
     mock_connector = MockConnector(invoice_secret="pi_secret")
     mock_conn.return_value = mock_connector
     
     # membership checkout page, with data from membership selection page
     client.force_login(configured_stripe_user)
-    m1 = baker.make(Membership, name="m1", active=True)
     baker.make(
         UserMembership, 
         user=configured_stripe_user, 
-        membership=m1, 
+        membership=purchasable_membership, 
         subscription_id="sub1a",
         subscription_status="incomplete"
     )
@@ -195,7 +204,7 @@ def test_membership_checkout_existing_subscription_with_invoice(mock_conn, clien
     assert resp.context_data["backdate"] == 0
     assert resp.context_data["amount"] == ""
     assert "creating" not in resp.context_data
-    assert resp.context_data["membership"] == m1
+    assert resp.context_data["membership"] == purchasable_membership
     assert resp.context_data["customer_id"] == configured_stripe_user.userprofile.stripe_customer_id
     assert resp.context_data["client_secret"] == "pi_secret"
     assert resp.context_data["confirm_type"] == "payment"
@@ -204,17 +213,16 @@ def test_membership_checkout_existing_subscription_with_invoice(mock_conn, clien
 @pytest.mark.freeze_time("2024-02-12")
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 @patch("booking.views.membership_views.StripeConnector")
-def test_membership_checkout_existing_subscription_with_setup_intent(mock_conn, client, seller, configured_stripe_user):
+def test_membership_checkout_existing_subscription_with_setup_intent(mock_conn, client, seller, configured_stripe_user, purchasable_membership):
     mock_connector = MockConnector(setup_intent_secret="su_secret")
     mock_conn.return_value = mock_connector
 
     # membership checkout page, with data from membership selection page
     client.force_login(configured_stripe_user)
-    m1 = baker.make(Membership, name="m1", active=True)
     baker.make(
         UserMembership, 
         user=configured_stripe_user, 
-        membership=m1, 
+        membership=purchasable_membership, 
         subscription_id="sub1b",
         subscription_status="setup_pending"
     )
@@ -223,7 +231,7 @@ def test_membership_checkout_existing_subscription_with_setup_intent(mock_conn, 
     assert resp.context_data["backdate"] == 0
     assert resp.context_data["amount"] == ""
     assert "creating" not in resp.context_data
-    assert resp.context_data["membership"] == m1
+    assert resp.context_data["membership"] == purchasable_membership
     assert resp.context_data["customer_id"] == configured_stripe_user.userprofile.stripe_customer_id
     assert resp.context_data["client_secret"] == "su_secret"
     assert resp.context_data["confirm_type"] == "setup"
@@ -233,19 +241,18 @@ def test_membership_checkout_existing_subscription_with_setup_intent(mock_conn, 
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 @patch("booking.views.membership_views.StripeConnector")
 def test_membership_checkout_existing_subscription_with_setup_intent_already_succeeded(
-    mock_conn, client, seller, configured_stripe_user
+    mock_conn, client, seller, configured_stripe_user, purchasable_membership
 ):
     mock_connector = MockConnector(setup_intent_secret="su_secret", setup_intent_status="succeeded")
     mock_conn.return_value = mock_connector
 
     # membership checkout page, with data from membership selection page
     client.force_login(configured_stripe_user)
-    m1 = baker.make(Membership, name="m1", active=True)
     # user membership is incorrectly marked as setup pending
     user_membership = baker.make(
         UserMembership, 
         user=configured_stripe_user, 
-        membership=m1, 
+        membership=purchasable_membership, 
         subscription_id="sub1b",
         subscription_status="setup_pending",
         pending_setup_intent="su1",
@@ -262,17 +269,16 @@ def test_membership_checkout_existing_subscription_with_setup_intent_already_suc
 @pytest.mark.freeze_time("2024-02-12")
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 @patch("booking.views.membership_views.StripeConnector")
-def test_membership_checkout_existing_subscription_with_invoice_already_paid(mock_conn, client, seller, configured_stripe_user):
+def test_membership_checkout_existing_subscription_with_invoice_already_paid(mock_conn, client, seller, configured_stripe_user, purchasable_membership):
     mock_connector = MockConnector(invoice_secret="pi_secret", subscription_status="active")
     mock_conn.return_value = mock_connector
     
     # membership checkout page, with data from membership selection page
     client.force_login(configured_stripe_user)
-    m1 = baker.make(Membership, name="m1", active=True)
     user_membership = baker.make(
         UserMembership, 
         user=configured_stripe_user, 
-        membership=m1, 
+        membership=purchasable_membership, 
         subscription_id="sub1a",
         subscription_status="incomplete"
     )
@@ -310,16 +316,16 @@ def test_membership_checkout_existing_subscription_with_invoice_already_paid(moc
 @pytest.mark.freeze_time("2024-02-12")
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 @patch("booking.views.membership_views.StripeConnector", MockConnector)
-def test_membership_change_get(client, seller, configured_stripe_user):
+def test_membership_change_get(client, seller, configured_stripe_user, purchasable_membership):
     client.force_login(configured_stripe_user)
-    m1 = baker.make(Membership, name="m1", active=True)
     m2 = baker.make(Membership, name="m2", active=True)
     m2.stripe_price_id = "price_2345"
     m2.save()
+    baker.make(MembershipItem, membership=m2, quantity=3)
     baker.make(
         UserMembership, 
         user=configured_stripe_user, 
-        membership=m1, 
+        membership=purchasable_membership, 
         subscription_id="sub1",
         subscription_status="active",
         start_date=datetime(2024, 1, 1)
@@ -335,17 +341,17 @@ def test_membership_change_get(client, seller, configured_stripe_user):
 @pytest.mark.freeze_time("2024-02-12")
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 @patch("booking.views.membership_views.StripeConnector", MockConnector)
-def test_membership_change_get_current_membership_cancelled(client, seller, configured_stripe_user):
+def test_membership_change_get_current_membership_cancelled(client, seller, configured_stripe_user, purchasable_membership):
     # can't change a cancelled membership
     client.force_login(configured_stripe_user)
-    m1 = baker.make(Membership, name="m1", active=True)
     m2 = baker.make(Membership, name="m2", active=True)
     m2.stripe_price_id = "price_2345"
     m2.save()
+    baker.make(MembershipItem, membership=m2, quantity=3)
     baker.make(
         UserMembership, 
         user=configured_stripe_user, 
-        membership=m1, 
+        membership=purchasable_membership, 
         subscription_id="sub1",
         subscription_status="active",
         start_date=datetime(2023, 12, 1),
@@ -361,21 +367,21 @@ def test_membership_change_get_current_membership_cancelled(client, seller, conf
 @pytest.mark.freeze_time("2024-02-12")
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 @patch("booking.views.membership_views.StripeConnector")
-def test_membership_change_post_active_subscription(mock_conn, client, seller, configured_stripe_user):
+def test_membership_change_post_active_subscription(mock_conn, client, seller, configured_stripe_user, purchasable_membership):
     # default payment method is used in get_subscription (to get the old subscription)
     # and passed on to create_subscription to create the new one
     mock_connector = MockConnector(default_payment_method="p1")
     mock_conn.return_value = mock_connector
 
     client.force_login(configured_stripe_user)
-    m1 = baker.make(Membership, name="m1", active=True)
     m2 = baker.make(Membership, name="m2", active=True)
     m2.stripe_price_id = "price_2345"
     m2.save()
+    baker.make(MembershipItem, membership=m2, quantity=3)
     baker.make(
         UserMembership, 
         user=configured_stripe_user, 
-        membership=m1, 
+        membership=purchasable_membership, 
         subscription_id="sub1",
         subscription_status="active",
         subscription_start_date=datetime(2023, 12, 25),
@@ -404,21 +410,21 @@ def test_membership_change_post_active_subscription(mock_conn, client, seller, c
 @pytest.mark.freeze_time("2024-02-12")
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 @patch("booking.views.membership_views.StripeConnector")
-def test_membership_change_post_future_subscription(mock_conn, client, seller, configured_stripe_user):
+def test_membership_change_post_future_subscription(mock_conn, client, seller, configured_stripe_user, purchasable_membership):
     # default payment method is used in get_subscription (to get the old subscription)
     # and passed on to create_subscription to create the new one
     mock_connector = MockConnector(default_payment_method="p1")
     mock_conn.return_value = mock_connector
 
     client.force_login(configured_stripe_user)
-    m1 = baker.make(Membership, name="m1", active=True)
     m2 = baker.make(Membership, name="m2", active=True)
     m2.stripe_price_id = "price_2345"
     m2.save()
+    baker.make(MembershipItem, membership=m2, quantity=3)
     baker.make(
         UserMembership, 
         user=configured_stripe_user, 
-        membership=m1, 
+        membership=purchasable_membership, 
         subscription_id="sub1",
         subscription_status="active",
         subscription_start_date=datetime(2024, 2, 10),
@@ -446,13 +452,12 @@ def test_membership_change_post_future_subscription(mock_conn, client, seller, c
 
 
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
-def test_membership_change_post_invalid_form(client, seller, configured_stripe_user):
+def test_membership_change_post_invalid_form(client, seller, configured_stripe_user, purchasable_membership):
     client.force_login(configured_stripe_user)
-    m1 = baker.make(Membership, name="m1", active=True)
     baker.make(
         UserMembership, 
         user=configured_stripe_user, 
-        membership=m1, 
+        membership=purchasable_membership, 
         subscription_id="sub1",
     )
     resp = client.post(reverse("membership_change", args=("sub1",)), {"membership": "foo"})
@@ -601,14 +606,13 @@ def test_subscription_create_subscription_error(
 
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 def test_subscription_cancel_get(
-    client, seller, configured_stripe_user
+    client, seller, configured_stripe_user, purchasable_membership
 ):
     client.force_login(configured_stripe_user)
-    m1 = baker.make(Membership, name="m1", active=True)
     user_membership = baker.make(
         UserMembership, 
         user=configured_stripe_user, 
-        membership=m1, 
+        membership=purchasable_membership, 
         subscription_id="sub-1",
         subscription_status="active",
         subscription_start_date=datetime(2024, 2, 10),
@@ -643,18 +647,17 @@ def test_subscription_cancel_get_404(
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 @patch("booking.views.membership_views.StripeConnector")
 def test_subscription_cancel(
-        mock_conn, freezer, client, seller, configured_stripe_user, 
+        mock_conn, freezer, client, seller, configured_stripe_user, purchasable_membership,
         now, subscription_start_date, cancel_immediately
 ):
     mock_connector = MockConnector()
     mock_conn.return_value = mock_connector
 
     client.force_login(configured_stripe_user)
-    m1 = baker.make(Membership, name="m1", active=True)
     baker.make(
         UserMembership, 
         user=configured_stripe_user, 
-        membership=m1, 
+        membership=purchasable_membership, 
         subscription_id="sub-1",
         subscription_status="active",
         subscription_start_date=subscription_start_date,
@@ -749,7 +752,7 @@ def test_subscription_cancel(
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 @patch("booking.views.membership_views.StripeConnector.get_subscription")
 def test_membership_status(
-    mock_get_subscription, freezer, client, seller, configured_stripe_user, 
+    mock_get_subscription, freezer, client, seller, configured_stripe_user, purchasable_membership,
     now, status, end_date, current_period_end, latest_invoice, cancel_at_ts, expected
 ):
     freezer.move_to(now)
@@ -763,11 +766,10 @@ def test_membership_status(
     )
                     
     client.force_login(configured_stripe_user)
-    m1 = baker.make(Membership, name="m1", active=True)
     user_membership = baker.make(
         UserMembership, 
         user=configured_stripe_user, 
-        membership=m1, 
+        membership=purchasable_membership, 
         subscription_id="sub-1",
         subscription_status=status,
         end_date=end_date,
@@ -803,7 +805,7 @@ def test_membership_list_no_user_memberships(client, seller, configured_stripe_u
 
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 @patch("booking.views.membership_views.StripeConnector")
-def test_membership_list(mock_conn, client, seller, configured_stripe_user):
+def test_membership_list(mock_conn, client, seller, configured_stripe_user, purchasable_membership):
     mock_connector = MockConnector(
         subscriptions={
             "sub-1": MockSubscription(
@@ -811,11 +813,10 @@ def test_membership_list(mock_conn, client, seller, configured_stripe_user):
         }
     )
     mock_conn.return_value = mock_connector
-    m1 = baker.make(Membership, name="m1", active=True)
     user_membership = baker.make(
         UserMembership, 
         user=configured_stripe_user, 
-        membership=m1, 
+        membership=purchasable_membership, 
         subscription_id="sub-1",
         subscription_status="active",
     )
@@ -828,14 +829,13 @@ def test_membership_list(mock_conn, client, seller, configured_stripe_user):
 
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 @patch("booking.views.membership_views.StripeConnector")
-def test_membership_list_get_subscription(mock_conn, client, seller, configured_stripe_user):
+def test_membership_list_get_subscription(mock_conn, client, seller, configured_stripe_user, purchasable_membership):
     mock_connector = MockConnector(subscriptions={}, no_subscription=True)
     mock_conn.return_value = mock_connector
-    m1 = baker.make(Membership, name="m1", active=True)
     user_membership = baker.make(
         UserMembership, 
         user=configured_stripe_user, 
-        membership=m1, 
+        membership=purchasable_membership, 
         subscription_id="sub-1",
         subscription_status="active",
     )
@@ -988,14 +988,13 @@ def test_membership_list_get_subscription(mock_conn, client, seller, configured_
 )
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 def test_ensure_subscription_up_to_date(
-    seller, configured_stripe_user, user_membership_status, subscription,
+    seller, configured_stripe_user, user_membership_status, subscription, purchasable_membership,
     expected
 ):
-    m1 = baker.make(Membership, name="m1", active=True)
     user_membership = baker.make(
         UserMembership, 
         user=configured_stripe_user, 
-        membership=m1, 
+        membership=purchasable_membership, 
         subscription_id="sub-1",
         subscription_status=user_membership_status,
     )
