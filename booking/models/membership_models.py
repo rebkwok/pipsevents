@@ -95,8 +95,13 @@ class Membership(models.Model):
                     stripe_client.update_subscription_price(
                         subscription_id=user_membership.subscription_id, new_price_id=self.stripe_price_id
                     )
-
     
+    def delete(self, *args, **kwargs):
+        assert self.user_memberships.exists(), f"Attempted to delete membership (id {self.id}) with purchased user memberships"
+        stripe_client = StripeConnector()
+        stripe_client.archive_stripe_product(self.stripe_product_id, self.stripe_price_id)
+        super().delete(*args, **kwargs)
+
 
 class MembershipItem(models.Model):
     """
