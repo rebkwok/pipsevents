@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 class MembershipManager(models.Manager):
     def purchasable(self):
-        return self.get_queryset().filter(active=True, membership_items__id__isnull=False)
+        return self.get_queryset().filter(active=True, membership_items__id__isnull=False).distinct()
     
 
 class Membership(models.Model):
@@ -85,16 +85,20 @@ class Membership(models.Model):
                     active=self.active,
                     price_id=self.stripe_price_id,
                 )
-            # TODO: If price has changed, update UserMemberships with active subscriptions
-            # beyond this month (with stripe_client.update_subscription_price())
+                if price_changed:
+                    ActivityLog.objects.create(
+                        log=f"Stripe price updated on membership {self.id} ({self.stripe_product_id}): from £{presaved.price} to £{self.price}")
         super().save(*args, **kwargs)
 
         if price_changed:
+            # update user memberships from this month (with stripe_client.update_subscription_price())
             for user_membership in self.user_memberships.filter(end_date__isnull=True):
                 if user_membership.is_active():
                     stripe_client.update_subscription_price(
                         subscription_id=user_membership.subscription_id, new_price_id=self.stripe_price_id
                     )
+                    ActivityLog.objects.create(log=f"User membership for user {user_membership.user} updated for price change on membership {self.id}")
+
     
     def delete(self, *args, **kwargs):
         assert self.user_memberships.exists(), f"Attempted to delete membership (id {self.id}) with purchased user memberships"
