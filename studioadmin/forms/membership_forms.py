@@ -33,14 +33,14 @@ class Formset(LayoutObject):
         self.fields = []
 
         # Overrides class variable with an instance level variable
-        if template:
+        if template:  # pragma: no cover
             self.template = template
 
     def render(self, form, context, **kwargs):
         formset = context.get(self.formset_context_name)
         helper = context.get(self.helper_context_name)
         # closes form prematurely if this isn't explicitly stated
-        if helper:
+        if helper:  # pragma: no cover
             helper.form_tag = False
 
         context.update({'formset': formset, 'helper': helper})
@@ -58,13 +58,14 @@ class MembershipAddEditForm(forms.ModelForm):
         model = Membership
         fields = ('name', 'description', 'price', 'active')
         widgets = {
-            "name": forms.TextInput()
+            "name": forms.TextInput(),
         }
 
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["description"].required = True
+        self.fields["price"] = forms.DecimalField(min_value=0)
         back_url = reverse('studioadmin:memberships_list')
         self.helper = FormHelper()
         self.helper.layout = Layout(

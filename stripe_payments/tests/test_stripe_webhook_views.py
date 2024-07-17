@@ -731,7 +731,7 @@ def test_webhook_invoice_finalised(
 
     sub_inv = StripeSubscriptionInvoice.objects.first()
     assert sub_inv.total == 10
-    assert sub_inv.invoice_date == datetime(2024, 2, 25, tzinfo=timezone.utc)
+    assert sub_inv.invoice_date == datetime(2024, 2, 25, tzinfo=datetime_tz.utc)
 
 
 @patch("stripe_payments.views.webhook.stripe.Webhook")

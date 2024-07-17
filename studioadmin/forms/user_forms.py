@@ -2,6 +2,7 @@
 import pytz
 
 from datetime import datetime
+from datetime import timezone as dt_timezone
 
 from django import forms
 from django.contrib.auth.models import User
@@ -406,7 +407,7 @@ class UserBlockInlineFormSet(BaseInlineFormSet):
                     if cleaned_date and form.initial[date_field]:
                         # dates in form are in local time; on BST it will differ
                         # from the stored UTC date
-                        cleaned_date_utc = cleaned_date.astimezone(timezone.utc).replace(
+                        cleaned_date_utc = cleaned_date.astimezone(dt_timezone.utc).replace(
                             hour=0, minute=0, second=0, microsecond=0
                         )
                         orig_date = form.initial[date_field].replace(

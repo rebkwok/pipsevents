@@ -19,37 +19,11 @@ def memberships_list(request):
     return TemplateResponse(request, "studioadmin/memberships.html", {"sidenav_selection": "memberships", "memberships": memberships})
 
 
-@login_required
-@staff_required
-def membership_edit(request, pk):
-    membership = get_object_or_404(Membership, pk=pk)
+def _process_membership_create_or_update(request, membership=None):
+    sidenav_selection = "memberships" if membership is not None else "membership_add"
 
     if request.method == "POST":
-        form = MembershipAddEditForm(request.POST, instance=membership)        
-        if form.is_valid():
-            membership = form.save()
-            formset =  MembershipItemFormset(request.POST, instance=membership)
-            if formset.is_valid():
-                formset.save()
-                ActivityLog.objects.create(log=f"Membership config ({membership.name}) updated by admin user {request.user.username}")
-                messages.success(request, "Membership configuration saved")
-                return HttpResponseRedirect(reverse("studioadmin:memberships_list"))            
-    else:
-        form = MembershipAddEditForm(instance=membership)
-        formset = MembershipItemFormset(instance=membership)
-
-    return TemplateResponse(
-        request, 
-        "studioadmin/membership_create_update.html", 
-        {"sidenav_selection": "memberships", "membership": membership, "form": form, "formset": formset}
-    )
-
-
-@login_required
-@staff_required
-def membership_add(request):
-    if request.method == "POST":
-        form = MembershipAddEditForm(request.POST)        
+        form = MembershipAddEditForm(request.POST, instance=membership)   
         if form.is_valid():
             membership = form.save()
             formset =  MembershipItemFormset(request.POST, instance=membership)
@@ -57,16 +31,30 @@ def membership_add(request):
                 formset.save()
                 ActivityLog.objects.create(log=f"Membership config ({membership.name}) created by admin user {request.user.username}")
                 messages.success(request, "Membership configuration saved")
-                return HttpResponseRedirect(reverse("studioadmin:memberships_list"))            
+                return HttpResponseRedirect(reverse("studioadmin:memberships_list")) 
+        else:
+            formset = MembershipItemFormset(request.POST, instance=membership)
     else:
-        form = MembershipAddEditForm()
-        formset = MembershipItemFormset()
+        form = MembershipAddEditForm(instance=membership)
+        formset = MembershipItemFormset(instance=membership)
 
     return TemplateResponse(
         request, 
         "studioadmin/membership_create_update.html", 
-        {"sidenav_selection": "membership_add", "form": form, "formset": formset}
+        {"sidenav_selection": sidenav_selection, "form": form, "formset": formset}
     )
+
+@login_required
+@staff_required
+def membership_edit(request, pk):
+    membership = get_object_or_404(Membership, pk=pk)
+    return _process_membership_create_or_update(request, membership=membership)
+
+
+@login_required
+@staff_required
+def membership_add(request):
+    return _process_membership_create_or_update(request)
 
 
 
@@ -75,7 +63,7 @@ def membership_add(request):
 @require_POST
 def membership_delete(request, pk):
     membership = get_object_or_404(Membership, pk=pk)
-    if membership.membership_items.exists():
+    if membership.user_memberships.exists():
         messages.error(request, "Cannot delete membership configuration with purchased memberships")
     else:
         membership.delete()

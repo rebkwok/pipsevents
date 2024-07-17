@@ -101,7 +101,7 @@ class Membership(models.Model):
 
     
     def delete(self, *args, **kwargs):
-        assert self.user_memberships.exists(), f"Attempted to delete membership (id {self.id}) with purchased user memberships"
+        assert not self.user_memberships.exists(), f"Attempted to delete membership (id {self.id}) with purchased user memberships"
         stripe_client = StripeConnector()
         stripe_client.archive_stripe_product(self.stripe_product_id, self.stripe_price_id)
         super().delete(*args, **kwargs)
