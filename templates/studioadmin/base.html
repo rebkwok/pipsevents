@@ -125,6 +125,16 @@
             </li>
 
             <li class="dropdown">
+                <a href="#" class="dropdown-toggle adminmenu d-block d-md-none" data-toggle="dropdown" role="button" aria-expanded="false"><strong>Memberships </strong></a>
+                <ul class="dropdown-menu ml-4" role="menu">
+                  <li class="active-nav"><a href="{% url 'studioadmin:memberships_list' %}">{% if sidenav_selection == 'memberships' %}
+                        <span class="sidebar_active">Membership setup</span>{% else %}Membership setup{% endif %}</a></li>
+                  <li class="active-nav"><a href="{% url 'studioadmin:membership_add' %}">{% if sidenav_selection == 'membership_adds' %}
+                    <span class="sidebar_active">Add a new membership</span>{% else %}Add a new membership{% endif %}</a></li>
+                </ul>
+              </li>
+
+            <li class="dropdown">
                 <a href="#" class="dropdown-toggle adminmenu d-block d-md-none" data-toggle="dropdown" role="button" aria-expanded="false"><strong>Vouchers </strong></a>
                   <ul class="dropdown-menu ml-4" role="menu">
                     <li class="active-nav"><a href="{% url 'studioadmin:vouchers' %}">{% if sidenav_selection == 'vouchers' %}
@@ -441,6 +451,26 @@
                         <li class="active-nav"><a href="{% url 'studioadmin:print_tickets_list' %}">{% if sidenav_selection == 'print_tickets_list' %}
                             <span class="sidebar_active">View and print ticket lists</span>{% else %}View and print ticket lists{% endif %}</a></li>
                     </span>
+
+                      <li class="sidebar-title">
+                        <a id="toggler" href="#" data-toggle="collapse" class="active" data-target="#memberships">
+                            <span class="fa memberships
+                                {% if sidenav_selection in 'memberships,membership_add' %}
+                                    fa-minus-square
+                                {% else %}
+                                    fa-plus-square
+                                {% endif %}">
+                            </span>
+                            Memberships
+                        </a>
+                    </li>
+                    <span id="memberships" class="collapse {% if sidenav_selection in 'memberships,membership_add'%} in show{% endif %}">
+                        <li><a href="{% url 'studioadmin:memberships_list' %}">{% if sidenav_selection == 'memberships' %}
+                        <span class="sidebar_active">Membership setup</span>{% else %}Membership setup{% endif %}</a></li>
+                        <li><a href="{% url 'studioadmin:membership_add' %}">{% if sidenav_selection == 'membership_add' %}
+                        <span class="sidebar_active">Add membership</span>{% else %}Add membership{% endif %}</a></li>
+                    </span>
+
 
                     <li class="sidebar-title">
                         <a id="toggler" href="#" data-toggle="collapse" class="active" data-target="#users">

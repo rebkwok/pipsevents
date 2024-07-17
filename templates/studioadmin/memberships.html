@@ -9,9 +9,9 @@
             <th>Name</th>
             <th>Items</th>
             <th>Price</th>
-            <th>Active</th>
-            <th>Purchased</th>
-            <th>Delete<br/><span class="studioadmin-help text-muted">Unpurchased only</span></th>
+            <th class="text-center">Active</th>
+            <th class="text-center">Purchased</th>
+            <th class="text-center">Delete<br/><span class="studioadmin-help text-muted">Unpurchased only</span></th>
         </thead>
         <tbody>
             {% for membership in memberships %}
@@ -23,9 +23,9 @@
                             {% endfor %}
                     </td>
                     <td>£{{ membership.price }}</td>
-                    <td>{{ membership.active|yesno:"Yes,No"}} 
+                    <td class="text-center">{{ membership.active|yesno:"Yes,No"}} 
                         {%if not membership.membership_items.exists %}<span class="text-warning"><i class="fas fa-exclamation-triangle"></i></span>{% endif %}
-                    <td>{{ membership.purchased }}</td>
+                    <td class="text-center">{{ membership.purchased }}</td>
                     <td class="text-center">
                         {% if not membership.purchased %}
                         <form action={% url "studioadmin:membership_delete" membership.id %} method="post">
