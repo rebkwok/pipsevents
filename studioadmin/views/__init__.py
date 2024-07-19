@@ -14,7 +14,7 @@ from studioadmin.views.misc import ConfirmPaymentView, ConfirmRefundView, \
     test_paypal_view, reactivated_block_status, InvoiceListView, stripe_test
 from studioadmin.views.register import EventRegisterListView, \
     register_print_day, register_view, booking_register_add_view, \
-    ajax_toggle_attended, ajax_assign_block, ajax_toggle_paid
+    ajax_toggle_attended
 from studioadmin.views.ticketed_events import cancel_ticketed_event_view, \
     ConfirmTicketBookingRefundView, print_tickets_list, \
     TicketedEventAdminCreateView, TicketedEventAdminListView, \
@@ -63,7 +63,7 @@ __all__ = [
     'VoucherListView', 'VoucherUpdateView',
     'BookingEditPastView', 'BookingAddView', 'BookingEditView',
     'export_mailing_list', 'booking_register_add_view',
-    'ajax_assign_block', 'ajax_toggle_paid', 'ajax_toggle_attended', 'open_all_events',
+    'ajax_toggle_attended', 'open_all_events',
     'clone_event', 'users_status', 'email_waiting_list',
     'all_users_banner_view', 'new_users_banner_view', 'popup_notification_view',
     "InvoiceListView", "stripe_test",

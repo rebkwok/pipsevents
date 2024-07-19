@@ -59,8 +59,6 @@ from studioadmin.views import (BookingEditView,
                                BookingAddView,
                                booking_register_add_view,
                                ajax_toggle_attended,
-                               ajax_toggle_paid,
-                               ajax_assign_block,
                                GiftVoucherListView,
                                open_all_events,
                                clone_event,
@@ -305,14 +303,6 @@ urlpatterns = [
     path(
         'register/<int:booking_id>/toggle_attended/', ajax_toggle_attended,
         name='toggle_attended'
-    ),
-    path(
-        'register/<int:booking_id>/toggle_paid/', ajax_toggle_paid,
-        name='toggle_paid'
-    ),
-    path(
-        'register/<int:booking_id>/assign_block/', ajax_assign_block,
-        name='assign_block'
     ),
     path(
         'event-disclaimers/', NonRegisteredDisclaimersListView.as_view(),

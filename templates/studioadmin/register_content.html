@@ -23,10 +23,6 @@
                             <th class="text-center">User</th>
                             <th class="text-center">Disclaimer</th>
                             <th class="text-center">Paid</th>
-                            {% if available_block_type %}
-                            <th class="text-center">Block</th>
-                            <th></th>
-                            {% endif %}
                         </tr>
 
                         <!-- Modal -->
@@ -77,38 +73,32 @@
                                 </td>
 
                                 <td id="booking-paid-{{ booking.id }}" class="text-center studioadmin-tbl {% if not booking.paid %}register-unpaid{% endif %}">
-                                    {% if booking.paypal_paid %}
-                                        <span class="fas fa-check"></span>
+                                    {% if booking.paid %}
+                                        <span 
+                                            {% if booking.block or booking.membership %}
+                                                class="badge badge-pill badge-success p-1"
+                                                data-toggle="tooltip" data-placement="top" title="Booked with {% if booking.block %}block{% else %}membership ({{ booking.membership.membership.name }}){% endif %}"
+                                            {% else %}
+                                                class="fas fa-check-circle text-success"
+                                            {% endif %}>
+                                            {% if booking.block %}B{% elif booking.membership %}M{% endif %}
+                                        </span>
                                     {% else %}
-                                        <div class="form-check">
-                                        <input id="booking-paid-checkbox-{{ booking.id }}" data-booking_id="{{ booking.id }}" type="checkbox" class="form-check-input booking-paid-checkbox" {% if booking.paid %}checked="checked"{% endif %}/><label for="booking-paid-checkbox-{{ booking.id }}"></label>
-                                        </div>
+                                        <span class="fas fa-times">
                                     {% endif %}
                                 </td>
-                                {% if available_block_type %}
-                                <td id="booking-block-{{ booking.id }}" class="text-center no-block-comment studioadmin-tbl booking-block">
-                                    {% include 'studioadmin/includes/register_block.html' %}
-                                </td>
-                                <td id="booking-block-btn-{{ booking.id }}" data-booking_id="{{ booking.id }}" class="text-center studioadmin-tbl booking-block-btn">
-                                     <span id="booking-block-btn-content-{{ booking.id }}" {% if booking.paid or booking.block or not booking.has_available_block %}hidden{% endif %}>
-                                        <span class="btn btn-wm register-table-btn">Assign available block</span>
-                                     </span>
-                                    </td>
-                                </td>
-                                {% endif %}
-
                             </tr>
                         {% endfor %}
                         {% if can_add_more %}
                             <tr>
-                                <td class="studioadmin-tbl" {% if available_block_type %}colspan="8"{% else %}colspan="6"{% endif %}>
+                                <td class="studioadmin-tbl" colspan="6">
                                     <a class="bookingadd btn btn-wm register-table-btn" href="#" data-form="{% url 'studioadmin:bookingregisteradd' event.id %}" title="add booking">Add booking</a>
                                 </td>
                             </tr>
                         {% endif %}
                         {% if event.max_participants %}
                             <tr>
-                                <td class="studioadmin-tbl" {% if available_block_type %}colspan="8"{% else %}colspan="6"{% endif %}>
+                                <td class="studioadmin-tbl" colspan="6">
                                     Spaces left: {{ event.spaces_left }} / {{ event.max_participants }}
                                 </td>
                             </tr>
