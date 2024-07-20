@@ -47,9 +47,17 @@ class Formset(LayoutObject):
         return render_to_string(self.template, context.flatten())
 
 
+class MembershipItemForm(forms.ModelForm):
+    class Meta:
+        model = MembershipItem
+        fields = ('event_type', 'quantity')
+        widgets = {
+            "quantity": forms.NumberInput(attrs={"onWheel": "event.preventDefault();"}),
+        }
+
 
 MembershipItemFormset = forms.inlineformset_factory(
-    Membership, MembershipItem, fields=("event_type", "quantity"), can_delete=True,
+    Membership, MembershipItem, form=MembershipItemForm, can_delete=True,
 )
 
 
@@ -65,7 +73,7 @@ class MembershipAddEditForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["description"].required = True
-        self.fields["price"] = forms.DecimalField(min_value=0)
+        self.fields["price"] = forms.DecimalField(min_value=0, widget=forms.NumberInput(attrs={"onWheel": "event.preventDefault();"}))
         back_url = reverse('studioadmin:memberships_list')
         self.helper = FormHelper()
         self.helper.layout = Layout(

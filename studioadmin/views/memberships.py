@@ -20,8 +20,10 @@ def memberships_list(request):
 
 
 def _process_membership_create_or_update(request, membership=None):
-    sidenav_selection = "memberships" if membership is not None else "membership_add"
-
+    context = {
+        "sidenav_selection":  "memberships" if membership is not None else "membership_add",
+        "membership": membership
+    }
     if request.method == "POST":
         form = MembershipAddEditForm(request.POST, instance=membership)   
         if form.is_valid():
@@ -41,7 +43,7 @@ def _process_membership_create_or_update(request, membership=None):
     return TemplateResponse(
         request, 
         "studioadmin/membership_create_update.html", 
-        {"sidenav_selection": sidenav_selection, "form": form, "formset": formset}
+        {**context, "form": form, "formset": formset}
     )
 
 @login_required
