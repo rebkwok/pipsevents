@@ -4,7 +4,7 @@
 <h2>Your membership payment method is about to expire</h2>
 <p><strong>Your membership:</strong> {{ user_membership.membership.name }}</p>
 <p>The payment method you use for this membership is expiring soon. Visit 
-    <a href="https://{{ domain }}/memberships/">your memberships page</a> in your account to
+    <a href="{{ host }}/memberships/">your memberships page</a> in your account to
 update your payment method and ensure that your membership is not interrupted.</p>
 
 {% endblock %}

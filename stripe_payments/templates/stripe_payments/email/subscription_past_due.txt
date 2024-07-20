@@ -10,5 +10,5 @@ method you originally used has expired. Please visit your membership page to com
 the payment as soon as possible. If payment is not made by the 28th of the month, your
 membership will be automatically cancelled, and any bookings made for next month will be
 marked as unpaid.
-https://{{ domain }}/membership/{{ user_membership.subscription_id }}/
+{{ host }}/membership/{{ user_membership.subscription_id }}/
 

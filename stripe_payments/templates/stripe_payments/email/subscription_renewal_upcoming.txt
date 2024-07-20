@@ -10,5 +10,5 @@ month. You do not need to take any action (but you may want to review your payme
 method and check it is up to date.)
 
 View your membership here:
-https://{{ domain }}/memberships/
+{{ host }}/memberships/
 
