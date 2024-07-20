@@ -1,0 +1,38 @@
+{%  extends "studioadmin/base.html" %}
+
+{% load accounttags static %}
+
+
+{% block studioadmincontent %}
+    <h1>Membership Transactions</h1>
+
+    <table class="table table-responsive table-striped">
+        <thead>
+            <th>Invoice</th>
+            <th>Status</th>
+            <th>User</th>
+            <th>Amount</th>
+            <th>Voucher</th>
+            <th>Date Paid</th>
+            <th>Membership</th>
+        </thead>
+        <tbody>
+            {% for invoice in invoices %}
+                <tr>
+                    <td>{{ invoice.invoice_id }}</td>
+                    <td class="text-center">{{ invoice.status }}</td>
+                    <td class="text-center">{{ invoice.subscription.user.username }}</td>
+                    <td class="text-center">£{{ invoice.total }}</td>
+                    <td class="text-center"></td>
+                    <td>{{ invoice.invoice_date|date:"d-M-y H:i" }}</td>
+                    <td>{{ invoice.subscription.membership }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% include 'booking/includes/pagination.html' %}
+
+{% endblock studioadmincontent %}
+{% block extra_js %}
+{% endblock %}

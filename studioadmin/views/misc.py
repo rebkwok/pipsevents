@@ -20,13 +20,13 @@ from braces.views import LoginRequiredMixin
 
 from booking.context_helpers import get_paypal_dict
 from booking.management.commands.check_credits import reactivated_status
-from booking.models import Booking
+from booking.models import Booking, UserMembership
 from studioadmin.forms import ConfirmPaymentForm
 from studioadmin.views.helpers import StaffUserMixin, staff_required
 from activitylog.models import ActivityLog
 from payments.forms import PayPalPaymentsUpdateForm
 
-from stripe_payments.models import Invoice, Seller
+from stripe_payments.models import Invoice, Seller, StripeSubscriptionInvoice
 
 
 logger = logging.getLogger(__name__)
@@ -238,6 +238,20 @@ class InvoiceListView(LoginRequiredMixin, StaffUserMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["sidenav_selection"] = "invoices"
+        return context
+
+
+from django.db.models import OuterRef, Subquery
+class SubscriptionInvoiceListView(LoginRequiredMixin, StaffUserMixin, ListView):
+    paginate_by = 30
+    model = StripeSubscriptionInvoice
+    context_object_name = "invoices"
+    template_name = "studioadmin/subscription_invoices.html"
+    queryset = StripeSubscriptionInvoice.objects.all()
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["sidenav_selection"] = "membership_payments"
         return context
 
 

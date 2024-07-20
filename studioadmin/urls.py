@@ -80,6 +80,7 @@ from studioadmin.views import (BookingEditView,
                                membership_edit,
                                membership_add,
                                membership_delete,
+                               SubscriptionInvoiceListView,
                                )
 
 app_name = 'studioadmin'
@@ -341,6 +342,7 @@ urlpatterns = [
         name='popup_notification'
     ),
     path("payment/transactions/", InvoiceListView.as_view(), name="invoices"),
+    path("payment/membership-payments/", SubscriptionInvoiceListView.as_view(), name="subscription_invoices"),
     path("payment/stripe-test/", stripe_test, name="stripe_test"),
     path("setup/event-types/", EventTypeListView.as_view(), name="setup_event_types"),
     path("setup/allowed_groups/", AllowedGroupListView.as_view(), name="setup_allowed_groups"),

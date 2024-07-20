@@ -208,6 +208,9 @@ class StripeSubscriptionInvoice(models.Model):
     total = models.DecimalField(max_digits=8, decimal_places=2)
     invoice_date = models.DateTimeField()
 
+    class Meta:
+        ordering = ("-invoice_date",)
+
     @classmethod
     def from_stripe_event(cls, event_object):
         obj, _ = cls.objects.update_or_create(
@@ -220,3 +223,7 @@ class StripeSubscriptionInvoice(models.Model):
             )
         )
         return obj
+
+    def subscription(self):
+        from booking.models import UserMembership
+        return UserMembership.objects.filter(subscription_id=self.subscription_id).first()
