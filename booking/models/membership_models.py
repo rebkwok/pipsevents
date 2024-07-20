@@ -1,6 +1,5 @@
 
 from datetime import datetime
-from datetime import timezone as datetime_tz
 import logging
 import re
 
@@ -18,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 class MembershipManager(models.Manager):
     def purchasable(self):
-        return self.get_queryset().filter(active=True, membership_items__id__isnull=False).distinct()
+        return self.get_queryset().filter(visible=True, membership_items__id__isnull=False).distinct()
     
 
 class Membership(models.Model):
@@ -36,7 +35,14 @@ class Membership(models.Model):
     description = models.TextField(null=True, blank=True)
     price = models.DecimalField(max_digits=8, decimal_places=2)
     stripe_price_id = models.TextField(null=True)
-    active = models.BooleanField(default=True, help_text="Visible and available for purchase on site")
+    visible = models.BooleanField(
+        default=True,
+        help_text="Visible and available for purchase on site"
+    )
+    active = models.BooleanField(
+        default=True, 
+        help_text="Active on Stripe"
+    )
 
     objects = MembershipManager()
 
@@ -52,9 +58,27 @@ class Membership(models.Model):
             counter += 1
         return slug
 
+    def active_user_memberships(self):
+        not_cancelled_yet = self.user_memberships.filter(models.Q(end_date__isnull=True) | models.Q(end_date__gt=timezone.now()))
+        results = {
+            "ongoing": [], "cancelling": []
+        }
+        for user_membership in not_cancelled_yet:
+            if user_membership.is_active():
+                if user_membership.end_date is None:
+                    results["ongoing"].append(user_membership)
+                else:
+                    results["cancelling"].append(user_membership)
+        return results
+
     def save(self, *args, **kwargs):
         stripe_client = StripeConnector()
         price_changed = False
+
+        if not self.active:
+            # Inactive stripe memberships cannot be visible/purchasable
+            self.visible = False
+
         if not self.id:
             self.stripe_product_id = self.generate_stripe_product_id()
             # create stripe product with price
@@ -87,7 +111,10 @@ class Membership(models.Model):
                 )
                 if price_changed:
                     ActivityLog.objects.create(
-                        log=f"Stripe price updated on membership {self.id} ({self.stripe_product_id}): from £{presaved.price} to £{self.price}")
+                        log=f"Stripe price updated on membership {self.id} ({self.stripe_product_id}): from £{presaved.price} to £{self.price}"
+                    )
+                    # Archive the old price
+                    stripe_client.archive_stripe_price(presaved.stripe_price_id)
         super().save(*args, **kwargs)
 
         if price_changed:
@@ -275,6 +302,13 @@ class UserMembership(models.Model):
         year = datetime.now().year + 1 if next_month == 1 else datetime.now().year
         return self.bookings.filter(status="OPEN", event__date__month=next_month, event__date__year=year)
     
+    def payment_has_started(self):
+        if self.subscription_start_date.day < 25:
+            first_subscription_payment_date = self.subscription_start_date.replace(day=25)
+        else:
+            first_subscription_payment_date = self.subscription_start_date
+        return first_subscription_payment_date < timezone.now()
+
     @classmethod
     def calculate_membership_end_date(cls, end_date=None):
         if not end_date:

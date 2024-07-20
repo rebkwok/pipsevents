@@ -188,11 +188,7 @@ def subscription_cancel(request, subscription_id):
     user_membership = get_object_or_404(UserMembership, subscription_id=subscription_id)
     if request.method == "POST":
         client = StripeConnector()
-        if user_membership.subscription_start_date.day < 25:
-            first_subscription_payment_date = user_membership.subscription_start_date.replace(day=25)
-        else:
-            first_subscription_payment_date = user_membership.subscription_start_date
-        cancel_immediately = first_subscription_payment_date > timezone.now()
+        cancel_immediately = not user_membership.payment_has_started()
         # Cancel immediately if the first subscription payment is in the future
         client.cancel_subscription(subscription_id, cancel_immediately=cancel_immediately) 
         # unset bookings for dates after the subscription end date - done in webhook
