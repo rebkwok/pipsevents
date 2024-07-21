@@ -18,10 +18,10 @@ pytestmark = pytest.mark.django_db
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 def test_membership_purchaseable(seller):
     active_membership = baker.make(
-        Membership, name="Test membership", description="a membership", price=10, active=True
+        Membership, name="Test membership", description="a membership", price=10, visible=True
     )
     inactive_membership = baker.make(
-        Membership, name="Test membership", description="a membership", price=10, active=False
+        Membership, name="Test membership", description="a membership", price=10, visible=False
     )
     assert Membership.objects.purchasable().exists() is False
 
@@ -31,7 +31,7 @@ def test_membership_purchaseable(seller):
     baker.make(
         MembershipItem, membership=inactive_membership, quantity=4
     )
-    assert list(Membership.objects.purchasable()) == [active_membership]
+    assert [m.id for m in Membership.objects.purchasable()] == [active_membership.id]
 
 
 def test_membership_create(mocked_responses, seller):
@@ -106,6 +106,19 @@ def mock_change_price_responses(mocked_responses):
                 "object": "price",
                 "url": "/v1/prices",
                 "id": "price_2",
+            }
+        ),
+        status=200,
+        content_type="application/json",
+    )
+    # archive old price
+    mocked_responses.post(
+        "https://api.stripe.com/v1/prices/price_1",
+        body=json.dumps(
+            {
+                "object": "price",
+                "url": "/v1/prices",
+                "id": "price_1",
             }
         ),
         status=200,
@@ -1031,3 +1044,69 @@ def test_reallocate_bookings_after_cancel_with_active_block(seller):
         assert booking.membership is None
         assert not booking.paid
         assert not booking.payment_confirmed
+
+
+@pytest.mark.parametrize(
+    "status,start_date,end_date,has_membership",
+    [
+        # active, started
+        (
+            "active", 
+            datetime(2020, 2, 25, tzinfo=dt_tz.utc),
+            None,
+            True
+        ),
+        # active, cancelling, still current
+        (
+            "active", 
+            datetime(2020, 2, 25, tzinfo=dt_tz.utc),
+            datetime(2020, 3, 25, tzinfo=dt_tz.utc),
+            True
+        ),
+        # cancelled
+        (
+            "cancelled", 
+            datetime(2020, 2, 25, tzinfo=dt_tz.utc),
+            datetime(2020, 3, 20, tzinfo=dt_tz.utc),
+            False
+        ),
+        # starts in future
+        (
+            "active", 
+            datetime(2020, 4, 25, tzinfo=dt_tz.utc),
+            None,
+            True
+        ),
+        # past_due
+        (
+            "past_due", 
+            datetime(2020, 2, 25, tzinfo=dt_tz.utc),
+            None,
+            True
+        ),
+        # incompleted
+        (
+            "incompleted", 
+            datetime(2020, 3, 1, tzinfo=dt_tz.utc),
+            None,
+            False
+        ),
+    ]
+)
+@pytest.mark.freeze_time("2020-03-21")
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+def test_user_has_membership(seller, configured_stripe_user, status, start_date, end_date, has_membership):
+    membership = baker.make(
+        Membership, name="Test membership", description="a membership", price=10
+    )
+    mitem = baker.make(MembershipItem,  membership=membership, quantity=2)
+
+    baker.make(
+        UserMembership, 
+        membership=membership, 
+        user=configured_stripe_user, 
+        subscription_status=status,
+        start_date=start_date,
+        end_date=end_date,
+    )
+    assert configured_stripe_user.has_membership() == has_membership
