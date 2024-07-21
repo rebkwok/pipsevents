@@ -153,6 +153,9 @@ def get_mock_webhook_event(seller):
             object = get_mock_subscription(webhook_event_type, **params)
         else:
             object = Mock(**{"metadata": {}, **params})
+        # name is a special attribute, need to set it after construction
+        if "name" in params:
+            object.name = params["name"]
         mock_event = Mock(
             account=seller_id,
             data=Mock(object=object), 

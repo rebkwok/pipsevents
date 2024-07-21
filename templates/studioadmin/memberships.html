@@ -9,9 +9,11 @@
             <th>Name</th>
             <th>Items</th>
             <th>Price</th>
-            <th class="text-center">Active</th>
-            <th class="text-center">Purchased</th>
+            <th class="text-center">Visible</th>
+            <th class="text-center">Active (Stripe)</th>
+            <th class="text-center">User memberships<br/><span class="studioadmin-help text-muted">ongoing (cancelling)</span></th>
             <th class="text-center">Delete<br/><span class="studioadmin-help text-muted">Unpurchased only</span></th>
+            <th class="text-center">Deactivate<br/><span class="studioadmin-help text-muted">Archive and cancel for all users</span><th/>
         </thead>
         <tbody>
             {% for membership in memberships %}
@@ -23,19 +25,28 @@
                             {% endfor %}
                     </td>
                     <td>£{{ membership.price }}</td>
-                    <td class="text-center">{{ membership.active|yesno:"Yes,No"}} 
+                    <td class="text-center">{{ membership.visible|yesno:"Yes,No"}} 
                         {%if not membership.membership_items.exists %}<span class="text-warning"><i class="fas fa-exclamation-triangle"></i></span>{% endif %}
-                    <td class="text-center">{{ membership.purchased }}</td>
+                    <td class="text-center">{{ membership.active|yesno:"Yes,No"}}</td> 
+                    <td class="text-center">{{ membership.ongoing_membership_count }} ({{ membership.cancelling_membership_count}})</td>
                     <td class="text-center">
                         {% if not membership.purchased %}
                         <form action={% url "studioadmin:membership_delete" membership.id %} method="post">
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-light text-danger p-0" ><i class="fas fa-times"></i></button>    
+                            <button type="submit" class="btn btn-light text-danger p-0" ><i class="fas fa-trash"></i></button>    
                         </form>
                         {% else %}
                             <span class="text-muted"><i class="fas fa-ban"></i></span>
                         {% endif %}
                     </td>
+                    <td class="text-center">
+                        {% if not membership.purchased %}
+                            N/A
+                        {% elif not membership.active and not membership.ongoing_membership_count %}
+                            N/A
+                        {% else %}
+                            <a href={% url 'studioadmin:membership_deactivate' membership.id %}>Deactivate</a>
+                        {% endif %}</td>
                 </tr>
             {% endfor %}
         </tbody>

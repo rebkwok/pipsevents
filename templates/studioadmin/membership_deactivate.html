@@ -1,0 +1,42 @@
+{% extends "studioadmin/base.html" %}
+{% block studioadmincontent %}
+
+       <div class="card card-wm">
+            <div class="card-header">
+                <h2 class="card-title">Deactivate Membership Configuration</h2>
+            </div>
+           
+            <div class="card-body">
+                <p class="font-weight-bold">
+                    Deactivating a membership will archive it on Stripe, hide it from purchase on the site, and
+                    cancel any existing user's memberships.
+                </p>
+
+                <p>
+                    Existing memberships will cancel from the end of the current billing period (i.e. from the 25th of the month).
+                    Any users with active memberships will be automatically emailed. You should probably warn them in advance though.
+                </p>
+
+                <p>Users with currently active memberships:</p>
+                {% if membership.user_memberships.exists %}
+                    <ul>
+                    {% for user_membership in membership.user_memberships.all %}
+                        {% if user_membership.is_active %}
+                            <li>{{ user_membership.user.first_name }} {{ user_membership.user.last_name }}</li>
+                        {% endif %}
+                    {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>None</p>
+                {% endif %}
+                
+
+                <form method="post" action="">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-danger">Confirm, deactivate this membership</button>  
+                    <a href={% url "studioadmin:memberships_list" %} class="btn btn-sm btn-wm">Cancel</a>    
+                </form>
+
+        </div>
+    </div>
+{% endblock studioadmincontent %}

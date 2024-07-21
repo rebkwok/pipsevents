@@ -81,6 +81,7 @@ from studioadmin.views import (BookingEditView,
                                membership_add,
                                membership_delete,
                                SubscriptionInvoiceListView,
+                               membership_deactivate,
                                )
 
 app_name = 'studioadmin'
@@ -347,7 +348,8 @@ urlpatterns = [
     path("setup/event-types/", EventTypeListView.as_view(), name="setup_event_types"),
     path("setup/allowed_groups/", AllowedGroupListView.as_view(), name="setup_allowed_groups"),
     # memberships
-     path("memberships/<int:pk>/delete", membership_delete, name="membership_delete"),
+    path("memberships/<int:pk>/delete", membership_delete, name="membership_delete"),
+    path("memberships/<int:pk>/deactivate", membership_deactivate, name="membership_deactivate"),
     path("memberships/<int:pk>/", membership_edit, name="membership_edit"),
     path("memberships/new/", membership_add, name="membership_add"),
     path("memberships/", memberships_list, name="memberships_list"),

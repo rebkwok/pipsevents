@@ -1,3 +1,5 @@
+from datetime import datetime
+from datetime import timezone as dt_timezone
 from unittest.mock import patch
 from model_bakery import baker
 import pytest
@@ -7,8 +9,9 @@ from django.core import mail
 from django.test import TestCase
 from django.contrib.sites.models import Site
 
-from booking.models import Booking, Block, TicketBooking, Ticket
-from stripe_payments.models import Invoice
+from booking.models import Booking, Block, TicketBooking, Ticket, UserMembership
+from stripe_payments.models import Invoice, StripeSubscriptionInvoice
+from stripe_payments.tests.mock_connector import MockConnector
 from studioadmin.tests.test_views.helpers import TestPermissionMixin
 
 
@@ -360,6 +363,43 @@ def test_invoice_list(client, staff_user):
     client.force_login(staff_user)
     resp = client.get(reverse("studioadmin:invoices"))
     assert list(resp.context_data["invoices"]) == [invoice]
+
+
+@pytest.mark.django_db
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+def test_subscription_invoice_list(client, staff_user, seller, configured_stripe_user):
+    invoice1 = baker.make(
+        StripeSubscriptionInvoice,
+        invoice_id="inv_123",
+        subscription_id="sub_123", 
+        status="paid", invoice_date=datetime(2024, 1, 25, 10, 0, tzinfo=dt_timezone.utc)
+    )
+    invoice2 = baker.make(
+        StripeSubscriptionInvoice,
+        invoice_id="inv_123",
+        subscription_id="sub_123", 
+        status="paid", invoice_date=datetime(2024, 2, 25, 10, 0, tzinfo=dt_timezone.utc)
+    )
+    invoice_no_user_membership = baker.make(
+        StripeSubscriptionInvoice,
+        invoice_id="inv_123",
+        subscription_id="unk_123", 
+        status="paid", invoice_date=datetime(2024, 3, 25, 10, 0, tzinfo=dt_timezone.utc)
+    )
+    unpaid_invoice = baker.make(
+        StripeSubscriptionInvoice, 
+        invoice_id="inv_234",
+        subscription_id="sub_123",
+        status="unpaid"
+    )
+    baker.make(
+        UserMembership, subscription_id="sub_123", user=configured_stripe_user, membership__name="Test membership"
+    )
+
+    client.force_login(staff_user)
+    resp = client.get(reverse("studioadmin:subscription_invoices"))
+    # ordered by date, latest first (and nulls first)
+    assert list(resp.context_data["invoices"]) == [unpaid_invoice, invoice_no_user_membership, invoice2, invoice1]
 
 
 @pytest.mark.django_db

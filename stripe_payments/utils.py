@@ -166,12 +166,17 @@ class StripeConnector:
         )
         return product
 
+    def archive_stripe_price(self, price_id):
+        """Archive a product"""
+        # archive the price
+        stripe.Price.modify(price_id, product=None, active=False, stripe_account=self.connected_account_id)
+    
     def archive_stripe_product(self, product_id, price_id):
         """Archive a product"""
         # archive the product
         product = stripe.Product.modify(product_id, active=False, stripe_account=self.connected_account_id)
         # archive the price
-        stripe.Price.modify(price_id, product=None, active=False, stripe_account=self.connected_account_id)
+        self.archive_stripe_price(price_id)
         return product
 
     def get_or_create_stripe_price(self, product_id, price):

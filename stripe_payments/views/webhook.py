@@ -284,6 +284,24 @@ def stripe_webhook(request):
             # create/update StripeSubscriptionInvoice
             StripeSubscriptionInvoice.from_stripe_event(event_object)
         
+        elif event.type == "product.updated":
+            # get membership matching product (if exists)
+            # check for active and make corresponding membership inactive if necessary
+            # store stripe active status on model
+            membership = Membership.objects.filter(stripe_product_id=event_object.id).first()
+            if membership is not None and (
+                membership.active != event_object.active 
+                or membership.name != event_object.name 
+                or membership.description != event_object.description
+            ):
+                membership.active = event_object.active
+                membership.name = event_object.name
+                membership.description = event_object.description
+                membership.save()
+                ActivityLog.objects.create(
+                    log=f"Stripe webhook: Membership {event_object.id} updated"
+                )
+
     except Exception as e:  # log anything else; return 400 so stripe tries again
         logger.error(str(e))
         send_failed_payment_emails(error=str(e), event_type=event.type, event_object=event_object)

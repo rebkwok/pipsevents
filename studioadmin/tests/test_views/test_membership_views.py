@@ -1,8 +1,10 @@
+from datetime import timedelta
 from unittest.mock import patch
 import pytest
 import re
 
 from django.urls import reverse
+from django.utils import timezone
 
 from model_bakery import baker
 
@@ -65,6 +67,17 @@ def test_membership_list(client, staff_user, purchasable_membership):
 
     # 1 membership is undeleteable
     assert len(re.findall("fa-ban", resp.rendered_content)) == 1
+
+
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+def test_membership_list_user_memberships(client, staff_user, purchasable_membership):
+    client.force_login(staff_user)
+
+    baker.make(UserMembership, membership=purchasable_membership, subscription_status="canceled")
+    baker.make(UserMembership, membership=purchasable_membership, subscription_status="active", _quantity=2)
+    baker.make(UserMembership, membership=purchasable_membership, subscription_status="active", end_date=timezone.now() + timedelta(1))
+    resp = client.get(memberships_url)
+    assert "2 (1)" in resp.rendered_content
 
 
 def test_membership_create_get_staff_only(client,  configured_user, staff_user, instructor_user):
@@ -251,3 +264,121 @@ def test_purchased_membership_cannot_delete(client, seller, staff_user, purchasa
     assert resp.status_code == 302
     assert resp.url == memberships_url
     assert Membership.objects.count() == 1 
+
+
+@patch("booking.models.membership_models.StripeConnector")
+def test_membership_deactivate_get(client, seller, staff_user, purchasable_membership):
+    client.force_login(staff_user)
+    resp = client.get(reverse("studioadmin:membership_deactivate", args=(purchasable_membership.id,)))
+    assert resp.status_code == 200
+
+
+@patch("booking.models.membership_models.StripeConnector")
+def test_membership_deactivate_no_user_memberships(mock_connector, client, seller, staff_user, purchasable_membership):
+    conn = MockConnector()
+    mock_connector.return_value = conn
+
+    client.force_login(staff_user)
+    assert Membership.objects.count() == 1 
+    resp = client.post(reverse("studioadmin:membership_deactivate", args=(purchasable_membership.id,)))
+    assert resp.status_code == 302
+    assert resp.url == memberships_url
+    
+    # membership still exists
+    assert Membership.objects.exists()
+    # called to archive (active = False)
+    assert conn.method_calls == {
+        'update_stripe_product': [
+            {
+                'args': (), 
+                'kwargs': {
+                    'product_id': 'm', 
+                    'name': 'm', 
+                    'description': None, 
+                    'active': False, 
+                    'price_id': 'price_1234'
+                }
+            }
+        ]
+    }
+
+
+@patch("booking.models.membership_models.StripeConnector")
+def test_membership_deactivate_no_active_user_memberships(mock_connector, client, seller, staff_user, purchasable_membership):
+    conn = MockConnector()
+    mock_connector.return_value = conn
+
+    baker.make(UserMembership, membership=purchasable_membership, subscription_status="canceled")
+    client.force_login(staff_user)
+    resp = client.post(reverse("studioadmin:membership_deactivate", args=(purchasable_membership.id,)))
+    assert resp.status_code == 302
+    assert resp.url == memberships_url
+    
+    # membership still exists
+    assert Membership.objects.exists()
+    # called to archive (active = False)
+    assert conn.method_calls == {
+        'update_stripe_product': [
+            {
+                'args': (), 
+                'kwargs': {
+                    'product_id': 'm', 
+                    'name': 'm', 
+                    'description': None, 
+                    'active': False, 
+                    'price_id': 'price_1234'
+                }
+            }
+        ]
+    }
+
+
+@patch("booking.models.membership_models.StripeConnector")
+@patch("studioadmin.views.memberships.StripeConnector")
+def test_membership_deactivate_active_user_memberships(mock_connector, mock_connector1, client, seller, staff_user, purchasable_membership):
+    conn = MockConnector()
+    mock_connector.return_value = conn
+    mock_connector1.return_value = conn
+
+    # cancelled already
+    baker.make(UserMembership, subscription_id="s1", membership=purchasable_membership, subscription_status="canceled", subscription_start_date=timezone.now() - timedelta(30))
+    # ongoign
+    baker.make(UserMembership, subscription_id="s2", membership=purchasable_membership, subscription_status="active", subscription_start_date=timezone.now() - timedelta(30))
+    # cancelling already in future
+    baker.make(
+        UserMembership, subscription_id="s3", membership=purchasable_membership, 
+        subscription_status="active", subscription_start_date=timezone.now() - timedelta(30), end_date=timezone.now() + timedelta(30)
+    )
+    # starting in future, cancel immediately
+    baker.make(
+        UserMembership, subscription_id="s4", 
+        membership=purchasable_membership, subscription_status="active", 
+        subscription_start_date=timezone.now() + timedelta(10)
+    )
+
+    client.force_login(staff_user)
+    resp = client.post(reverse("studioadmin:membership_deactivate", args=(purchasable_membership.id,)))
+    assert resp.status_code == 302
+    assert resp.url == memberships_url
+    
+    # membership still exists
+    assert Membership.objects.exists()
+    # called to archive (active = False)
+    assert conn.method_calls == {
+        'update_stripe_product': [
+            {
+                'args': (), 
+                'kwargs': {
+                    'product_id': 'm', 
+                    'name': 'm', 
+                    'description': None, 
+                    'active': False, 
+                    'price_id': 'price_1234'
+                }
+            }
+        ],
+        'cancel_subscription': [
+            {'args': ('s4',), 'kwargs': {'cancel_immediately': True}}, 
+            {'args': ('s2',), 'kwargs': {'cancel_immediately': False}}
+        ]
+    }

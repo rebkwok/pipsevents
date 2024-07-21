@@ -819,3 +819,51 @@ def test_webhook_unexpected_exception(
     assert resp.status_code == 400, resp.content
     assert len(mail.outbox) == 1
     assert mail.outbox[0].to == [settings.SUPPORT_EMAIL]
+
+
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+@patch("stripe_payments.views.webhook.stripe.Webhook")
+def test_webhook_product_updated_for_subscription(
+    mock_webhook, get_mock_webhook_event, client
+):
+    membership = baker.make(Membership, name="Membership-1", active=False)
+    assert membership.stripe_product_id == "membership-1"
+    event_object = get_mock_webhook_event(
+       webhook_event_type="product.updated",
+       active=True,
+       id="membership-1",
+       description="Test",
+       name="Foo"
+    )
+    mock_webhook.construct_event.return_value = event_object
+
+    resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
+    assert resp.status_code == 200, resp.content
+    assert len(mail.outbox) == 0
+    membership.refresh_from_db()
+    assert membership.active is True
+    assert membership.description == "Test"
+    assert membership.name == "Foo"
+
+
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+@patch("stripe_payments.views.webhook.stripe.Webhook")
+def test_webhook_product_updated_no_matching_subscription(
+    mock_webhook, get_mock_webhook_event, client
+):
+    membership = baker.make(Membership, name="Membership-2", active=False)
+    event_object = get_mock_webhook_event(
+       webhook_event_type="product.updated",
+       active=True,
+       id="membership-1",
+       description="Test",
+       name="Foo"
+    )
+    mock_webhook.construct_event.return_value = event_object
+
+    resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
+    assert resp.status_code == 200, resp.content
+    assert len(mail.outbox) == 0
+    membership.refresh_from_db()
+    assert membership.active is False
+    assert membership.name == "Membership-2"

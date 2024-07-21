@@ -128,7 +128,7 @@
                 <a href="#" class="dropdown-toggle adminmenu d-block d-md-none" data-toggle="dropdown" role="button" aria-expanded="false"><strong>Memberships </strong></a>
                 <ul class="dropdown-menu ml-4" role="menu">
                   <li class="active-nav"><a href="{% url 'studioadmin:memberships_list' %}">{% if sidenav_selection == 'memberships' %}
-                        <span class="sidebar_active">Membership setup</span>{% else %}Membership setup{% endif %}</a></li>
+                        <span class="sidebar_active">Memberships</span>{% else %}Memberships{% endif %}</a></li>
                   <li class="active-nav"><a href="{% url 'studioadmin:membership_add' %}">{% if sidenav_selection == 'membership_adds' %}
                     <span class="sidebar_active">Add a new membership</span>{% else %}Add a new membership{% endif %}</a></li>
                 </ul>
@@ -156,6 +156,9 @@
                   <ul class="dropdown-menu ml-4" role="menu">
                     <li class="active-nav"><a href="{% url 'studioadmin:invoices' %}">{% if sidenav_selection == 'invoices' %}
                         <span class="sidebar_active">Transactions</span>{% else %}Transactions{% endif %}</a>
+                    </li>
+                    <li class="active-nav"><a href="{% url 'studioadmin:subscription_invoices' %}">{% if sidenav_selection == 'subscription_invoices' %}
+                        <span class="sidebar_active">Memberships</span>{% else %}Memberships{% endif %}</a>
                     </li>
                     {% if payment_method == "paypal" %}
                     <li class="active-nav"><a href="{% url 'studioadmin:test_paypal_email' %}">{% if sidenav_selection == 'test_paypal' %}
@@ -466,7 +469,7 @@
                     </li>
                     <span id="memberships" class="collapse {% if sidenav_selection in 'memberships,membership_add'%} in show{% endif %}">
                         <li><a href="{% url 'studioadmin:memberships_list' %}">{% if sidenav_selection == 'memberships' %}
-                        <span class="sidebar_active">Membership setup</span>{% else %}Membership setup{% endif %}</a></li>
+                        <span class="sidebar_active">Memberships</span>{% else %}Memberships{% endif %}</a></li>
                         <li><a href="{% url 'studioadmin:membership_add' %}">{% if sidenav_selection == 'membership_add' %}
                         <span class="sidebar_active">Add membership</span>{% else %}Add membership{% endif %}</a></li>
                     </span>
@@ -537,7 +540,7 @@
                             Payments
                         </a>
                     </li>
-                    <span id="payments" class="collapse {% if sidenav_selection == 'test_paypal'  or sidenav_selection == 'invoices' or sidenav_selection == 'connect_stripe' or sidenav_selection == 'test_stripe' %} in show{% endif %}">
+                    <span id="payments" class="collapse {% if sidenav_selection in 'test_paypal,invoices,membership_payments,connect_stripe,test_stripe' %} in show{% endif %}">
                         <li class="active-nav"><a href="{% url 'studioadmin:invoices' %}">{% if sidenav_selection == 'invoices' %}
                             <span class="sidebar_active">Transactions</span>{% else %}Transactions{% endif %}</a></li>
                         {% if payment_method == "paypal" %}
@@ -547,6 +550,9 @@
                                 </a>
                             </li>
                         {% endif %}
+                        <li class="active-nav"><a href="{% url 'studioadmin:subscription_invoices' %}">{% if sidenav_selection == 'membership_payments' %}
+                            <span class="sidebar_active">Memberships</span>{% else %}Memberships{% endif %}</a>
+                        </li>
                         <li class="active-nav">
                             <a href="{% url 'studioadmin:stripe_test' %}">{% if sidenav_selection == 'stripe_test' %}
                                 <span class="sidebar_active">Test Stripe</span>{% else %}Test Stripe{% endif %}

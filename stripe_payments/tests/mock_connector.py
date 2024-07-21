@@ -76,6 +76,9 @@ class MockConnector:
         self._record(self.get_or_create_stripe_price, *args, **kwargs)
         return "price_234"
 
+    def archive_stripe_price(self, *args, **kwargs):
+        self._record(self.archive_stripe_price, *args, **kwargs)
+
     def archive_stripe_product(self, *args, **kwargs):
         self._record(self.archive_stripe_product, *args, **kwargs)
 

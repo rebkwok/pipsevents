@@ -64,7 +64,7 @@ MembershipItemFormset = forms.inlineformset_factory(
 class MembershipAddEditForm(forms.ModelForm):
     class Meta:
         model = Membership
-        fields = ('name', 'description', 'price', 'active')
+        fields = ('name', 'description', 'price', 'visible', 'active')
         widgets = {
             "name": forms.TextInput(),
         }
@@ -83,7 +83,23 @@ class MembershipAddEditForm(forms.ModelForm):
                 "description",
             ),
             PrependedText('price', '£'),
-            "active",
+            Fieldset(
+                "Status",
+                HTML(
+                    "<small class='form-text text-muted'>"
+                    "Status of this membership.<br/>"
+                    "Visible: Controls just the visibility of this membership for purchase.<br/>"
+                    "Active: Status on Stripe.<br/>"
+                    "A membership can be active on Stripe, but not visible and "
+                    "available to purchase on the site. If a membership is inactive on Stripe it will "
+                    "automatically be hidden on the site. No new user memberships can be set up, "
+                    "however, existing user memberships remain active and payments will continue to be collected."
+                    f"{'<br/>To fully deactivate a membership, use the Deactivate link from the memberships list to deactivate AND cancel all existing memberships.' if self.instance.id else ''}"
+                    "</small>"
+                ),
+                "visible",
+                "active",
+            ),
             Fieldset(
                 "Monthly booking allowance",
                 HTML(
