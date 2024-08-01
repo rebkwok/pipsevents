@@ -1,4 +1,4 @@
-{% load bookingtags %}
+{% load bookingtags static %}
 
     <h2>Register for {{ event }}</h2>
 
@@ -76,12 +76,15 @@
                                     {% if booking.paid %}
                                         <span 
                                             {% if booking.block or booking.membership %}
-                                                class="badge badge-pill badge-success p-1"
                                                 data-toggle="tooltip" data-placement="top" title="Booked with {% if booking.block %}block{% else %}membership ({{ booking.membership.membership.name }}){% endif %}"
                                             {% else %}
                                                 class="fas fa-check-circle text-success"
                                             {% endif %}>
-                                            {% if booking.block %}B{% elif booking.membership %}M{% endif %}
+                                            {% if booking.block %}
+                                                <img src={% static 'booking/images/circle-b.svg' %} />
+                                                {% elif booking.membership %}
+                                                <img src={% static 'booking/images/circle-m.svg' %} />
+                                                {% endif %}
                                         </span>
                                     {% else %}
                                         <span class="fas fa-times">

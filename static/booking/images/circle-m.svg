@@ -1,0 +1,11 @@
+<svg height="16" width="16" xmlns="http://www.w3.org/2000/svg">
+    <style>
+    .heavy {
+        font: bold 12px sans-serif;
+        fill: white
+    }
+    </style>
+    
+    <circle r="8" cx="8" cy="8" fill="#28a745" />
+    <text x="50%" y="75%" text-anchor="middle" class="heavy">M</text>
+</svg>
