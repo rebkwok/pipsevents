@@ -58,7 +58,7 @@
                                         <span class="hide">{{ block.paid }}</span>
                                         <td class="text-center studioadmin-tbl"><span class="fa fa-check"></span></td>
                                     {% else %}
-                                        <td class="text-center studioadmin-tbl">{{ block.paid }}<label for={{ block.paid_id }}></label></td>
+                                        <td class="text-center studioadmin-tbl"><div class="form-check">{{ block.paid }}<label for={{ block.paid_id }}></label></div></td>
                                     {% endif %}
                                     <td class="text-center studioadmin-tbl">{{ block.instance.block_type.size }}</td>
                                     <td class="text-center studioadmin-tbl">{{ block.instance.bookings_made }}</td>
@@ -71,7 +71,7 @@
                                     <td><strong>Add new block</strong></td>
                                     <td colspan="2" class="studioadmin-tbl">
                                         <div class="form-group">{{ block.block_type }}</div></td>
-                                    <td class="text-center studioadmin-tbl">{{ block.paid }}<label for={{ block.paid_id }}></label></td>
+                                    <td class="text-center studioadmin-tbl"><div class="form-check">{{ block.paid }}<label for={{ block.paid_id }}></label></div></td>
                                     <td></td>
                                     <td></td>
                                     <td class="text-center studioadmin-tbl date"><div class="form-group">{{ block.start_date }}</div>
