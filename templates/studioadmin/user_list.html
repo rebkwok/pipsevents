@@ -67,6 +67,7 @@
                                 {% if request.user.is_staff %}
                                     <th class="text-center">Blocked</th>
                                 {% endif %}
+                                <th class="text-center">Member?</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -109,13 +110,14 @@
                                     </td>
                                     <td class="text-center">{% if user.currently_banned %}<span class="text-danger">YES</span>{% endif %}</td>
                                 {% endif %}
+                                <td class="text-center studioadmin-tbl">{{ user.has_membership|yesno:"<span class='text-success font-weight-bold'>Yes</span>,No"|safe }}</td>
                             </tr>
                             {% endfor %}
 
                             </tbody>
                             <tfoot>
                             <tr class="success">
-                                <td {% if request.user.is_superuser or request.user.is_staff %}colspan="8"{% else %}colspan="5"{% endif %}>
+                                <td {% if request.user.is_superuser or request.user.is_staff %}colspan="9"{% else %}colspan="6"{% endif %}>
                                     {% if search_submitted or active_filter %}
                                         Search results: returned {{ num_results }} of {{ total_users }} users
                                     {% else %}

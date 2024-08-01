@@ -1,0 +1,35 @@
+{%  extends "studioadmin/base.html" %}
+
+
+{% block studioadmincontent %}
+    <h1>Memberships for:  {{ user.first_name }} {{ user.last_name }} ({{ user.username }})</h1>
+
+    <div><a href="{% url 'studioadmin:user_upcoming_bookings_list' user.id %}">Go to user's bookings</a></div>
+    <div><a href="{% url 'studioadmin:user_blocks_list' user.id %}">Go to user's blocks</a></div>
+
+    <table class="table table-responsive table-striped">
+        <thead>
+            <th>Membership</th>
+            <th>Status</th>
+            <th class="text-center">Start date</th>
+            <th class="text-center">End date</th>
+            <th class="text-center">Bookings (this month)</th>
+            <th class="text-center">Bookings (next month)</th>
+        </thead>
+        <tbody>
+            {% for user_membership in user.memberships.all %}
+                <tr>
+                    <td>{{ user_membership.membership.name }}</a></td>
+                    <td>{{ user_membership.hr_status }}</td>
+                    <td class="text-center">{{ user_membership.start_date|date:"d M Y"}}</td>
+                    <td class="text-center">{% if user_membership.end_date %}{{ user_membership.end_date|date:"d M Y"}}{% endif %}
+                    <td class="text-center">{{ user_membership.bookings_this_month.count }}</td>
+                    <td class="text-center">{{ user_membership.bookings_next_month.count }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+{% endblock studioadmincontent %}
+{% block extra_js %}
+{% endblock %}

@@ -89,6 +89,7 @@ from studioadmin.views import (BookingEditView,
                                membership_voucher_detail,
                                email_members,
                                email_all_members,
+                               user_memberships_list
                                )
 
 app_name = 'studioadmin'
@@ -190,6 +191,9 @@ urlpatterns = [
     ),
     path('users/<int:user_id>/blocks/',
         user_blocks_view, name='user_blocks_list'
+    ),
+    path('users/<int:user_id>/memberships/',
+        user_memberships_list, name='user_memberships_list'
     ),
     path(
         'users/<int:user_id>/toggle_permission/<int:allowed_group_id>/',

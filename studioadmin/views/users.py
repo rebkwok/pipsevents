@@ -363,9 +363,9 @@ def user_modal_bookings_view(request, user_id, past=False):
 
 @login_required
 @staff_required
-def user_blocks_view(request,  user_id):
+def user_blocks_view(request, user_id):
 
-    user = get_object_or_404(User,  id=user_id)
+    user = get_object_or_404(User, id=user_id)
 
     if request.method == 'POST':
         userblockformset = UserBlockFormSet(
@@ -820,4 +820,15 @@ def toggle_permission(request,  user_id, allowed_group_id):
         request,
         "studioadmin/includes/toggle_permission_button.html",
         {"user": user_to_change, "allowed_group": allowed_group}
+    )
+
+
+def user_memberships_list(request, user_id):
+    user = get_object_or_404(User,  id=user_id)
+    template = 'studioadmin/user_memberships_list.html'
+    return TemplateResponse(
+        request,  template,  {
+            'user': user, 
+            'sidenav_selection': 'users',
+        }
     )

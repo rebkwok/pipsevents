@@ -25,7 +25,7 @@ from studioadmin.views.timetable import timetable_admin_list, \
 from studioadmin.views.users import MailingListView, \
     toggle_subscribed, unsubscribe, \
     user_bookings_view_old, user_modal_bookings_view, user_blocks_view, UserListView, \
-    BookingEditPastView, BookingEditView, BookingAddView, users_status, toggle_permission
+    BookingEditPastView, BookingEditView, BookingAddView, users_status, toggle_permission, user_memberships_list
 from studioadmin.views.vouchers import BlockVoucherCreateView, \
     BlockVoucherListView, BlockVoucherUpdateView, VoucherCreateView, \
     VoucherListView, VoucherUpdateView, BlockVoucherDetailView, \
@@ -76,6 +76,6 @@ __all__ = [
     "SubscriptionInvoiceListView", "membership_deactivate",
     "reactivated_block_status", "MembershipVoucherListView",
     "MembershipVoucherCreateView", "membership_voucher_toggle_active", "membership_voucher_detail",
-    "membership_users", "email_members", "email_all_members",
+    "membership_users", "email_members", "email_all_members", "user_memberships_list",
 ]
 
