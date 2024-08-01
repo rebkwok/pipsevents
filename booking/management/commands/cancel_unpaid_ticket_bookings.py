@@ -84,7 +84,6 @@ class Command(BaseCommand):
                     if bkg.date_booked < now - timedelta(hours=event.payment_time_allowed):
                         yield bkg
 
-
     def cancel_ticket_bookings(self, now):
 
         ticket_bookings_for_studio_email = [] if settings.SEND_ALL_STUDIO_EMAILS else None

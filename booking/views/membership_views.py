@@ -457,7 +457,11 @@ def ensure_subscription_up_to_date(user_membership, subscription, subscription_i
     if user_membership.subscription_status == "setup_pending":
         # prevent status being updated to active (the stripe subscription status) if
         # the setup intent has not yet succeeded and there's no default_payment_method
-        if not subscription.default_payment_method and subscription.pending_setup_intent.status != "succeeded":
+        if (
+            not subscription.default_payment_method 
+            and subscription.pending_setup_intent 
+            and subscription.pending_setup_intent.status != "succeeded"
+        ):
             status = "setup_pending"
 
     subscription_data = {
@@ -476,6 +480,8 @@ def ensure_subscription_up_to_date(user_membership, subscription, subscription_i
     
     if needs_update:
         user_membership.save()
+    
+    return user_membership
 
 
 @login_required

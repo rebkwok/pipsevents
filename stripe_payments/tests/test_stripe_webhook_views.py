@@ -397,6 +397,23 @@ def test_webhook_subscription_deleted(
     assert len(mail.outbox) == 0
 
 
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+@patch("stripe_payments.views.webhook.stripe.Webhook")
+def test_webhook_subscription_deleted_no_user_membership(
+    mock_webhook, get_mock_webhook_event, client, configured_stripe_user
+):
+    mock_webhook.construct_event.return_value = get_mock_webhook_event(
+        webhook_event_type="customer.subscription.deleted", 
+        canceled_at=datetime(2024, 3, 1).timestamp(),
+        status="canceled"
+    )
+    resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
+    assert resp.status_code == 200, resp.content
+
+    # No emails sent
+    assert len(mail.outbox) == 0
+
+
 @pytest.mark.freeze_time("2024-02-26")
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 @patch("stripe_payments.views.webhook.stripe.Webhook")

@@ -33,13 +33,13 @@ class Command(BaseCommand):
         for user_membership in past_due:
             stripe_subscription = client.get_subscription(user_membership.subscription_id)
             user_membership = ensure_subscription_up_to_date(user_membership, stripe_subscription)
-            if user_membership.status == "active":
+            if user_membership.subscription_status == "active":
                 continue
             elif user_membership.subscription_status != "past_due":
                 logger.error("Could not cancel subscription %s in unexpected status %s", user_membership.subscription_id, user_membership.subscription_status)
             else:
                 client.cancel_subscription(user_membership.subscription_id, cancel_immediately=True)
-                user_membership.reallocate_bookings()
+                # Don't reallocate bookings because it'll be done in the webhook
                 
                 ctx = {
                     'host': "http://booking.thewatermelonstudio.co.uk",
