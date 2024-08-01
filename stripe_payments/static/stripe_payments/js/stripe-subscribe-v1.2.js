@@ -1,4 +1,5 @@
 
+initStripe = function () {
     const payment_button = document.querySelector('#payment-button');
     stripe_data = {
         stripe_account: payment_button.getAttribute("data-stripe_account"),
@@ -8,9 +9,11 @@
         price_id: payment_button.getAttribute("data-price_id"),
         amount: payment_button.getAttribute("data-amount"),
         backdate: payment_button.getAttribute("data-backdate"),
-        client_secret:  payment_button.getAttribute("data-client_secret"),
-        confirm_type:  payment_button.getAttribute("data-confirm_type"),
+        client_secret: payment_button.getAttribute("data-client_secret"),
+        confirm_type: payment_button.getAttribute("data-confirm_type"),
+        voucher_code: payment_button.getAttribute("data-voucher_code"),
     };
+    console.log(stripe_data.voucher_code);
     stripe = Stripe(stripe_data.stripe_api_key, {stripeAccount: stripe_data.stripe_account});
     const appearance = {
         theme: 'stripe',
@@ -44,12 +47,6 @@
     const form = document.getElementById('payment-form');
     const submitBtn = document.getElementById('payment-button');
 
-    const handleError = (error) => {
-        const messageContainer = document.querySelector('#error-message');
-        messageContainer.textContent = error.message;
-        submitBtn.disabled = false;
-    }
-
     if (stripe_data.client_secret) {
         form.addEventListener('submit', async (event) => {
             // We don't want to let default form submission happen here,
@@ -66,17 +63,12 @@
                 },
             });
             
-            console.log(error)
             // This point will only be reached if there is an immediate error when
             // confirming the payment. Otherwise, your customer will be redirected to
             // your `return_url`. For some payment methods like iDEAL, your customer will
             // be redirected to an intermediate site first to authorize the payment, then
             // redirected to the `return_url`.
-            if (error.type === "card_error" || error.type === "validation_error") {
-                showError(error.message);
-            } else {
-                showError("An unexpected error occurred.");
-            }
+            showError(error.message);
             setLoading(false);    
         });
         } else {
@@ -88,10 +80,10 @@
 
             const {error: submitError} = await elements.submit();
             if (submitError) {
-                handleError(submitError);
+                showError(submitError);
                 return;
             }
-
+            console.log(stripe_data);
             // Create the subscription (or return a matching created one, if payment setup failed)
             const res = await fetch('/membership/subscription/create/', {
                 method: "POST",
@@ -99,6 +91,7 @@
                     customer_id: stripe_data.customer_id, 
                     price_id: stripe_data.price_id, 
                     backdate: stripe_data.backdate,
+                    voucher_code: stripe_data.voucher_code,
                 }),
                 headers: {
                     'Content-Type': 'application/json',
@@ -107,8 +100,7 @@
             });
             const result = await res.json();
             if (result.error) {
-                console.log(result.error)
-                showError("An unexpected error occurred.");
+                showError(result.error.message);
                 setLoading(false);
             } else {
                 const {type, clientSecret} = result
@@ -121,16 +113,9 @@
                     return_url: stripe_data.return_url,
                     },
                 });
-
-                console.log(error)
-                if (error.type === "card_error" || error.type === "validation_error") {
-                    showError(error.message);
-                } else {
-                    showError("An unexpected error occurred.");
-                }
+                showError(error.message);
                 setLoading(false);    
                 }
-                    
 
         });
     }
@@ -162,3 +147,11 @@
         }
     }
 
+};
+
+initStripe();
+
+document.addEventListener('htmx:afterRequest', function(evt) {
+    initStripe();
+    // Put the JS code that you want to execute here
+});

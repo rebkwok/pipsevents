@@ -1,0 +1,50 @@
+{% extends "studioadmin/base.html" %}
+
+{% block studioadmincontent %}
+
+    <div>
+
+        <h2>Membership Voucher: {{ voucher.code }}</h2>
+
+        <div>
+            <a href="{% url 'studioadmin:membership_vouchers' %}" class="btn btn-warning">View Voucher List</a>
+        </div>
+
+        <div class="mt-2">
+            <dl>
+                <dt>Valid for memberships</dt>
+                    {% for membership in voucher.memberships.all %}
+                        <dd>{{ membership }}</dd>{% if not forloop.last %}<br/>{% endif %}
+                    {% endfor %}
+                
+                <dt>Valid for new memberships only?</dt>
+                <dd>{{ voucher.new_memberships_only|yesno }}</dd>
+
+                <dt>Discount</dt>
+                {% if voucher.percent_off %}
+                    <dd>{{ voucher.percent_off }}%</dd>
+                    {% else %}
+                    <dd>£{{ voucher.amount_off }}</dd>
+                    {% endif %}
+                </dt>
+                
+                <dt>Expiry date</dt>
+                <dd>{% if voucher.redeem_by %}{{ voucher.redeem_by|date:"d M Y"}}{% else %}N/A{% endif %}</dd>
+
+                <dt>Duration</dt>
+                <dd>{% if voucher.duration == "once" %}One time only{% elif voucher.duration == "forever"%}Forever{% else%}For {{ voucher.duration_in_months }} month{{ voucher.duration_in_months|pluralize }}{% endif %}</dd>
+                
+                <dt>Max uses</dt>
+                <dd>{% if voucher.max_redemptions %}{{ voucher.max_redemptions }}{% else %}N/A{% endif %}</dd>
+
+                <dt>Times used</dt>
+                <dd>{{ voucher.times_used}}</dd>
+
+                <dt>Stripe promo code ID</dt>
+                <dd>{{ voucher.promo_code_id }}
+            </dl>
+        </div>
+    </div>
+
+
+{% endblock studioadmincontent %}

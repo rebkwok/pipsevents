@@ -2,7 +2,7 @@ from datetime import datetime
 import pytest
 import os
 import responses
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from django.contrib.auth import get_user_model
 from django.contrib.sites.models import Site
@@ -11,8 +11,10 @@ from model_bakery import baker
 from stripe_payments.models import Invoice, Seller
 from stripe_payments.tests.mock_connector import MockConnector
 
+from booking.models import Membership, MembershipItem
 
 User = get_user_model()
+
 
 @pytest.fixture
 def configured_user():
@@ -137,6 +139,7 @@ def get_mock_subscription(webhook_event_type, **params):
         "start_date": datetime(2024, 6, 25).timestamp(),
         "billing_cycle_anchor": datetime(2024, 7, 25).timestamp(),
         "metadata": {},
+        "discount": None,
     }
     options = {**defaults, **params}
     return MockSubscription(**options)
@@ -176,3 +179,11 @@ def block_gift_voucher():
     blocktype = block_voucher.block_types.first()    
     baker.make("booking.GiftVoucherType", block_type=blocktype)
     yield block_voucher
+
+
+@pytest.fixture()
+def purchasable_membership(seller):
+    with patch("booking.models.membership_models.StripeConnector", MockConnector):
+        mem = baker.make(Membership, name="m")
+    baker.make(MembershipItem, membership=mem, quantity=5)
+    yield mem

@@ -1,0 +1,60 @@
+{% extends "studioadmin/base.html" %}
+{% load static %}
+{% load bookingtags %}
+
+{% block studioadmincontent %}
+
+
+        <h2>Membership Vouchers</h2>
+
+        <div class="row">
+            <div class="col-sm-12">
+                    <div class="table-responsive">
+                        <table class="table tablesorter" id="sortTable">
+                            <thead>
+                            <tr class="success">
+                                <th class="text-center">Voucher code</th>
+                                <th class="text-center">Stripe id</th>
+                                <th class="text-center">Active</th>
+                                <th class="text-center">Discount (%)</th>
+                                <th class="text-center">Discount (£)</th>
+                                {% comment %} <th class="text-center">Start Date</th> {% endcomment %}
+                                <th class="text-center">Expiry Date</th>
+                                <th class="text-center">Max<br/>total uses</th>
+                                <th>Memberships</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% if vouchers %}
+                                {% for voucher in vouchers %}
+                                <tr {% if voucher.expired %}class="expired_block"{% endif %}>
+                                    <td class="text-center studioadmin-tbl"><a href={% url 'studioadmin:membership_voucher_detail' voucher.code %}>{{ voucher.code }}</a></td>
+                                    <td class="text-center studioadmin-tbl">{{ voucher.promo_code_id }}</td>
+                                    <td class="text-center">
+                                        <div
+                                            id="toggle-voucher-active-{{ voucher.id }}"
+                                            hx-get={% url 'studioadmin:membership_voucher_toggle_active' voucher.id %}
+                                        >
+                                            {% include "studioadmin/includes/toggle_voucher_active_button.html" %}
+                                        </div>
+                                    </td>
+                                    <td class="text-center studioadmin-tbl">{% if voucher.percent_off %}{{ voucher.percent_off }}%{% else %}-{% endif %}</td>
+                                    <td class="text-center studioadmin-tbl">{% if voucher.amount_off %}£{{ voucher.amount_off }}{% else %}-{% endif %}</td>
+                                    {% comment %} <td class="text-center studioadmin-tbl">{{ voucher.start_date|date:"d M Y" }} {% endcomment %}
+                                    <td class="text-center studioadmin-tbl">{% if voucher.expiry_date %}{{ voucher.redeem_by|date:"d M Y" }}{% else %}-{% endif %}</td>
+                                    <td class="text-center studioadmin-tbl">{% if voucher.max_redemptions %}{{ voucher.max_redemptions }}{% else %}-{% endif %}</td>
+                                    <td class="studioadmin-tbl">{% for membership in voucher.memberships.all %}{{ membership.name }}{% if not forloop.last %}<br/>{% endif %}{% endfor %}</td>
+                                </tr>
+                                {% endfor %}
+                
+                            {% else %}
+                              <tr><td colspan="9" class="studioadmin-tbl">No vouchers found</td></tr>
+                            {% endif %}
+                            </tbody>
+                        </table>
+                        {% include 'booking/includes/pagination.html' %}
+                    </div>
+                </div>
+            </div>
+
+{% endblock studioadmincontent %}

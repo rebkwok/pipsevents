@@ -73,11 +73,73 @@ def test_connector_get_or_create_customer_existing_customer(configured_user, sel
     assert configured_user.userprofile.stripe_customer_id ==  "cus_NffrFeUfNV2Hia"
 
 
-def test_connector_get_or_create_customer_id_on_profile(configured_user, seller):
+def test_connector_get_or_create_customer_id_on_profile(configured_user, seller, mocked_responses):
+    # If a user has a customer id on their profile, we still check that it's valid
+    mocked_responses.get(
+        "https://api.stripe.com/v1/customers/cus_123",
+        body=json.dumps(
+            {
+                "object": "customer",
+                "url": "/v1/customers/cus_123",
+                "id": "cus_123",
+            }
+        ),
+        status=200,
+        content_type="application/json",
+    )
     configured_user.userprofile.stripe_customer_id = "cus_123"
     configured_user.userprofile.save()
     connector = StripeConnector()
     connector.get_or_create_stripe_customer(configured_user) == "cus_123"
+
+
+def test_connector_get_or_create_customer_id_on_profile_deleted(configured_user, seller, mocked_responses):
+    # If a user has a customer id on their profile, we still check that it's valid
+    configured_user.userprofile.stripe_customer_id = "cus_123"
+    configured_user.userprofile.save()
+    mocked_responses.get(
+        "https://api.stripe.com/v1/customers/cus_123",
+        body=json.dumps(
+            {
+                "object": "customer",
+                "url": "/v1/customers/cus_123",
+                "id": "cus_123",
+                "deleted": True,
+            }
+        ),
+        status=200,
+        content_type="application/json",
+    )
+    mocked_responses.get(
+        "https://api.stripe.com/v1/customers",
+        body=json.dumps(
+            {
+                "object": "list",
+                "url": "/v1/customers",
+                "has_more": False,
+                "data": [],
+            }
+        ),
+        status=200,
+        content_type="application/json",
+    )
+    mocked_responses.post(
+        "https://api.stripe.com/v1/customers",
+        body=json.dumps(
+            {
+                "id": "cus_NffrFeUfNV2Hib",
+                "object": "customer",
+                "email": configured_user.email,
+            }
+        ),
+        status=200,
+        content_type="application/json",
+    )
+    
+    connector = StripeConnector()
+    connector.get_or_create_stripe_customer(configured_user) == "cus_NffrFeUfNV2Hib"
+    configured_user.refresh_from_db()
+    assert configured_user.userprofile.stripe_customer_id == "cus_NffrFeUfNV2Hib"
 
 
 def test_connector_create_stripe_product(seller, mocked_responses):
@@ -169,6 +231,58 @@ def test_connector_create_stripe_product_already_exists_error(mock_create, selle
     connector.create_stripe_product(
         "prod_123c", "Memb 1", "a membership", 10
     )
+
+
+def test_connector_archive_stripe_product(seller, mocked_responses):
+    mocked_responses.post(
+        "https://api.stripe.com/v1/products/prod_123c",
+        body=json.dumps(
+            {
+                "id": "prod_123c",
+                "object": "product",
+                "active": False,
+                "created": 1678833149,
+                "default_price": "price_1",
+                "description": "a membership",
+                "images": [],
+                "features": [],
+                "livemode": False,
+                "metadata": {},
+                "name": "Memb 1",
+                "package_dimensions": None,
+                "shippable": None,
+                "statement_descriptor": None,
+                "tax_code": None,
+                "unit_label": None,
+                "updated": 1678833149,
+                "url": None
+            }
+        ),
+        status=200,
+        content_type="application/json",
+    )
+    mocked_responses.post(
+        "https://api.stripe.com/v1/prices/price_1",
+        body=json.dumps(
+            {
+                "id": "price_1",
+                "object": "price",
+                "active": False,
+            }
+        ),
+        status=200,
+        content_type="application/json",
+    )
+
+    connector = StripeConnector()
+    product = connector.archive_stripe_product("prod_123c", "price_1")
+    assert isinstance(product, stripe.Product)
+    calls = mocked_responses.calls
+    assert len(calls) == 2
+    for call in calls:
+        body = call.request.body
+        parsed = parse_qs(body)
+        assert parsed == {'active': ['False']}
 
 
 def test_update_stripe_customer(seller, mocked_responses):
@@ -617,7 +731,6 @@ def test_stripe_customer_portal_existing_mismatched_config(seller, mocked_respon
     assert parsed == {'customer': ['cus-1'], 'configuration': ['bpc_1']}
 
 
-
 def test_stripe_customer_portal_no_existing_config(seller, mocked_responses):
     # list configs
     mocked_responses.get(
@@ -680,3 +793,99 @@ def test_stripe_customer_portal_no_existing_config(seller, mocked_responses):
     last_call = mocked_responses.calls[-1]
     parsed = parse_qs(last_call.request.body)
     assert parsed == {'customer': ['cus-1'], 'configuration': ['bpc_1']}  
+
+
+def test_connector_get_promo_code(seller, mocked_responses):
+    mocked_responses.get(
+        "https://api.stripe.com/v1/promotion_codes/promo_1",
+        body=json.dumps(
+            {
+                "id": "promo_1",
+            }
+        )
+    ) 
+    mocked_responses.get(
+        "https://api.stripe.com/v1/promotion_codes/promo_unknown",
+        body=json.dumps(
+            {
+                "error": {
+                    "code": "resource_missing",
+                    "doc_url": "https://stripe.com/docs/error-codes/resource-missing",
+                    "message": "No such promotion code: 'promo_unknown'",
+                    "param": "promotion_code",
+                    "request_log_url": "https://dashboard.stripe.com/test/logs/req_IeybpNvVnJBTT8?t=1722423791",
+                    "type": "invalid_request_error"
+                }
+            }
+        ),
+        status=404
+    )    
+
+    connector = StripeConnector()
+    promo_code = connector.get_promo_code("promo_1")
+    assert isinstance(promo_code, stripe.PromotionCode)
+
+    assert connector.get_promo_code("promo_unknown") is None
+
+
+def test_connector_get_upcoming_invoice(seller, mocked_responses):
+    mocked_responses.get(
+        "https://api.stripe.com/v1/invoices/upcoming?subscription=sub-1",
+        body=json.dumps(
+            {
+                "object": "invoice",
+                "currency": "gbp",
+                "customer": "cus-1",
+                "discount": None,
+                "subscription": "sub-1",
+                "total": 0,
+            }
+        )
+    )
+    connector = StripeConnector()
+    invoice = connector.get_upcoming_invoice("sub-1")
+    assert isinstance(invoice, stripe.Invoice)
+
+    assert len(mocked_responses.calls) == 1
+
+
+def test_connector_add_discount_to_subscription(seller, mocked_responses):
+    mocked_responses.post(
+        "https://api.stripe.com/v1/subscriptions/sub-1",
+        body=json.dumps(
+            {
+                "id": "sub-1",
+                "object": "subscription",
+                "customer": "cus-1",
+                "discount": {"promotion_code": "promo-1"}
+            }
+        )
+    )
+    connector = StripeConnector()
+    connector.add_discount_to_subscription(
+        "sub-1", promo_code_id="promo-1"
+    )
+    assert_call_body(
+        mocked_responses.calls[0],
+        {'discounts[0][promotion_code]': ['promo-1']}
+    )
+
+
+def test_connector_remove_discount_from_subscription(seller, mocked_responses):
+    mocked_responses.delete(
+        "https://api.stripe.com/v1/subscriptions/sub-1/discount",
+        body=json.dumps(
+            {
+                "object": "discount",
+                "deleted": True,
+            }
+        )
+    )
+    connector = StripeConnector()
+    connector.remove_discount_from_subscription("sub-1")
+    assert_call_body(mocked_responses.calls[0], {})
+
+
+def assert_call_body(call, expected):
+    parsed = parse_qs(call.request.body)
+    assert parsed == expected

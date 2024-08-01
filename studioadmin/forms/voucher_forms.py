@@ -1,12 +1,18 @@
 # -*- coding: utf-8 -*-
 import pytz
-from datetime import datetime
+from datetime import datetime, date
+from datetime import timezone as datetime_tz
+
+from crispy_forms.bootstrap import PrependedText, AppendedText
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Layout, LayoutObject, Submit, Fieldset, HTML, Hidden
 
 from django.db.models import Q
 from django import forms
 from django.core.exceptions import ValidationError
-from booking.models import BlockType, BlockVoucher, EventVoucher, \
-    UsedBlockVoucher, UsedEventVoucher, EventType
+from django.urls import reverse
+from booking.models import BlockType, BlockVoucher, EventVoucher, Membership, \
+    UsedBlockVoucher, UsedEventVoucher, EventType, StripeSubscriptionVoucher
 
 
 def validate_discount(value):
@@ -18,6 +24,11 @@ def validate_greater_than_0(value):
     if value == 0:
         raise ValidationError('Must be greater than 0 (leave blank if no '
                               'maximum)')
+
+
+def validate_amount(value):
+    if value <= 0:
+        raise ValidationError('Must be greater than 0, leave blank if None')
 
 
 def validate_code(code):
@@ -33,6 +44,7 @@ class VoucherStudioadminForm(forms.ModelForm):
             'code', 'discount', 'start_date', 'expiry_date',
             'max_per_user',
             'max_vouchers',
+            'members_only',
             'event_types',
             "activated",
             "is_gift_voucher",
@@ -182,6 +194,7 @@ class BlockVoucherStudioadminForm(VoucherStudioadminForm):
             'code', 'discount', 'start_date', 'expiry_date',
             'max_per_user',
             'max_vouchers',
+            'members_only',
             'block_types',
             "activated",
             "is_gift_voucher",
@@ -257,3 +270,97 @@ class BlockVoucherStudioadminForm(VoucherStudioadminForm):
 
     def get_old_instance(self, id):
         return BlockVoucher.objects.get(id=id)
+
+
+
+class MembershipVoucherForm(forms.ModelForm):
+
+    class Meta:
+        model = StripeSubscriptionVoucher
+        exclude = ("promo_code_id",)
+        labels = {
+            "percent_off":  "Discount (%)",
+            "amount_off": "Discount amount (£)",
+            "duration": "How often will this voucher be applied?",
+            "duration_in_months": "How many months will the voucher apply? (Repeating vouchers only)",
+            "redeem_by": "End date",
+            "active": "Code is active and redeemable",
+            "max_redemptions": "Max uses (across all users)",
+        }
+        widgets = {
+            "memberships": forms.CheckboxSelectMultiple(),
+            "percent_off": forms.NumberInput(attrs={"onWheel": "event.preventDefault();"}),
+            "amount_off": forms.NumberInput(attrs={"onWheel": "event.preventDefault();"})
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['memberships'].queryset = Membership.objects.purchasable()
+        self.fields['code'].validators = [validate_code]
+        self.fields['percent_off'].validators = [validate_discount]
+        self.fields['amount_off'].validators = [validate_amount]
+        self.fields["new_memberships_only"].initial = False
+        self.fields["duration"].choices = [
+            ("once", "Once only, applied to the first/next month's membership"),
+            ("repeating", "Repeating, applied to the next X months (specify below)"),
+            ("forever", "Forever, applied to every month of the membership"),
+        ]
+        self.fields["redeem_by"] = forms.DateField(
+            widget=forms.DateInput(
+                attrs={
+                    'class': "form-control",
+                    'id': 'datepicker',
+                    'onchange': "this.form.submit()"},
+                format='%d %b %Y'
+            ),
+            required=False,
+            input_formats=['%d %b %Y']
+        )
+        back_url = reverse('studioadmin:membership_vouchers')
+
+        self.helper = FormHelper()
+        self.helper.layout = Layout(
+            "code",
+            "memberships",
+            PrependedText("amount_off", "£"),
+            AppendedText("percent_off", "%"),
+            "duration",
+            "duration_in_months",
+            "max_redemptions",
+            "redeem_by",
+            "active",
+            "new_memberships_only",
+            Submit('submit', f'Save', css_class="btn btn-success"),
+            HTML(f'<a class="btn btn-secondary" href="{back_url}">Back</a>')
+        )
+
+    def clean_code(self):
+        code = self.cleaned_data["code"].lower().strip()
+        if StripeSubscriptionVoucher.objects.filter(code=code).exists():
+            self.add_error("code", "Voucher with this code already exists")
+        else:
+            return code
+
+    def clean(self):
+        redeem_by = self.data.get('redeem_by')
+        if redeem_by:
+            if "redeem_by" in self.errors:   # pragma: no cover
+                del self.errors["redeem_by"]
+
+            try:
+                redeem_by = datetime.strptime(redeem_by, '%d %b %Y').replace(hour=23, minute=59, tzinfo=datetime_tz.utc)
+                self.cleaned_data["redeem_by"] = redeem_by
+            except ValueError:
+                self.add_error(
+                    'redeem_by',
+                    'Invalid date format.  Select from the date picker or '
+                    'enter date in the format dd Mmm YYYY'
+                )
+        
+        amount_off = self.cleaned_data.get("amount_off")
+        percent_off = self.cleaned_data.get("percent_off")
+
+        if len([it for it in [amount_off, percent_off] if it]) != 1:
+            for field in ["amount_off", "percent_off"]:
+                self.add_error(field, "You must specify a discount as one of % or amount (£)")
+

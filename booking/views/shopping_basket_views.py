@@ -25,7 +25,7 @@ from booking.models import (
 )
 from booking.forms import BookingVoucherForm, BlockVoucherForm
 import booking.context_helpers as context_helpers
-from booking.views.views_utils import _get_block_status, validate_block_voucher_code, validate_voucher_code
+from booking.views.views_utils import get_block_status, validate_block_voucher_code, validate_voucher_code
 
 from payments.helpers import (
     create_booking_paypal_transaction, create_multiblock_paypal_transaction,
@@ -537,7 +537,7 @@ def update_block_bookings(request):
 
             booking.save()
             block_booked.append(booking)
-            _get_block_status(booking, request)
+            get_block_status(booking, request)
 
             if not booking.block.active_block():
                 if booking.block.children.exists() \

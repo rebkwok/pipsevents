@@ -1,0 +1,30 @@
+{% extends "studioadmin/base.html" %}
+{% load static %}
+{% load bookingtags crispy_forms_tags %}
+
+{% block studioadmincontent %}
+
+       <div class="card card-wm">
+            <div class="card-header">
+                <h2 class="card-title">Add New Membership Voucher</h2>
+            </div>
+           
+            <div class="card-body">
+                <p class="text-danger">
+                    NOTE: Membership vouchers cannot be edited after creation, except to make them active/inactive. 
+                </p>
+
+                {% if form.errors %}
+                    <div class="form-error">
+                        <p>Please correct the errors below:</p>
+                    </div>
+                    {% endif %}
+
+                <form method="post" action="">
+                        {% csrf_token %}
+                        {% crispy form %}
+                </form>
+
+        </div>
+    </div>
+{% endblock studioadmincontent %}

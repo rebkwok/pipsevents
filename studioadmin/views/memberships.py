@@ -10,11 +10,11 @@ from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from activitylog.models import ActivityLog
-from booking.models import Membership
+from booking.models import Membership, UserMembership
 from common.email import send_email
 from stripe_payments.utils import StripeConnector
 from studioadmin.forms import MembershipAddEditForm, MembershipItemFormset
-from studioadmin.views.helpers import staff_required
+from studioadmin.views.helpers import staff_required, url_with_querystring
 
 
 @login_required
@@ -113,3 +113,34 @@ def membership_deactivate(request, pk):
         return redirect(reverse("studioadmin:memberships_list"))
 
     return TemplateResponse(request, "studioadmin/membership_deactivate.html", {"membership": membership})
+
+
+@login_required
+@staff_required
+def membership_users(request, pk):
+    membership = get_object_or_404(Membership, pk=pk)
+    return TemplateResponse(request, "studioadmin/membership_users.html", {"membership": membership, "sidenav_selection": "memberships"})
+
+
+@login_required
+@staff_required
+def email_members(request, pk):
+    membership = get_object_or_404(Membership, pk=pk)
+    active_users = list({
+        user_membership.user.id for user_membership in membership.active_user_memberships()["all"]
+    })
+    request.session['users_to_email'] = active_users
+
+    return HttpResponseRedirect(
+        url_with_querystring(
+            reverse('studioadmin:email_users_view'), membership=membership.id
+        )
+    )
+
+
+@login_required
+@staff_required
+def email_all_members(request):
+    active_users = UserMembership.active_member_ids()
+    request.session['users_to_email'] = list(active_users)
+    return HttpResponseRedirect(reverse('studioadmin:email_users_view'))

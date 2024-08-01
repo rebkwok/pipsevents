@@ -33,6 +33,8 @@ def validate_voucher_code(voucher, user, event=None):
         return 'Voucher code is not valid for this event/class type'
     elif voucher.has_expired:
         return 'Voucher code has expired'
+    elif voucher.members_only and not user.has_membership():
+        return 'Voucher code is only redeemable by members'
     elif voucher.max_vouchers and \
         UsedEventVoucher.objects.filter(voucher=voucher).count() >= \
             voucher.max_vouchers:
@@ -55,6 +57,8 @@ def validate_voucher_code(voucher, user, event=None):
 def validate_block_voucher_code(voucher, user):
     if voucher.has_expired:
         return 'Voucher code has expired'
+    elif voucher.members_only and not user.has_membership():
+        return 'Voucher code is only redeemable by members'
     elif voucher.max_vouchers and \
         UsedBlockVoucher.objects.filter(voucher=voucher).count() >= \
             voucher.max_vouchers:
@@ -84,7 +88,7 @@ def validate_block_voucher_code(voucher, user):
                'blocks'
 
 
-def _get_block_status(booking, request):
+def get_block_status(booking, request):
     blocks_used = None
     total_blocks = None
     if booking.block:

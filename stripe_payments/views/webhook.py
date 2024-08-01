@@ -165,17 +165,22 @@ def stripe_webhook(request):
             # Admin users might cancel a subscription immediately from stripe
             # This event is sent when the cancellation actually happens (i.e. not on user demand)
             # Set the subscription_status to cancelled
-            user_membership = UserMembership.objects.get(subscription_id=event_object.id)
-            # the end date for the membership is the stripe subscription end; cancelled at will be the 25th
-            # the actual membership ends at the end of the month
-            user_membership.subscription_status = event_object.status
-            user_membership.subscription_end_date = get_utcdate_from_timestamp(event_object.canceled_at)
-            user_membership.end_date = UserMembership.calculate_membership_end_date(user_membership.subscription_end_date)
-            user_membership.save()
-            user_membership.reallocate_bookings()
-            ActivityLog.objects.create(
-                log=f"Stripe webhook: Membership {user_membership.membership.name} for {user_membership.user} (stripe subscription id {event_object.id}, cancelled on {user_membership.subscription_end_date})"
-            )
+            try:
+                user_membership = UserMembership.objects.get(subscription_id=event_object.id)
+            except UserMembership.DoesNotExist:
+                # It might not exist if we're cancelling an unpaid setup pending subscription
+                ...
+            else:
+                # the end date for the membership is the stripe subscription end; cancelled at will be the 25th
+                # the actual membership ends at the end of the month
+                user_membership.subscription_status = event_object.status
+                user_membership.subscription_end_date = get_utcdate_from_timestamp(event_object.canceled_at)
+                user_membership.end_date = UserMembership.calculate_membership_end_date(user_membership.subscription_end_date)
+                user_membership.save()
+                user_membership.reallocate_bookings()
+                ActivityLog.objects.create(
+                    log=f"Stripe webhook: Membership {user_membership.membership.name} for {user_membership.user} (stripe subscription id {event_object.id}, cancelled on {user_membership.subscription_end_date})"
+                )
 
         elif event.type == "customer.subscription.updated":
             user_membership = UserMembership.objects.get(subscription_id=event_object.id)
@@ -206,13 +211,15 @@ def stripe_webhook(request):
                     send_subscription_created_email(user_membership)
                 # has it been cancelled in future?               
                 if event_object.cancel_at:
-                    end_date = datetime.fromtimestamp(event_object.cancel_at)
-                    if user_membership.end_date != end_date:
+                    subscription_end_date = datetime.fromtimestamp(event_object.cancel_at).replace(tzinfo=datetime_tz.utc)
+
+                    if user_membership.end_date != subscription_end_date:
+                        membership_end_date = get_first_of_next_month_from_timestamp(event_object.cancel_at)
                         ActivityLog.objects.create(
-                            log=f"Membership {user_membership.membership.name} for user {user_membership.user} will cancel at {end_date}"
+                            log=f"Membership {user_membership.membership.name} for user {user_membership.user} will cancel at {subscription_end_date}"
                         )
-                        user_membership.subscription_end_date = end_date
-                        user_membership.end_date = UserMembership.calculate_membership_end_date(end_date)
+                        user_membership.subscription_end_date = subscription_end_date
+                        user_membership.end_date = membership_end_date
                         user_membership.save()
                 else:
                     if user_membership.end_date is not None:

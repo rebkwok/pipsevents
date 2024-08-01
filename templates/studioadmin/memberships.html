@@ -4,6 +4,8 @@
 {% block studioadmincontent %}
     <h1>Membership Configuration</h1>
 
+    <a class="btn btn-wm mb-2" href="{% url 'studioadmin:email_all_members' %}">Email all students with an active membership<a/>
+
     <table class="table table-responsive table-striped">
         <thead>
             <th>Name</th>
@@ -13,7 +15,8 @@
             <th class="text-center">Active (Stripe)</th>
             <th class="text-center">User memberships<br/><span class="studioadmin-help text-muted">ongoing (cancelling)</span></th>
             <th class="text-center">Delete<br/><span class="studioadmin-help text-muted">Unpurchased only</span></th>
-            <th class="text-center">Deactivate<br/><span class="studioadmin-help text-muted">Archive and cancel for all users</span><th/>
+            <th class="text-center">Deactivate<br/><span class="studioadmin-help text-muted">Archive and cancel for all users</span></th>
+            <th class="text-center">Email members</th>    
         </thead>
         <tbody>
             {% for membership in memberships %}
@@ -28,7 +31,10 @@
                     <td class="text-center">{{ membership.visible|yesno:"Yes,No"}} 
                         {%if not membership.membership_items.exists %}<span class="text-warning"><i class="fas fa-exclamation-triangle"></i></span>{% endif %}
                     <td class="text-center">{{ membership.active|yesno:"Yes,No"}}</td> 
-                    <td class="text-center">{{ membership.ongoing_membership_count }} ({{ membership.cancelling_membership_count}})</td>
+                    <td class="text-center">
+                        <a href={% url "studioadmin:membership_users" membership.id %}>{{ membership.ongoing_membership_count }} ({{ membership.cancelling_membership_count}})
+                        </a>
+                    </td>
                     <td class="text-center">
                         {% if not membership.purchased %}
                         <form action={% url "studioadmin:membership_delete" membership.id %} method="post">
@@ -47,6 +53,7 @@
                         {% else %}
                             <a href={% url 'studioadmin:membership_deactivate' membership.id %}>Deactivate</a>
                         {% endif %}</td>
+                    <td class="text-center"><a href="{% url 'studioadmin:email_members' membership.id %}"><span class="fa fa-envelope"></span><a/></td>
                 </tr>
             {% endfor %}
         </tbody>

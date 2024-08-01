@@ -17,7 +17,7 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.template.response import TemplateResponse
-from django.shortcuts import get_object_or_404, HttpResponseRedirect
+from django.shortcuts import get_object_or_404, HttpResponseRedirect, HttpResponse
 from django.views.decorators.http import require_http_methods
 from django.http import JsonResponse
 from django.urls import reverse
@@ -26,10 +26,11 @@ from django.utils import timezone
 from stripe_payments.models import Seller
 
 from activitylog.models import ActivityLog
-from booking.models import Membership, UserMembership
+from booking.models import Membership, UserMembership, StripeSubscriptionVoucher
 from booking.forms import ChooseMembershipForm, ChangeMembershipForm
 from booking.views.views_utils import DataPolicyAgreementRequiredMixin
-    
+
+from stripe_payments.models import StripeSubscriptionInvoice
 from stripe_payments.utils import StripeConnector, get_utcdate_from_timestamp, get_first_of_next_month_from_timestamp
 
 logger = logging.getLogger(__name__)
@@ -39,15 +40,35 @@ logger = logging.getLogger(__name__)
 @require_http_methods(['GET'])
 def membership_create(request):
     has_ongoing_membership = request.user.memberships.filter(subscription_status__in=["active", "past_due"], end_date__isnull=True).exists()
-    # Does user have an existing membership that ends after this month
+
+    # Does user have an existing membership that ends after this billing period?
     # User can buy membership if they have a current one that is due to end at the end of the month, but
     # should only have option to start from next month
+
+    # If the current date is after the 25th, the next end date (the 1st of the next month plus 1, because the billing date for this
+    # month has already passed)
+    # A membership that ends on the next month plus 1 is considered an ongoing one
+
+    # e.g.
+    # It is the 26th April
+    # No memberships --> option to purchase for current billing period only (started 25th April, for May membership)
+    # User has M1 started 1st April, ends 1st May - has current cancelled membership (April), so can purchase a new one for May
+    # User has M1 started 1st April, no end - has current ongoing membership, can't purchase
+    # User has M1 starts 1st May, no end - has future ongoing membership (last billed 25th April), can't purchase
+    # User has M1 starts 1st May, ends 1st June, no end - has future membership (last billed 25th April), considered ongoing, can't purchase
     next_end_date = UserMembership.calculate_membership_end_date(datetime.now())
+    if datetime.now().day >= 25:
+        next_end_date = next_end_date + relativedelta(months=1)
+        if not has_ongoing_membership:
+            has_ongoing_membership = request.user.memberships.filter(subscription_status="active", end_date=next_end_date).exists()
+        
     has_cancelled_current_membership = request.user.memberships.filter(start_date__lt=datetime.now(), end_date=next_end_date).exists()
-    
-    form = ChooseMembershipForm(has_cancelled_current_membership=has_cancelled_current_membership)
-    
-    # TODO add discount voucher option
+
+    if not has_ongoing_membership:
+        form = ChooseMembershipForm(has_cancelled_current_membership=has_cancelled_current_membership)
+    else:
+        form = None
+
     return TemplateResponse(
         request, 
         "booking/membership_create.html", 
@@ -132,6 +153,19 @@ def subscription_create(request):
         # get user's subscriptions and check for one with a matching price id and date that is either
         # incomplete or active with non-succeeded pending_setup_intent
         # Otherwise, create a new one
+
+        # voucher code is only sent if it's valid, no need to check here
+        discounts = None
+        voucher = None
+        if data.get("voucher_code"):
+            try:
+                voucher = StripeSubscriptionVoucher.objects.get(code=data["voucher_code"])
+                discounts = [{"promotion_code": voucher.promo_code_id}]
+            except StripeSubscriptionVoucher.DoesNotExist:
+                ...
+
+        # compare existing subscriptions WITHOUT discounts, so we can update an existing one with a 
+        # different voucher code if necessary
         subscription_kwargs = client.get_subscription_kwargs(customer_id, price_id, backdate=backdate)
         # status=None will fetch all non-cancelled subscriptions
         user_subscriptions = client.get_subscriptions_for_customer(customer_id, status=None)
@@ -160,7 +194,23 @@ def subscription_create(request):
             ),
             None
         )
+
         if subscription is not None:
+            # update subscription changed discounts if necessary
+            if voucher is None:
+                # No voucher code; remove any previously applied discount
+                if subscription.discount:
+                    client.remove_discount_from_subscription(subscription.id)
+            else:
+                # Voucher code; remove any different previous discount and apply this new one
+                if subscription.discount:
+                    if subscription.discount.promotion_code != voucher.promo_code_id:
+                        client.remove_discount_from_subscription(subscription.id)
+                        client.add_discount_to_subscription(subscription.id, promo_code_id=voucher.promo_code_id)
+                else:
+                    # no existing discount, just add the new one
+                    client.add_discount_to_subscription(subscription.id, promo_code_id=voucher.promo_code_id)
+
             if subscription.pending_setup_intent is not None:
                 confirm_type = "setup"
                 client_secret =  subscription.pending_setup_intent.client_secret
@@ -170,7 +220,10 @@ def subscription_create(request):
                 payment_intent = client.get_payment_intent(payment_intent_id)
                 client_secret = payment_intent.client_secret
         else:
-            subscription = client.create_subscription(customer_id, price_id, backdate=backdate, subscription_kwargs=subscription_kwargs)
+            sub_kwargs_with_discounts = client.get_subscription_kwargs(customer_id, price_id, backdate=backdate, discounts=discounts)
+            subscription = client.create_subscription(
+                customer_id, price_id, backdate=backdate, subscription_kwargs=sub_kwargs_with_discounts
+            )
             if subscription.pending_setup_intent is not None:
                 confirm_type = "setup"
                 client_secret =  subscription.pending_setup_intent.client_secret
@@ -181,7 +234,12 @@ def subscription_create(request):
         return JsonResponse({"clientSecret": client_secret, "type": confirm_type})
 
     except Exception as e:
-        return JsonResponse({"error": str(e)}, status=400)
+        logger.error("Unexpected Stripe error during subscription checkout: %s", str(e))
+        if settings.DEBUG:
+            error = str(e)
+        else:
+            error = "An unexpected error occurred."
+        return JsonResponse({"error": {"message": str(error)}}, status=400)
 
 
 def subscription_cancel(request, subscription_id):
@@ -198,6 +256,87 @@ def subscription_cancel(request, subscription_id):
         )
         return HttpResponseRedirect(reverse("membership_list"))
     return TemplateResponse(request,  "booking/membership_cancel.html", {"user_membership": user_membership})
+
+
+def validate_voucher_code(voucher_code, membership, existing_subscription_id=False):
+    voucher = None
+    voucher_message = None
+    voucher_valid = False
+    if voucher_code:
+        # check the basic things we can check first before asking stripe
+        try:
+            voucher = StripeSubscriptionVoucher.objects.get(code=voucher_code)
+        except StripeSubscriptionVoucher.DoesNotExist:
+            voucher_message = f"{voucher_code} is not a valid code"
+
+        if voucher:
+            if not voucher.active or (voucher.redeem_by and voucher.redeem_by < timezone.now()):
+                voucher_message = f"{voucher_code} is not a valid code"
+            elif not voucher.memberships.filter(id=membership.id):
+                voucher_message = f"{voucher_code} is not valid for the selected membership"
+            elif existing_subscription_id:
+                if voucher.new_memberships_only:
+                    voucher_message = f"{voucher_code} is only valid for new memberships"
+                else:
+                    # check if it's already been used
+                    if StripeSubscriptionInvoice.objects.filter(subscription_id=existing_subscription_id, promo_code_id=voucher.promo_code_id).exists():
+                        voucher_message = f"{voucher_code} has already been applied to this membership"
+
+            if not voucher_message:
+                client = StripeConnector()
+                promo_code = client.get_promo_code(voucher.promo_code_id)
+                if promo_code.active:       
+                    voucher_message = f"Voucher valid: {voucher.description}"
+                    voucher_valid = True
+                else:
+                    voucher_message = f"{voucher_code} is not a valid code"
+
+    return voucher, voucher_valid, voucher_message
+
+
+@login_required
+@require_http_methods(['POST'])
+def membership_voucher_validate(request):
+    client = StripeConnector()
+    membership = get_object_or_404(Membership, id=request.POST.get("membership_id"))
+    context = {
+        "htmx": True,
+        "membership": membership,
+        "stripe_account": client.connected_account_id,
+        "stripe_api_key": settings.STRIPE_PUBLISHABLE_KEY,
+        "stripe_return_url": request.build_absolute_uri(reverse("stripe_payments:stripe_subscribe_complete")),
+        "customer_id": request.user.userprofile.stripe_customer_id,
+        "creating": request.POST.get("creating"),
+        "client_secret": request.POST.get("client_secret", ""),
+        "backdate": request.POST.get("backdate"),
+        "amount": request.POST.get("amount"),
+        "regular_amount": membership.price,
+        "confirm_type": request.POST.get("confirm_type"),
+    }
+
+    # posts to this endpoint are to validate a voucher code and update the form
+    voucher_code = request.POST.get("voucher_code").lower()
+    voucher, voucher_valid, voucher_message = validate_voucher_code(voucher_code, membership)
+
+    amount_in_p = int(membership.price * 100)
+    if voucher_valid:
+        if voucher.percent_off:
+            next_amount_in_p = amount_in_p - (amount_in_p * (voucher.percent_off / 100))
+        else:
+            next_amount_in_p = amount_in_p - (voucher.amount_off * 100)
+    else:
+        next_amount_in_p = amount_in_p
+    
+    context.update(
+        {
+            "voucher_message": voucher_message,
+            "voucher_valid": voucher_valid,
+            "voucher_code": voucher_code,
+            "next_amount": next_amount_in_p / 100,
+        }
+    )
+
+    return TemplateResponse(request, "stripe_payments/includes/membership_voucher_form.html", context)
 
 
 @login_required
@@ -273,11 +412,12 @@ def stripe_subscription_checkout(request):
         
         # backdate is a string, '0' or '1'; convert to int
         backdate = int(request.POST.get("backdate"))
-        
+
         # if explicitly backdating or subscribing to next month after payment date (25th), we
         # charge the first month immediately
+        regular_amount = membership.price
         if backdate or datetime.now().day >= 25:
-            amount_to_charge_now = membership.price * 100
+            amount_to_charge_now = int(regular_amount * 100)
         else:
             amount_to_charge_now = 0
 
@@ -286,7 +426,11 @@ def stripe_subscription_checkout(request):
             "membership": membership,
             "customer_id": customer_id,
             "backdate": backdate,
+            # the amount passed to Stripe to change now (in p)
             "amount": amount_to_charge_now,
+            # amounts to display (in £)
+            "regular_amount": regular_amount,
+            "next_amount": regular_amount,
         })
 
     return TemplateResponse(request, "stripe_payments/subscribe.html", context)
@@ -299,10 +443,13 @@ def ensure_subscription_up_to_date(user_membership, subscription, subscription_i
         if subscription is None:
             return
 
-    if subscription.canceled_at:
-        sub_end = get_utcdate_from_timestamp(subscription.canceled_at)
-    elif subscription.cancel_at:
+    # Check cancel_at FIRST; if a subscription was canceled in the future, it
+    # will have both a cancel_at and canceled_at attribute, where canceled_at is the date
+    # the cancellation was requested, and cancel_at is the date it will actually cancel
+    if subscription.cancel_at:
         sub_end = get_utcdate_from_timestamp(subscription.cancel_at)
+    elif subscription.canceled_at:
+        sub_end = get_utcdate_from_timestamp(subscription.canceled_at)
     else:
         sub_end = None
 
@@ -343,10 +490,31 @@ def membership_status(request, subscription_id):
     # Don't show next due date for already cancelled subscriptions, or subscriptions that are
     # cancelling in the future
     if user_membership.subscription_status != 'canceled' and not subscription.cancel_at:
-        next_due = get_utcdate_from_timestamp(subscription.current_period_end)
+        next_invoice = client.get_upcoming_invoice(subscription_id)
+        if next_invoice.discount:
+            voucher_code = StripeSubscriptionVoucher.objects.get(promo_code_id=next_invoice.discount.promotion_code).code
+        else:
+            voucher_code = None
+        upcoming_invoice = {
+            "date": get_utcdate_from_timestamp(next_invoice.period_end),
+            "amount": next_invoice.total / 100,
+            "voucher_code": voucher_code
+        }
     else:
-        next_due = None
-    last_invoice = get_utcdate_from_timestamp(subscription.latest_invoice.effective_at) if subscription.latest_invoice else None
+        upcoming_invoice = None
+
+    if subscription.latest_invoice:
+        if subscription.latest_invoice.discount:
+            voucher_code = StripeSubscriptionVoucher.objects.get(promo_code_id=subscription.latest_invoice.discount.promotion_code).code
+        else:
+            voucher_code = None
+        last_invoice = {
+            "date": get_utcdate_from_timestamp(subscription.latest_invoice.effective_at),
+            "amount": subscription.latest_invoice.total / 100,
+            "voucher_code": voucher_code
+        }
+    else:
+        last_invoice = None
 
     return TemplateResponse(
         request, 
@@ -355,7 +523,7 @@ def membership_status(request, subscription_id):
             "user_membership": user_membership,
             "this_month": calendar.month_name[this_month],
             "next_month": calendar.month_name[next_month],
-            "next_due": next_due,
+            "upcoming_invoice": upcoming_invoice,
             "last_invoice": last_invoice,
             "cancelling": bool(user_membership.end_date)
         }
@@ -384,3 +552,27 @@ class MembershipListView(DataPolicyAgreementRequiredMixin, LoginRequiredMixin, L
                     ensure_subscription_up_to_date(user_membership, subscriptions.get(user_membership.subscription_id), user_membership.subscription_id)
 
         return super().dispatch(request, *args, **kwargs)
+
+
+@login_required
+@require_http_methods(['POST'])
+def membership_voucher_apply_validate(request):
+    voucher_code = request.POST.get("voucher_code")
+    user_membership = get_object_or_404(UserMembership, id=request.POST.get("user_membership_id"))
+
+    voucher, voucher_valid, voucher_message = validate_voucher_code(voucher_code, user_membership.membership, existing_subscription_id=user_membership.subscription_id)
+
+    if voucher_valid and "apply" in request.POST:
+        messages.success(request, "code applied")
+        client = StripeConnector()
+        client.add_discount_to_subscription(user_membership.subscription_id, voucher.promo_code_id)
+        return HttpResponseRedirect(reverse("membership_status", args=(user_membership.subscription_id,)))
+    else:
+        context = {
+            "user_membership": user_membership, 
+            "voucher_message": voucher_message,
+            "voucher_valid": voucher_valid,
+            "voucher_code": voucher_code
+        }
+
+    return TemplateResponse(request, "booking/includes/membership_voucher_apply_form.html", context)

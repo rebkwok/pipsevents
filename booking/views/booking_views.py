@@ -43,7 +43,7 @@ from booking.email_helpers import send_support_email, send_waiting_list_email
 from booking.views.shopping_basket_views import shopping_basket_bookings_total_context
 from booking.views.views_utils import DisclaimerRequiredMixin, \
     DataPolicyAgreementRequiredMixin, \
-    _get_block_status, validate_voucher_code
+    get_block_status, validate_voucher_code
 
 from booking.templatetags.bookingtags import format_paid_status, get_shopping_basket_icon
 
@@ -295,7 +295,7 @@ class BookingUpdateView(
             has_free_block_pre_save = True
 
         booking.save()
-        blocks_used, total_blocks = _get_block_status(booking, self.request)
+        blocks_used, total_blocks = get_block_status(booking, self.request)
         if booking.block:
             # send email to user if they used block to book (paypal payment
             # sends separate emails

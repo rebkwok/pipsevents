@@ -1,7 +1,5 @@
-from datetime import datetime
-from datetime import timezone as dt_timezone
+from datetime import datetime, UTC
 import logging
-import pytz
 from dateutil.relativedelta import relativedelta
 
 from django.conf import settings
@@ -19,12 +17,11 @@ logger = logging.getLogger(__name__)
 
 
 def get_utcdate_from_timestamp(timestamp):
-    return datetime.fromtimestamp(timestamp).replace(tzinfo=dt_timezone.utc)
-
+    return datetime.fromtimestamp(timestamp, tz=UTC)
 
 def get_first_of_next_month_from_timestamp(timestamp):
     next_month = get_utcdate_from_timestamp(timestamp) + relativedelta(months=1)
-    return next_month.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    return next_month.replace(day=1, hour=0, minute=0, second=0, microsecond=0, tzinfo=UTC)
 
 
 def get_invoice_from_event_metadata(event_object, raise_immediately=False):
@@ -204,7 +201,13 @@ class StripeConnector:
 
     def get_or_create_stripe_customer(self, user, **kwargs):
         if user.userprofile.stripe_customer_id:
-            return user.userprofile.stripe_customer_id
+            # ensure stripe customer exists and is not deleted
+            customer = stripe.Customer.retrieve(
+                user.userprofile.stripe_customer_id,
+                stripe_account=self.connected_account_id,
+            ) 
+            if customer and not hasattr(customer, "deleted"):
+                return user.userprofile.stripe_customer_id
 
         # Find existing customers by email (Stripe allows more than one)
         customers = stripe.Customer.list(
@@ -286,17 +289,17 @@ class StripeConnector:
         reference_day = reference_date.day
         if reference_day >= 25:
             # 25th of this month or later
-            current_cycle_start_date = reference_date.replace(day=25, hour=0, minute=0, second=0, microsecond=0, tzinfo=dt_timezone.utc)
+            current_cycle_start_date = reference_date.replace(day=25, hour=0, minute=0, second=0, microsecond=0, tzinfo=UTC)
             next_cycle_start_date = current_cycle_start_date + relativedelta(months=1)
             backdate_for_next_month = True
         else:
-            next_cycle_start_date = reference_date.replace(day=25, hour=0, minute=0, second=0, microsecond=0, tzinfo=dt_timezone.utc)
+            next_cycle_start_date = reference_date.replace(day=25, hour=0, minute=0, second=0, microsecond=0, tzinfo=UTC)
             current_cycle_start_date = next_cycle_start_date - relativedelta(months=1)
             backdate_for_next_month = False
         return current_cycle_start_date, next_cycle_start_date, backdate_for_next_month
 
     def get_subscription_kwargs(
-        self, customer_id, price_id, backdate=True, default_payment_method=None
+        self, customer_id, price_id, backdate=True, default_payment_method=None, discounts=None
     ):
         current_cycle_start_date, next_cycle_start_date, backdate_for_next_month = self.get_subscription_cycle_start_dates()
         
@@ -320,6 +323,8 @@ class StripeConnector:
             # prorated payment for now to end of cycle
             kwargs["proration_behavior"] = "none"
         
+        if discounts:
+            kwargs["discounts"] = discounts
         return kwargs
 
 
@@ -441,17 +446,75 @@ class StripeConnector:
             stripe_account=self.connected_account_id
         )
         return schedule.subscription
+            
+    def create_promo_code(
+            self, 
+            code, 
+            product_ids,
+            *,
+            amount_off=None,
+            percent_off=None,
+            duration="once", 
+            duration_in_months=None, 
+            max_redemptions=None, 
+            redeem_by=None, 
+        ):
+        """
+        Create a coupon on stripe and an associated promotion code
+        code: promotional code
+        amount_off (int, pence) OR percent_off (float)
+        duration: one of forever/once/repeating
+        duration_in_months: int, if duration is repeating, number of months to repeat for
+        max_redemptions: total number of times coupon can be used in total across all customers
+        redeem_by: Date after which the coupon can no longer be redeemed
+        product_ids: list of product ids to pass to applies_to {"products": []}
+        """
+        coupon = stripe.Coupon.create(
+            applies_to={"products": product_ids},
+            amount_off=amount_off,
+            percent_off=percent_off,
+            duration=duration,
+            duration_in_months=duration_in_months,
+            max_redemptions=max_redemptions,
+            redeem_by=redeem_by,
+            stripe_account=self.connected_account_id,
+            currency="gbp",
+        )
+        promo_code = stripe.PromotionCode.create(
+            code=code,
+            coupon=coupon.id,
+            stripe_account=self.connected_account_id,
+        )
+        return promo_code
 
+    def update_promo_code(self, promo_code_id, active):
+        return stripe.PromotionCode.modify(promo_code_id, active=active, stripe_account=self.connected_account_id)
+    
+    def get_promo_code(self, promo_code_id):
+        try:
+            return stripe.PromotionCode.retrieve(promo_code_id, stripe_account=self.connected_account_id)
+        except stripe.InvalidRequestError as e:
+            logger.error("Attempt to retrieve invalid promo code: %s", str(e))
 
-    def add_discount_to_subscription(self, subscription_id):
-        # TODO
+    def get_upcoming_invoice(self, subscription_id):
+        return stripe.Invoice.upcoming(subscription=subscription_id, stripe_account=self.connected_account_id)
+
+    def add_discount_to_subscription(self, subscription_id, promo_code_id=None):
         # for an existing suscription, add a discount
-        # it will be applied to the next X months, as specified in the stripe discount object
+        # it will be applied to the next X months, as specified in the stripe coupon object
         # check if subscription already has the discount applied
 
         # Also add option to apply a discount when a subscription is created
         # check what happens when the subscription has a schedule (e.g. if price is changing)
-        ...
+        discounts = [{"promotion_code": promo_code_id}]
+        subscription = stripe.Subscription.modify(
+            subscription_id, discounts=discounts,
+            stripe_account=self.connected_account_id,    
+        )
+        return subscription
+    
+    def remove_discount_from_subscription(self, subscription_id):
+        stripe.Subscription.delete_discount(subscription_id, stripe_account=self.connected_account_id)
 
     def customer_portal_configuration(self):
         """

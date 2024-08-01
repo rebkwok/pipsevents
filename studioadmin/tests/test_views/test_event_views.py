@@ -2220,4 +2220,4 @@ class CloneEventTests(TestPermissionMixin, TestCase):
         assert Event.objects.count() == 2
         cloned = Event.objects.latest("id")
         
-        assert list(cloned.categories.values_list("category", flat=True)) == ["foo", "bar"]
+        assert set(cloned.categories.values_list("category", flat=True)) == {"foo", "bar"}

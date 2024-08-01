@@ -80,8 +80,15 @@ from studioadmin.views import (BookingEditView,
                                membership_edit,
                                membership_add,
                                membership_delete,
+                               membership_users,
                                SubscriptionInvoiceListView,
                                membership_deactivate,
+                               MembershipVoucherListView,
+                               MembershipVoucherCreateView,
+                               membership_voucher_toggle_active,
+                               membership_voucher_detail,
+                               email_members,
+                               email_all_members,
                                )
 
 app_name = 'studioadmin'
@@ -274,7 +281,22 @@ urlpatterns = [
         'block-vouchers/<int:pk>/edit/', BlockVoucherUpdateView.as_view(),
         name='edit_block_voucher'
     ),
-        path(
+    path(
+        'membership-vouchers/', MembershipVoucherListView.as_view(), name='membership_vouchers'
+    ),
+    path(
+        'membership-vouchers/new/', MembershipVoucherCreateView.as_view(),
+        name='add_membership_voucher'
+    ),
+    path(
+        'membership-vouchers/<int:pk>/toggle/', membership_voucher_toggle_active,
+        name='membership_voucher_toggle_active'
+    ),
+    path(
+        'membership-vouchers/<str:code>/detail/', membership_voucher_detail,
+        name='membership_voucher_detail'
+    ),
+    path(
         'gift-vouchers/', GiftVoucherListView.as_view(), name='gift_vouchers'
     ),
     path('test-paypal-email/', test_paypal_view, name='test_paypal_email'),
@@ -350,7 +372,10 @@ urlpatterns = [
     # memberships
     path("memberships/<int:pk>/delete", membership_delete, name="membership_delete"),
     path("memberships/<int:pk>/deactivate", membership_deactivate, name="membership_deactivate"),
+    path("memberships/<int:pk>/users", membership_users, name="membership_users"),
+    path('memberships/<int:pk>/email/', email_members, name='email_members'),
     path("memberships/<int:pk>/", membership_edit, name="membership_edit"),
+    path('memberships/email-members/', email_all_members, name='email_all_members'),
     path("memberships/new/", membership_add, name="membership_add"),
     path("memberships/", memberships_list, name="memberships_list"),
     

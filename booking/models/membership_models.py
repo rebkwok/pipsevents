@@ -3,6 +3,7 @@ from datetime import datetime
 import logging
 import re
 
+from django.core.validators import RegexValidator
 from django.db import models
 from django.utils.text import slugify
 from django.utils import timezone
@@ -17,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 class MembershipManager(models.Manager):
     def purchasable(self):
-        return self.get_queryset().filter(visible=True, membership_items__id__isnull=False).distinct()
+        return self.get_queryset().filter(visible=True, active=True, membership_items__id__isnull=False).distinct()
     
 
 class Membership(models.Model):
@@ -46,6 +47,9 @@ class Membership(models.Model):
 
     objects = MembershipManager()
 
+    class Meta:
+        ordering = ("id",)
+
     def __str__(self) -> str:
         return f"{self.name} - £{self.price}"
     
@@ -61,7 +65,7 @@ class Membership(models.Model):
     def active_user_memberships(self):
         not_cancelled_yet = self.user_memberships.filter(models.Q(end_date__isnull=True) | models.Q(end_date__gt=timezone.now()))
         results = {
-            "ongoing": [], "cancelling": []
+            "all": [], "ongoing": [], "cancelling": []
         }
         for user_membership in not_cancelled_yet:
             if user_membership.is_active():
@@ -69,6 +73,7 @@ class Membership(models.Model):
                     results["ongoing"].append(user_membership)
                 else:
                     results["cancelling"].append(user_membership)
+                results["all"].append(user_membership)
         return results
 
     def save(self, *args, **kwargs):
@@ -253,6 +258,23 @@ class UserMembership(models.Model):
     def __str__(self) -> str:
         return f"{self.user} - {self.membership.name}"
 
+    @classmethod
+    def active_member_ids(cls):
+        """
+        Return a list of IDs for users who have an active membership
+        """
+        valid_subscriptions = cls.objects.filter(
+            # active/past due statuses are active (past due is auto-cancelled on 28th, so we can assume all past dues are valid)
+            models.Q(subscription_status__in=["active", "past_due"]) | 
+            # cancelled can be valid, if the start date is before now, and end date is after now
+            models.Q(
+                subscription_status="canceled",
+                end_date__gt=timezone.now(),
+                start_date__lt=timezone.now()
+            )
+        ).values_list("user_id", flat=True)
+        return set(valid_subscriptions)
+
     def is_active(self):
         # Note active doesn't mean valid for a particular class and date
         # A subscription that hasn't started yet is considered active
@@ -390,3 +412,84 @@ class UserMembership(models.Model):
                     ActivityLog.objects.create(
                         log=f"Unpaid booking {booking.id} (user {self.user.username}) allocated to membership"
                     )
+
+
+class StripeSubscriptionVoucher(models.Model):
+    """
+    Holds info about a Stripe Coupon and Promotional Code so we don't have to fetch it from
+    Stripe every time to show memberships that have codes available. Stripe handles determining whether a
+    particular code is valid.
+    """
+    code = models.CharField(max_length=50, unique=True, validators=[RegexValidator(r"^[a-zA-Z0-9]+$", message="Alphanumeric characters only")])  
+    memberships = models.ManyToManyField(Membership)
+    promo_code_id = models.CharField(max_length=255)  # from stripe
+    amount_off = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    percent_off = models.FloatField(null=True, blank=True)
+    duration = models.CharField(max_length=255, choices=(("once", "once"), ("forever", "forever"), ("repeating", "repeating")), default="once")
+    duration_in_months = models.PositiveIntegerField(null=True, blank=True)
+    max_redemptions = models.PositiveIntegerField(null=True, blank=True)
+    redeem_by = models.DateTimeField(null=True, blank=True)
+    active = models.BooleanField(default=True)
+    # Apppy to new subscriptions only; this is not a Stripe-handled restriction (Stripe has 'first_time_transaction' restriction on
+    # promo codes, but they are customer-based, not product-based)
+    new_memberships_only = models.BooleanField(
+        default=True, help_text="Valid for new memberships only"
+    )
+
+    def __str__(self) -> str:
+        return self.code
+
+    def expired(self):
+        if self.redeem_by:
+            return self.redeem_by < timezone.now()
+        return False
+
+    @property
+    def description(self):
+        if self.amount_off:
+            discount = f"£{self.amount_off} off"
+        else:
+            discount = f"{self.percent_off}% off" 
+
+        match self.duration:
+            case "once":
+                return f"{discount} one month's membership"
+            case "forever":
+                return discount
+            case "repeating":
+                return f"{discount} {self.duration_in_months} months membership"
+
+    def save(self, *args, **kwargs):
+        presaved = None
+        if not self.id:
+            self.code = self.code.lower()
+        else:
+            presaved = StripeSubscriptionVoucher.objects.get(id=self.id)
+        super().save(*args, **kwargs)
+        stripe_client = StripeConnector()
+        if presaved:
+            if presaved.active != self.active:
+                stripe_client.update_promo_code(self.promo_code_id, active=self.active)
+                change = "unarchived" if self.active else "archived"
+                ActivityLog.objects.create(
+                log=f"Stripe promo code {self.code} {change}"
+            )
+
+    def create_stripe_code(self):
+        if self.memberships.exists():
+            stripe_client = StripeConnector()
+            promo_code = stripe_client.create_promo_code(
+                self.code, 
+                list(self.memberships.values_list("stripe_product_id", flat=True)),
+                amount_off=int(self.amount_off * 100) if self.amount_off else None,
+                percent_off=self.percent_off,
+                duration=self.duration,
+                duration_in_months=self.duration_in_months,
+                max_redemptions=self.max_redemptions,
+                redeem_by=int(self.redeem_by.timestamp()) if self.redeem_by else None
+            )
+            ActivityLog.objects.create(
+                log=f"Stripe promo code {self.code} created"
+            )
+            self.promo_code_id = promo_code.id
+            self.save()

@@ -5,8 +5,10 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from model_bakery import baker
 from urllib.parse import urlsplit
+from unittest.mock import patch
 
 from django.core import mail
+from django.contrib.sites.models import Site
 from django.urls import reverse
 from django.test import override_settings, TestCase, RequestFactory
 from django.utils import timezone
@@ -15,6 +17,7 @@ from accounts.models import DataPrivacyPolicy
 from booking.models import Event, Booking, \
     Block, BlockVoucher, EventVoucher, UsedBlockVoucher, UsedEventVoucher
 from common.tests.helpers import make_data_privacy_agreement, TestSetupMixin
+from stripe_payments.tests.mock_connector import MockConnector
 
 
 class ShoppingBasketViewTests(TestSetupMixin, TestCase):
@@ -388,6 +391,23 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
             resp.context['booking_voucher_error'], 'Voucher code has expired'
         )
 
+    @patch("booking.models.membership_models.StripeConnector", MockConnector)
+    def test_members_only_booking_voucher(self):
+        baker.make("stripe_payments.Seller", site=Site.objects.get_current())
+        booking = Booking.objects.first()
+        self.voucher.members_only = True
+        self.voucher.save()
+
+        resp = self.client.get(self.url + '?booking_code=foo')
+        assert resp.context_data['booking_voucher_error'] == 'Voucher code is only redeemable by members'
+        booking.refresh_from_db()
+        assert booking.voucher_code is None
+
+        baker.make("booking.UserMembership", membership__name="mem", subscription_status="active", user=self.user)
+        resp = self.client.get(self.url + '?booking_code=foo')
+        assert resp.context_data['booking_voucher_error'] is None
+        assert resp.context_data['booking_voucher'] == self.voucher
+
     def test_block_voucher_code_expired(self):
         # expired voucher
         block = baker.make_recipe(
@@ -401,6 +421,24 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         self.assertEqual(
             resp.context['block_voucher_error'], 'Voucher code has expired'
         )
+
+    @patch("booking.models.membership_models.StripeConnector", MockConnector)
+    def test_members_only_block_voucher(self):
+        baker.make("stripe_payments.Seller", site=Site.objects.get_current())
+        block = baker.make_recipe(
+            'booking.block', block_type__cost=20, user=self.user, paid=False
+        )
+        self.block_voucher.block_types.add(block.block_type)
+        self.block_voucher.members_only = True
+        self.block_voucher.save()
+
+        resp = self.client.get(self.url + f'?block_code=foo')
+        assert resp.context_data['block_voucher_error'] == 'Voucher code is only redeemable by members'
+        
+        baker.make("booking.UserMembership", membership__name="mem", subscription_status="active", user=self.user)
+        resp = self.client.get(self.url + '?block_code=foo')
+        assert resp.context_data['block_voucher_error'] is None
+        assert resp.context_data['block_voucher'] == self.block_voucher
 
     def test_block_voucher_code_not_started(self):
         # expired voucher

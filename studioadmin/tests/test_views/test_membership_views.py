@@ -266,7 +266,7 @@ def test_purchased_membership_cannot_delete(client, seller, staff_user, purchasa
     assert Membership.objects.count() == 1 
 
 
-@patch("booking.models.membership_models.StripeConnector")
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
 def test_membership_deactivate_get(client, seller, staff_user, purchasable_membership):
     client.force_login(staff_user)
     resp = client.get(reverse("studioadmin:membership_deactivate", args=(purchasable_membership.id,)))
@@ -382,3 +382,42 @@ def test_membership_deactivate_active_user_memberships(mock_connector, mock_conn
             {'args': ('s2',), 'kwargs': {'cancel_immediately': False}}
         ]
     }
+
+
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+def test_membership_users(client, seller, staff_user, purchasable_membership):
+    baker.make(UserMembership, membership=purchasable_membership, _quantity=3)
+    client.force_login(staff_user)
+
+    resp = client.get(
+        reverse("studioadmin:membership_users", args=(purchasable_membership.id,)), 
+    )
+    assert resp.status_code == 200
+    assert resp.context_data["membership"] == purchasable_membership
+
+
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+def test_email_members(client, seller, staff_user, purchasable_membership):
+    baker.make(UserMembership, membership=purchasable_membership, subscription_status="active", _quantity=3)
+    baker.make(UserMembership, membership=purchasable_membership, subscription_status="incomplete", _quantity=1)
+    client.force_login(staff_user)
+
+    resp = client.get(
+        reverse("studioadmin:email_members", args=(purchasable_membership.id,)), 
+    )
+    assert resp.status_code == 302
+    assert resp.url == reverse("studioadmin:email_users_view") + f"?membership={purchasable_membership.id}"
+    assert len(client.session["users_to_email"]) == 3
+
+
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+def test_email_all_members(client, seller, staff_user):
+    baker.make(UserMembership, membership__name="foo", subscription_status="active", _quantity=3)
+    baker.make(UserMembership, membership__name="bar", subscription_status="past_due", _quantity=3)
+    baker.make(UserMembership, membership__name="baz", subscription_status="incomplete", _quantity=3)
+    client.force_login(staff_user)
+
+    resp = client.get(reverse("studioadmin:email_all_members"))
+    assert resp.status_code == 302
+    assert resp.url == reverse("studioadmin:email_users_view")
+    assert len(client.session["users_to_email"]) == 6

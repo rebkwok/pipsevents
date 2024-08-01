@@ -23,7 +23,7 @@
                     <td class="text-center">{{ invoice.status }}</td>
                     <td class="text-center">{{ invoice.subscription.user.username }}</td>
                     <td class="text-center">£{{ invoice.total }}</td>
-                    <td class="text-center"></td>
+                    <td class="text-center">{{ invoice.voucher_code }}</td>
                     <td>{{ invoice.invoice_date|date:"d-M-y H:i" }}</td>
                     <td>{{ invoice.subscription.membership }}</td>
                 </tr>

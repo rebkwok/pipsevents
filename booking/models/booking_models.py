@@ -1045,6 +1045,7 @@ class BaseVoucher(models.Model):
         verbose_name="Maximum uses per user",
         help_text="Maximum times this voucher can be used by a single user"
     )
+    members_only = models.BooleanField(default=False, help_text="Can only be redeemed by members")
     # for gift vouchers
     is_gift_voucher = models.BooleanField(default=False)
     activated = models.BooleanField(default=True)

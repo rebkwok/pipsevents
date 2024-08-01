@@ -1,17 +1,24 @@
 # -*- coding: utf-8 -*-
+from unittest.mock import patch, Mock
 from datetime import datetime, timedelta
 from datetime import timezone as dt_timezone
 
 from model_bakery import baker
+
+import pytest
 
 from django.urls import reverse
 from django.test import TestCase
 from django.utils import timezone
 
 from booking.models import BlockVoucher, EventVoucher, UsedBlockVoucher, \
-    UsedEventVoucher
+    UsedEventVoucher, Membership, StripeSubscriptionVoucher
 from common.tests.helpers import format_content
+from stripe_payments.tests.mock_connector import MockConnector
 from studioadmin.tests.test_views.helpers import TestPermissionMixin
+
+
+pytestmark = pytest.mark.django_db
 
 
 class VoucherListViewTests(TestPermissionMixin, TestCase):
@@ -627,3 +634,85 @@ class VoucherUsesViewTests(TestPermissionMixin, TestCase):
         self.assertEqual(
             resp.context_data['sidenav_selection'], 'block_vouchers'
         )
+
+
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+def test_membership_voucher_list(client, seller, staff_user):
+    baker.make(StripeSubscriptionVoucher, code="foo")
+    baker.make(StripeSubscriptionVoucher, code="bar")
+    client.force_login(staff_user)
+    resp = client.get(reverse("studioadmin:membership_vouchers"))
+    assert resp.status_code == 200
+    assert resp.context_data["sidenav_selection"] == "membership_vouchers"
+    assert len(resp.context_data["vouchers"]) == 2
+
+
+def test_membership_voucher_create_get(client, seller, staff_user, purchasable_membership):
+    client.force_login(staff_user)
+    resp = client.get(reverse("studioadmin:add_membership_voucher"))
+    assert resp.status_code == 200
+    assert list(resp.context_data["form"].fields["memberships"].queryset) == [purchasable_membership]
+
+
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+def test_membership_voucher_create(client, seller, staff_user, purchasable_membership):
+    client.force_login(staff_user)
+    assert not StripeSubscriptionVoucher.objects.exists()
+    data = {
+        "code": "Foo",
+        "percent_off": 10,
+        "active": True,
+        "duration": "once",
+        "memberships": [purchasable_membership.id]
+    }
+    resp = client.post(reverse("studioadmin:add_membership_voucher"), data)
+    assert resp.status_code == 302
+    assert StripeSubscriptionVoucher.objects.exists()
+    voucher = StripeSubscriptionVoucher.objects.first()
+    assert voucher.code == "foo"
+    assert voucher.memberships.count() == 1
+
+
+@patch("booking.models.membership_models.StripeConnector.create_promo_code")
+def test_membership_voucher_create_stripe_error(mock_create_promo_code, client, seller, staff_user, purchasable_membership):
+    mock_create_promo_code.side_effect=Exception("bad stripe")
+
+    client.force_login(staff_user)
+    assert not StripeSubscriptionVoucher.objects.exists()
+    data = {
+        "code": "Foo",
+        "percent_off": 10,
+        "active": True,
+        "duration": "once",
+        "memberships": [purchasable_membership.id]
+    }
+    resp = client.post(reverse("studioadmin:add_membership_voucher"), data, follow=True)
+    assert not StripeSubscriptionVoucher.objects.exists()
+    assert "Stripe promo code could not be created" in resp.rendered_content
+
+
+
+@patch("booking.models.membership_models.StripeConnector.get_promo_code")
+def test_membership_voucher_detail(mock_get_promo_code, client, seller, staff_user):
+    mock_get_promo_code.return_value = Mock(times_redeemed=2)
+    baker.make(StripeSubscriptionVoucher, code="foo")
+    client.force_login(staff_user)
+    resp = client.get(reverse("studioadmin:membership_voucher_detail", args=("foo",)))
+    assert resp.status_code == 200
+    assert resp.context_data["sidenav_selection"] == "membership_vouchers"
+    assert resp.context_data["voucher"].times_used == 2
+
+
+@patch("booking.models.membership_models.StripeConnector.update_promo_code")
+def test_membership_voucher_toggle_active(mock_update_promo_code, client, seller, staff_user):
+    voucher = baker.make(StripeSubscriptionVoucher, code="foo")
+    assert voucher.active
+
+    client.force_login(staff_user)
+    client.get(reverse("studioadmin:membership_voucher_toggle_active", args=(voucher.id,)))
+    voucher.refresh_from_db()
+    assert not voucher.active
+
+    client.get(reverse("studioadmin:membership_voucher_toggle_active", args=(voucher.id,)))
+    voucher.refresh_from_db()
+    assert voucher.active

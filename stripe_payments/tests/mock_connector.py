@@ -61,8 +61,8 @@ class MockConnector:
     def _record(self, fn, *args, **kwargs):
         self.method_calls.setdefault(fn.__name__, []).append({"args": args, "kwargs": kwargs})
 
-    def get_subscription_kwargs(self, customer_id, price_id, backdate=True, default_payment_method=None):
-        return self.connector.get_subscription_kwargs(customer_id, price_id, backdate, default_payment_method)
+    def get_subscription_kwargs(self, customer_id, price_id, backdate=True, default_payment_method=None, discounts=None):
+        return self.connector.get_subscription_kwargs(customer_id, price_id, backdate, default_payment_method, discounts)
 
     def create_stripe_product(self,  *args, **kwargs):
         self._record(self.create_stripe_product, *args, **kwargs)
@@ -141,9 +141,57 @@ class MockConnector:
             id=subscription_id, status="canceled" if cancel_immediately else "active",    
         )
     
-    def add_discount_to_subscription(self, subscription_id):
-        self._record(self.add_discount_to_subscription, [subscription_id])
+    def create_promo_code(
+            self, 
+            code, 
+            product_ids,
+            *,
+            amount_off=None,
+            percent_off=None,
+            duration="once", 
+            duration_in_months=None, 
+            max_redemptions=None, 
+            redeem_by=None, 
+        ):
+        """
+        Create a coupon on stripe and an associated promotion code
+        code: promotional code
+        amount_off (int, pence) OR percent_off (float)
+        duration: one of forever/once/repeating
+        duration_in_months: int, if duration is repeating, number of months to repeat for
+        max_redemptions: total number of times coupon can be used in total across all customers
+        redeem_by: Date after which the coupon can no longer be redeemed
+        product_ids: list of product ids to pass to applies_to {"products": []}
+        """
+        self._record(
+            self.create_promo_code, 
+            code, 
+            product_ids, 
+            amount_off=amount_off,
+            percent_off=percent_off, 
+            duration=duration, 
+            duration_in_months=duration_in_months, 
+            max_redemptions=max_redemptions, 
+            redeem_by=redeem_by
+        )
+        return MagicMock(id="promo-id")
+
+    def update_promo_code(self, promo_code_id, active):
         raise NotImplementedError
+    
+    def get_promo_code(self, promo_code_id):
+        raise NotImplementedError
+
+    def get_upcoming_invoice(self, subscription_id):
+        raise NotImplementedError
+    
+    def remove_discount_from_subscription(self, subscription_id):
+        self._record(self.remove_discount_from_subscription, [subscription_id])
+        return Mock()
+
+    def add_discount_to_subscription(self, subscription_id, promo_code_id=None):
+        self._record(self.add_discount_to_subscription, [subscription_id])
+        return Mock()
 
     def customer_portal_configuration(self):
         self._record(self.customer_portal_configuration)

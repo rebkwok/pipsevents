@@ -17,6 +17,7 @@
                                 <th class="text-center">Discount</th>
                                 <th class="text-center">Start Date</th>
                                 <th class="text-center">Expiry Date</th>
+                                <th class="text-center">Members only?</th>
                                 <th class="text-center">Max<br/>per user</th>
                                 <th class="text-center">Max<br/>total uses</th>
                                 <th class="text-center">Times used</br><span class="studioadmin-help">Click for details</span></th>
@@ -33,6 +34,7 @@
                                     <td class="text-center studioadmin-tbl">{{ voucher.discount }}%</td>
                                     <td class="text-center studioadmin-tbl">{{ voucher.start_date|date:"d M Y" }}
                                     <td class="text-center studioadmin-tbl">{% if voucher.expiry_date %}{{ voucher.expiry_date|date:"d M Y" }}{% else %}N/A{% endif %}</td>
+                                    <td class="text-center studioadmin-tbl">{{ voucher.members_only|yesno }}</td>
                                     <td class="text-center studioadmin-tbl">{% if voucher.max_per_user %}{{ voucher.max_per_user }}{% else %}N/A{% endif %}</td>
                                     <td class="text-center studioadmin-tbl">{% if voucher.max_vouchers %}{{ voucher.max_vouchers }}{% else %}N/A{% endif %}</td>
                                     <td class="text-center studioadmin-tbl"><a href="{% url 'studioadmin:voucher_uses' voucher.pk %}">{{ voucher|times_voucher_used }}</a></td>

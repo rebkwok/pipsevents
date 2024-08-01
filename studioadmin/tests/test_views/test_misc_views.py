@@ -9,7 +9,7 @@ from django.core import mail
 from django.test import TestCase
 from django.contrib.sites.models import Site
 
-from booking.models import Booking, Block, TicketBooking, Ticket, UserMembership
+from booking.models import Booking, Block, TicketBooking, Ticket, UserMembership, StripeSubscriptionVoucher
 from stripe_payments.models import Invoice, StripeSubscriptionInvoice
 from stripe_payments.tests.mock_connector import MockConnector
 from studioadmin.tests.test_views.helpers import TestPermissionMixin
@@ -368,11 +368,13 @@ def test_invoice_list(client, staff_user):
 @pytest.mark.django_db
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 def test_subscription_invoice_list(client, staff_user, seller, configured_stripe_user):
+    baker.make(StripeSubscriptionVoucher, code="foo-voucher-code", promo_code_id="promo-1")
     invoice1 = baker.make(
         StripeSubscriptionInvoice,
         invoice_id="inv_123",
         subscription_id="sub_123", 
-        status="paid", invoice_date=datetime(2024, 1, 25, 10, 0, tzinfo=dt_timezone.utc)
+        status="paid", invoice_date=datetime(2024, 1, 25, 10, 0, tzinfo=dt_timezone.utc),
+        promo_code_id="promo-1"
     )
     invoice2 = baker.make(
         StripeSubscriptionInvoice,
@@ -400,6 +402,7 @@ def test_subscription_invoice_list(client, staff_user, seller, configured_stripe
     resp = client.get(reverse("studioadmin:subscription_invoices"))
     # ordered by date, latest first (and nulls first)
     assert list(resp.context_data["invoices"]) == [unpaid_invoice, invoice_no_user_membership, invoice2, invoice1]
+    assert "foo-voucher-code" in resp.rendered_content
 
 
 @pytest.mark.django_db

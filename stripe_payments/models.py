@@ -204,6 +204,7 @@ class StripeSubscriptionInvoice(models.Model):
     """A model to store stripe info for a Subscription invoice"""
     subscription_id = models.CharField()
     invoice_id = models.CharField()
+    promo_code_id = models.CharField(null=True)
     status = models.CharField()
     total = models.DecimalField(max_digits=8, decimal_places=2)
     invoice_date = models.DateTimeField()
@@ -215,6 +216,7 @@ class StripeSubscriptionInvoice(models.Model):
     def from_stripe_event(cls, event_object):
         obj, _ = cls.objects.update_or_create(
             invoice_id=event_object.id,
+            promo_code_id=event_object.discount.promotion_code if event_object.discount else None,
             defaults=dict(
                 subscription_id=event_object.subscription,
                 status=event_object.status,
@@ -227,3 +229,9 @@ class StripeSubscriptionInvoice(models.Model):
     def subscription(self):
         from booking.models import UserMembership
         return UserMembership.objects.filter(subscription_id=self.subscription_id).first()
+
+    def voucher_code(self):
+        from booking.models import StripeSubscriptionVoucher
+        if self.promo_code_id:
+            return StripeSubscriptionVoucher.objects.filter(promo_code_id=self.promo_code_id).first().code
+        return ""

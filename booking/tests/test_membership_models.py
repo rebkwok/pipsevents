@@ -1,6 +1,8 @@
 import json
 
-from datetime import datetime
+from django.utils import timezone
+
+from datetime import datetime, timedelta
 from datetime import timezone as dt_tz
 
 from unittest.mock import patch
@@ -8,7 +10,7 @@ from unittest.mock import patch
 from model_bakery import baker
 import pytest
 
-from booking.models import Membership, MembershipItem, UserMembership, Event
+from booking.models import Membership, MembershipItem, UserMembership, Event, StripeSubscriptionVoucher
 from stripe_payments.tests.mock_connector import MockConnector
 
 
@@ -1110,3 +1112,134 @@ def test_user_has_membership(seller, configured_stripe_user, status, start_date,
         end_date=end_date,
     )
     assert configured_stripe_user.has_membership() == has_membership
+
+
+def test_subscription_voucher(seller):
+    voucher = baker.make(
+        StripeSubscriptionVoucher, code="Foo", promo_code_id="", redeem_by=timezone.now() + timedelta(1),
+        percent_off=10,
+        duration="once",
+    )
+    voucher_no_expiry = baker.make(
+        StripeSubscriptionVoucher, code="foo1", promo_code_id="", redeem_by=None,
+        percent_off=5,
+        duration="repeating",
+        duration_in_months=3
+    )
+    voucher_expired = baker.make(
+        StripeSubscriptionVoucher, code="foo2", promo_code_id="", redeem_by=timezone.now() - timedelta(1),
+        amount_off=10, duration="forever"   
+    )
+    assert not voucher.expired()
+    assert str(voucher) == "foo"
+    assert voucher.description == "10% off one month's membership"
+
+    assert not voucher_no_expiry.expired()
+    assert voucher_no_expiry.description == "5% off 3 months membership"
+
+    assert voucher_expired.expired()
+    assert voucher_expired.description == "£10 off"
+
+
+def test_subscription_voucher_create_stripe_code_no_memberships(seller):
+    voucher = baker.make(
+        StripeSubscriptionVoucher, code="foo", promo_code_id="", redeem_by=timezone.now() + timedelta(1),
+        percent_off=10,
+        duration="once",
+    )
+    voucher.create_stripe_code()
+    voucher.refresh_from_db()
+    assert voucher.promo_code_id == ""
+
+
+def test_subscription_voucher_create_stripe_code(seller, mocked_responses):
+    # creating the product
+    mocked_responses.post(
+        "https://api.stripe.com/v1/products",
+        body=json.dumps(
+            {
+                "object": "product",
+                "url": "/v1/product",
+                "id": "memb-1",
+                "name": "memb 1",
+                "description": "a membership",
+                "default_price": "price_1",
+            }
+        ),
+        status=200,
+        content_type="application/json",
+    )
+    # create the coupon
+    mocked_responses.post(
+        "https://api.stripe.com/v1/coupons",
+        body=json.dumps(
+            {
+                "object": "coupon",
+                "url": "/v1/coupons",
+                "id": "coupon-1",
+                "name": "coupon 1",
+            }
+        ),
+        status=200,
+        content_type="application/json",
+    )
+    # create the promo code
+    mocked_responses.post(
+        "https://api.stripe.com/v1/promotion_codes",
+        body=json.dumps(
+            {
+                "object": "coupon",
+                "url": "/v1/coupons",
+                "id": "promo-1",
+            }
+        ),
+        status=200,
+        content_type="application/json",
+    )
+
+    active_membership = baker.make(
+        Membership, name="memb-1", description="a membership", price=10, visible=True
+    )
+    
+    voucher = baker.make(
+        StripeSubscriptionVoucher, code="foo", promo_code_id="", redeem_by=timezone.now() + timedelta(1),
+        percent_off=10,
+        duration="once",
+    )
+    
+    voucher.memberships.add(active_membership)
+    voucher.create_stripe_code()
+
+    voucher.refresh_from_db()
+    assert voucher.promo_code_id == "promo-1"
+
+
+def test_subscription_voucher_make_active(seller, mocked_responses):
+    # promo code endpoint called to update active status
+    mocked_responses.post(
+        "https://api.stripe.com/v1/promotion_codes/promo-1",
+        body=json.dumps(
+            {
+                "object": "coupon",
+                "url": "/v1/coupons",
+                "id": "promo-1",
+            }
+        ),
+        status=200,
+        content_type="application/json",
+    )
+
+    voucher = baker.make(
+        StripeSubscriptionVoucher, code="foo", 
+        promo_code_id="promo-1", redeem_by=timezone.now() + timedelta(1),
+        percent_off=10,
+        duration="once",
+        active=False
+    )
+    voucher.active = True
+    voucher.save()
+
+    voucher.active = False
+    voucher.save()
+
+    mocked_responses.assert_call_count("https://api.stripe.com/v1/promotion_codes/promo-1", 2)

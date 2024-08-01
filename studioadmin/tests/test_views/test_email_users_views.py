@@ -1,5 +1,6 @@
 from unittest.mock import patch
 from model_bakery import baker
+import pytest
 
 from django.urls import reverse
 from django.core import mail
@@ -7,11 +8,14 @@ from django.test import TestCase
 from django.contrib.auth.models import Group, User
 
 from activitylog.models import ActivityLog
-from booking.models import Booking
+from booking.models import Booking, UserMembership
 from common.tests.helpers import _create_session
 from studioadmin.views.helpers import url_with_querystring
-
 from studioadmin.tests.test_views.helpers import TestPermissionMixin
+from stripe_payments.tests.mock_connector import MockConnector
+
+
+pytestmark = pytest.mark.django_db
 
 
 class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
@@ -797,3 +801,42 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
             'Test email'.format(
             )
         )
+
+
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+def test_email_users_with_membership(client, seller, staff_user, purchasable_membership):
+    user_memberships = baker.make(UserMembership, membership=purchasable_membership, subscription_status="active", _quantity=3)
+    client.force_login(staff_user)
+
+    session = client.session
+    session['users_to_email'] = [um.user.id for um in user_memberships]
+    session.save()
+    
+    resp = client.get(
+        reverse('studioadmin:email_users_view') + f"?membership={purchasable_membership.id}"
+    )
+    form = resp.context_data["form"]
+    assert form.initial == {"subject": f"Membership: {purchasable_membership.name}"}
+
+
+def test_email_users_with_bad_membership(client, staff_user):
+    session = client.session
+    session['users_to_email'] = []
+    session.save()
+    client.force_login(staff_user)
+    resp = client.get(reverse('studioadmin:email_users_view')  + f"?membership=unk")
+    form = resp.context_data["form"]
+    assert form.initial == {"subject": ""}
+    resp = client.get(reverse('studioadmin:email_users_view')  + f"?membership=99999")
+    form = resp.context_data["form"]
+    assert form.initial == {"subject": ""}
+
+
+def test_email_users_with_no_subject_instance(client, staff_user):
+    session = client.session
+    session['users_to_email'] = []
+    session.save()
+    client.force_login(staff_user)
+    resp = client.get(reverse('studioadmin:email_users_view'))
+    form = resp.context_data["form"]
+    assert form.initial == {"subject": ""}

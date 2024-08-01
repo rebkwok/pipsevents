@@ -10,29 +10,29 @@
                 <h2 class="card-title">Memberships</h2>
                 </div>
             <div class="card-body">
-                <h4>Memerships available:</h4>
+                <h4>Memberships available:</h4>
                     {% for membership in memberships %}
-                        <dt>{{ membership.name }}</dt>
-                        <dd>{{ membership.description }}
+                        <details>
+                        <summary>{{ membership }}</summary>
+                        <dd class="ml-3">{{ membership.description }}
                             <ul>
                                 {% for membership_item in membership.membership_items.all %}
                                 <li>{{ membership_item }}</li>
                                 {% endfor %}
                             </ul>
-                        £{{ membership.price }}{% if show_vat %} (incl VAT){% endif %}
-                        <dd>
+                        £{{ membership.price }}{% if show_vat %} (incl VAT){% endif %}</dd>
+                        </details>
                     {% endfor %}
                 
                 {% if has_ongoing_membership %}
-                    <p>You already have an active membership. View <a href="{% url 'membership_list' %}">your memberships</a> to update or cancel.</p>
+                    <p class="mt-4">You already have an active membership. View <a href="{% url 'membership_list' %}">your memberships</a> to update or cancel.</p>
                 {% elif has_cancelled_current_membership %}
-                    <p>You already have an active membership which ends after this month. You can create a new membership to 
+                    <p class="mt-4">You already have an active membership which ends after this month. You can create a new membership to 
                         start from next month.</p>  
                 {% endif %}
 
-                {% if not has_ongoing_membership %}
+                {% if form %}
                     <p>Select a membership to add.</p>
-
                     <form method="post" action="{% url 'membership_checkout' %}">
                         {% csrf_token %}
                         <div class="form-group">
@@ -43,14 +43,14 @@
                             <span class="studioadmin-help">{{ form.backdate.help_text }}</span>
                         </div>
                         <div class="form-group">
-                            <label>{{ form.agree_to_terms.label }}</label> {{ form.agree_to_terms }}
+                            {{ form.agree_to_terms }} <label>{{ form.agree_to_terms.label }}</label> 
                         </div>
                         <div class="form-group">
                         <input class="btn btn-wm" type="submit" value="Checkout" />
                         </div>
                     </form>
-                </div>
-            {% endif %}
+                    </div>
+                {% endif %}
        </div>
 
 </div>

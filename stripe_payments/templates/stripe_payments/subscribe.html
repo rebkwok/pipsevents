@@ -10,9 +10,9 @@
 
 {% block content %}
     {% if creating %}
-      <h1 class="mt-2">Set up Membership Subscription</h1>
+      <h1 class="mt-2">Setting up Membership: {{membership.name}}</h1>
     {% else %}
-      <h1 class="mt-2">Update Membership Subscription</h1>
+      <h1 class="mt-2">Updating Membership: {{membership.name}}</h1>
     {% endif %}
     <hr>
 
@@ -28,41 +28,15 @@
 
       {% else %}
 
-      <div id="subscription-checkout-summary">
-        {% if creating %}
-          <p>You are subscribing to {{membership.name}}.</p>
-        {% else %}
-          <p>You are updating your subscription for {{membership.name}}.</p>
-        {% endif %}
+      <div id="membership-voucher-form">
+        {% include 'stripe_payments/includes/membership_voucher_form.html' %}
+      </div>
+
+      <div id="stripe-subscription-form">
+        {% include 'stripe_payments/includes/stripe_subscription_form.html' %}
       </div>
 
       <div>
-          <h3 class="mt-1">Billing Details</h3>
-          <form id="payment-form">
-            <div id="payment-element">
-              <!--Stripe.js injects the Payment Element-->
-            </div>
-
-            <div>
-              <button id="payment-button" class="btn btn-dark"
-                data-client_secret="{{ client_secret }}"
-                data-confirm_type="{{ confirm_type }}"
-                data-customer_id="{{ customer_id }}"
-                data-price_id="{{ membership.stripe_price_id}}"
-                data-amount="{{ amount }}"
-                data-stripe_account="{{ stripe_account }}"
-                data-stripe_api_key="{{ stripe_api_key }}"
-                data-return_url="{{ stripe_return_url }}"
-                data-backdate="{{ backdate }}"
-              >
-                <div class="spinner hidden" id="spinner"></div>
-                <span id="button-text">Submit</span>
-              </button>
-              <div id="payment-message" class="hidden"></div>
-              <div id="payment-error" class="Error hidden"></div>
-            </div>
-          </form>
-
           {% include "stripe_payments/includes/stripe_info.html" %}
       </div>
 
@@ -76,5 +50,5 @@
     <script>
       var CSRF_TOKEN = '{{ csrf_token }}';
     </script>
-    <script type='text/javascript' src="{% static 'stripe_payments/js/stripe-subscribe-v1.1.js' %}"></script>
+    <script type='text/javascript' src="{% static 'stripe_payments/js/stripe-subscribe-v1.2.js' %}"></script>
 {% endblock %}

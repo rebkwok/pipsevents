@@ -1,0 +1,40 @@
+<form id="payment-form">
+    <h3 class="mt-1">Billing Details</h3>
+
+    <div>
+        <p>
+        {% if amount %}
+        <strong>£{{ next_amount|floatformat:2 }}</strong> will be charged immediately.
+        {% else %}
+        <strong>No payment will be taken now. £{{ next_amount|floatformat:2 }}</strong> will be charged at the next billing date (25th of the month).
+        {% endif %}
+        </p>
+        <p>
+        Regular membership price (charged monthly on 25th): <strong>£{{ regular_amount|floatformat:2 }}</strong>
+        </p>
+    </div>
+
+    <div id="payment-element">
+      <!--Stripe.js injects the Payment Element-->
+    </div>
+
+    <div>
+      <button id="payment-button" class="btn btn-dark"
+        data-client_secret="{{ client_secret }}"
+        data-confirm_type="{{ confirm_type }}"
+        data-customer_id="{{ customer_id }}"
+        data-price_id="{{ membership.stripe_price_id}}"
+        data-amount="{{ amount }}"
+        data-stripe_account="{{ stripe_account }}"
+        data-stripe_api_key="{{ stripe_api_key }}"
+        data-return_url="{{ stripe_return_url }}"
+        data-backdate="{{ backdate }}"
+        data-voucher_code={% if voucher_valid %}"{{ voucher_code }}"{% else %}""{% endif %}
+      >
+        <div class="spinner hidden" id="spinner"></div>
+        <span id="button-text">Submit</span>
+      </button>
+      <div id="payment-message" class="hidden"></div>
+      <div id="payment-error" class="errorlist"></div>
+    </div>
+</form>

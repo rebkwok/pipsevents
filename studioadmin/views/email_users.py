@@ -17,7 +17,7 @@ from django.shortcuts import HttpResponseRedirect, render
 from django.utils.encoding import smart_str
 from django.utils.safestring import mark_safe
 
-from booking.models import Event, Booking
+from booking.models import Event, Booking, Membership
 from booking.email_helpers import send_support_email
 
 from studioadmin.forms import EmailUsersForm, ChooseUsersFormSet, \
@@ -122,169 +122,176 @@ def choose_users_to_email(
 def email_users_view(request, mailing_list=False,
                      template_name='studioadmin/email_users_form.html'):
 
-        if mailing_list:
-            subscribed, _ = Group.objects.get_or_create(name='subscribed')
-            users_to_email = subscribed.user_set.all()
-        else:
-            users_to_email = User.objects.filter(
-                id__in=request.session['users_to_email']
+    if mailing_list:
+        subscribed, _ = Group.objects.get_or_create(name='subscribed')
+        users_to_email = subscribed.user_set.all()
+    else:
+        users_to_email = User.objects.filter(
+            id__in=request.session['users_to_email']
+        )
+
+    if request.method == 'POST':
+
+        form = EmailUsersForm(request.POST)
+        test_email = request.POST.get('send_test', False)
+
+        if form.is_valid():
+            subject = '{}{}'.format(
+                form.cleaned_data['subject'],
+                ' [TEST EMAIL]' if test_email else ''
             )
+            from_address = form.cleaned_data['from_address']
+            message = mark_safe(form.cleaned_data['message'])
+            cc = form.cleaned_data['cc']
 
-        if request.method == 'POST':
+            # bcc recipients
+            email_addresses = [user.email for user in users_to_email]
+            email_count = len(email_addresses)
+            number_of_emails = ceil(email_count / 99)
 
-            form = EmailUsersForm(request.POST)
-            test_email = request.POST.get('send_test', False)
+            if test_email:
+                email_lists = [[from_address]]
+            else:
+                email_lists = [email_addresses]  # will be a list of lists
+                # split into multiple emails of 99 bcc plus 1 cc
+                if email_count > 99:
+                    email_lists = [
+                        email_addresses[i : i + 99]
+                        for i in range(0, email_count, 99)
+                        ]
 
-            if form.is_valid():
-                subject = '{}{}'.format(
-                    form.cleaned_data['subject'],
-                    ' [TEST EMAIL]' if test_email else ''
-                )
-                from_address = form.cleaned_data['from_address']
-                message = mark_safe(form.cleaned_data['message'])
-                cc = form.cleaned_data['cc']
+            host = 'http://{}'.format(request.META.get('HTTP_HOST'))
 
-                # bcc recipients
-                email_addresses = [user.email for user in users_to_email]
-                email_count = len(email_addresses)
-                number_of_emails = ceil(email_count / 99)
-
-                if test_email:
-                    email_lists = [[from_address]]
-                else:
-                    email_lists = [email_addresses]  # will be a list of lists
-                    # split into multiple emails of 99 bcc plus 1 cc
-                    if email_count > 99:
-                        email_lists = [
-                            email_addresses[i : i + 99]
-                            for i in range(0, email_count, 99)
-                            ]
-
-                host = 'http://{}'.format(request.META.get('HTTP_HOST'))
-
-                try:
-                    for i, email_list in enumerate(email_lists):
-                        ctx = {
-                                  'subject': subject,
-                                  'message': message,
-                                  'number_of_emails': number_of_emails,
-                                  'email_count': email_count,
-                                  'is_test': test_email,
-                                  'mailing_list': mailing_list,
-                                  'host': host,
-                              }
-                        msg = EmailMultiAlternatives(
-                            subject,
-                            get_template(
-                                'studioadmin/email/email_users.txt').render(
-                                    ctx
-                                ),
-                            bcc=email_list,
-                            cc=[from_address]
-                            if (i == 0 and cc and not test_email) else [],
-                            reply_to=[from_address]
-                            )
-                        msg.attach_alternative(
-                            get_template(
-                                'studioadmin/email/email_users.html').render(
-                                  ctx
-                              ),
-                            "text/html"
+            try:
+                for i, email_list in enumerate(email_lists):
+                    ctx = {
+                                'subject': subject,
+                                'message': message,
+                                'number_of_emails': number_of_emails,
+                                'email_count': email_count,
+                                'is_test': test_email,
+                                'mailing_list': mailing_list,
+                                'host': host,
+                            }
+                    msg = EmailMultiAlternatives(
+                        subject,
+                        get_template(
+                            'studioadmin/email/email_users.txt').render(
+                                ctx
+                            ),
+                        bcc=email_list,
+                        cc=[from_address]
+                        if (i == 0 and cc and not test_email) else [],
+                        reply_to=[from_address]
                         )
-                        msg.send(fail_silently=False)
-
-                        if not test_email:
-                            ActivityLog.objects.create(
-                                log='{} email with subject "{}" sent to users {} by'
-                                    ' admin user {}'.format(
-                                        'Mailing list' if mailing_list else 'Bulk',
-                                        subject, ', '.join(email_list),
-                                        request.user.username
-                                    )
-                            )
-                except Exception as e:
-                    # send mail to tech support with Exception
-                    send_support_email(
-                        e, __name__, "Bulk Email to students"
+                    msg.attach_alternative(
+                        get_template(
+                            'studioadmin/email/email_users.html').render(
+                                ctx
+                            ),
+                        "text/html"
                     )
-                    ActivityLog.objects.create(
-                        log="Possible error with sending {} email; "
-                            "notification sent to tech support".format(
-                                'mailing list' if mailing_list else 'bulk'
-                        )
-                    )
+                    msg.send(fail_silently=False)
 
                     if not test_email:
                         ActivityLog.objects.create(
-                            log='{} email error '
-                                '(email subject "{}"), sent by '
-                                'by admin user {}'.format(
+                            log='{} email with subject "{}" sent to users {} by'
+                                ' admin user {}'.format(
                                     'Mailing list' if mailing_list else 'Bulk',
-                                    subject, request.user.username
+                                    subject, ', '.join(email_list),
+                                    request.user.username
                                 )
                         )
+            except Exception as e:
+                # send mail to tech support with Exception
+                send_support_email(
+                    e, __name__, "Bulk Email to students"
+                )
+                ActivityLog.objects.create(
+                    log="Possible error with sending {} email; "
+                        "notification sent to tech support".format(
+                            'mailing list' if mailing_list else 'bulk'
+                    )
+                )
 
                 if not test_email:
-                    messages.success(
-                        request,
-                        '{} email with subject "{}" has been sent to '
-                        'users'.format(
-                            'Mailing list' if mailing_list else 'Bulk',
-                            subject
-                        )
-                    )
-                    return HttpResponseRedirect(reverse('studioadmin:users'))
-                else:
-                    messages.success(
-                        request, 'Test email has been sent to {} only. Click '
-                                 '"Send Email" below to send this email to '
-                                 'users.'.format(
-                                    from_address
-                                    )
+                    ActivityLog.objects.create(
+                        log='{} email error '
+                            '(email subject "{}"), sent by '
+                            'by admin user {}'.format(
+                                'Mailing list' if mailing_list else 'Bulk',
+                                subject, request.user.username
+                            )
                     )
 
-
-
-            # Do this if form not valid OR sending test email
-            event_ids = request.session.get('events', [])
-            lesson_ids = request.session.get('lessons', [])
-            events = Event.objects.filter(id__in=event_ids)
-            lessons = Event.objects.filter(id__in=lesson_ids)
-
-            if form.errors:
-                totaleventids = event_ids + lesson_ids
-                totalevents = Event.objects.filter(id__in=totaleventids)
-                messages.error(
+            if not test_email:
+                messages.success(
                     request,
-                    mark_safe(
-                        "Please correct errors in form: {}".format(form.errors)
+                    '{} email with subject "{}" has been sent to '
+                    'users'.format(
+                        'Mailing list' if mailing_list else 'Bulk',
+                        subject
                     )
                 )
-                form = EmailUsersForm(
-                    initial={
-                        'subject': "; ".join(
-                            (str(event) for event in totalevents)
-                        )
-                    }
+                return HttpResponseRedirect(reverse('studioadmin:users'))
+            else:
+                messages.success(
+                    request, 'Test email has been sent to {} only. Click '
+                                '"Send Email" below to send this email to '
+                                'users.'.format(
+                                from_address
+                                )
                 )
 
-            if test_email:
-                form = EmailUsersForm(request.POST)
 
-        else:
-            event_ids = ast.literal_eval(request.GET.get('events', '[]'))
-            events = Event.objects.filter(id__in=event_ids)
-            lesson_ids = ast.literal_eval(request.GET.get('lessons', '[]'))
-            lessons = Event.objects.filter(id__in=lesson_ids)
+
+        # Do this if form not valid OR sending test email
+        event_ids = request.session.get('events', [])
+        lesson_ids = request.session.get('lessons', [])
+        events = Event.objects.filter(id__in=event_ids)
+        lessons = Event.objects.filter(id__in=lesson_ids)
+
+        if form.errors:
             totaleventids = event_ids + lesson_ids
             totalevents = Event.objects.filter(id__in=totaleventids)
+            messages.error(
+                request,
+                mark_safe(
+                    "Please correct errors in form: {}".format(form.errors)
+                )
+            )
             form = EmailUsersForm(
                 initial={
-                    'subject': "; ".join((str(event) for event in totalevents))
+                    'subject': "; ".join(
+                        (str(event) for event in totalevents)
+                    )
                 }
             )
 
-        return TemplateResponse(
+        if test_email:
+            form = EmailUsersForm(request.POST)
+
+    else:
+        event_ids = ast.literal_eval(request.GET.get('events', '[]'))
+        events = Event.objects.filter(id__in=event_ids)
+        lesson_ids = ast.literal_eval(request.GET.get('lessons', '[]'))
+        lessons = Event.objects.filter(id__in=lesson_ids)
+        membership_id = request.GET.get("membership")
+        totaleventids = event_ids + lesson_ids 
+        subject = ""
+        if totaleventids:
+            totalevents = Event.objects.filter(id__in=totaleventids)
+            subject = "; ".join((str(event) for event in totalevents))
+        elif membership_id:
+            try:
+                membership = Membership.objects.get(id=int(membership_id))
+                subject = f"Membership: {membership.name}"
+            except (ValueError, Membership.DoesNotExist):
+                ...
+                
+        form = EmailUsersForm(initial={'subject': subject})
+
+    return TemplateResponse(
             request, template_name, {
                 'form': form,
                 'users_to_email': users_to_email,

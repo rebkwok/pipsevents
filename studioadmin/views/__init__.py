@@ -29,12 +29,15 @@ from studioadmin.views.users import MailingListView, \
 from studioadmin.views.vouchers import BlockVoucherCreateView, \
     BlockVoucherListView, BlockVoucherUpdateView, VoucherCreateView, \
     VoucherListView, VoucherUpdateView, BlockVoucherDetailView, \
-    EventVoucherDetailView, GiftVoucherListView
+    EventVoucherDetailView, GiftVoucherListView, MembershipVoucherListView, \
+    MembershipVoucherCreateView, membership_voucher_toggle_active, membership_voucher_detail
 from studioadmin.views.waiting_list import event_waiting_list_view, email_waiting_list, \
     ticketed_event_waiting_list_view, email_ticketed_event_waiting_list
 from studioadmin.views.notifications import all_users_banner_view, new_users_banner_view, popup_notification_view
 from studioadmin.views.setup_views import AllowedGroupListView, EventTypeListView
-from studioadmin.views.memberships import memberships_list, membership_edit, membership_add, membership_delete, membership_deactivate
+from studioadmin.views.memberships import memberships_list, membership_edit, membership_add, membership_delete, \
+    membership_deactivate, membership_users, email_members, email_all_members
+
 
 __all__ = [
     'ActivityLogListView', 'BlockListView', 'BlockVoucherCreateView',
@@ -71,6 +74,8 @@ __all__ = [
     "AllowedGroupListView", "EventTypeListView",
     "memberships_list", "membership_edit", "membership_add", "membership_delete",
     "SubscriptionInvoiceListView", "membership_deactivate",
-    "reactivated_block_status",
+    "reactivated_block_status", "MembershipVoucherListView",
+    "MembershipVoucherCreateView", "membership_voucher_toggle_active", "membership_voucher_detail",
+    "membership_users", "email_members", "email_all_members",
 ]
 

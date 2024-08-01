@@ -723,6 +723,7 @@ def test_webhook_invoice_finalised(
        status="finalized",
        total=1000, 
        effective_at=datetime(2024, 2, 25).timestamp(),
+       discount=None,
     )
     assert not StripeSubscriptionInvoice.objects.exists()
     resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
@@ -747,6 +748,7 @@ def test_webhook_invoice_paid(
        status="paid",
        total=1000, 
        effective_at=datetime(2024, 2, 25).timestamp(),
+       discount=None,
     )
     resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
     assert resp.status_code == 200, resp.content
