@@ -806,6 +806,8 @@ class Booking(models.Model):
     def payment_method(self):
         if not self.paid:
             return ""
+        if self.membership:
+            return "Membership"
         if self.block:
             return "Block"
 

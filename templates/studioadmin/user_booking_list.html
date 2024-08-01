@@ -42,7 +42,7 @@
                                     <th class="text-center">Fully</br>Paid</th>
                                     <th class="text-center">Payment</br>Method</th>
                                     <th class="text-center">Free</br>class?</th>
-                                    <th class="text-center">Block used</th>
+                                    <th class="text-center">Block/Membership used</th>
                                     <th class="text-center">Booking status</th>
                                 {% else %}
                                     <th></th>
@@ -52,7 +52,7 @@
                                     <th class="text-center">Paid</th>
                                     <th class="text-center">Payment</br>Method</th>
                                     <th class="text-center">Free class?</th>
-                                    <th class="text-center">Block used</th>
+                                    <th class="text-center">Block/Membership used</th>
                                     <th class="text-center">Booking status</th>
                                 {% endif %}
                             </tr>
@@ -85,7 +85,7 @@
                                         {% endif %}
                                         <td class="text-center studioadmin-tbl" id="payment-method-{{ booking.id }}">{{ booking.payment_method }}</td>
                                         <td class="text-center studioadmin-tbl">{% if booking.free_class %}<span class="fa fa-check"></span>{% endif %}</td>
-                                        <td class="text-center studioadmin-tbl">{% if booking.block %}{{ booking.block | format_block }}{% endif %}</td>
+                                        <td class="text-center studioadmin-tbl">{% if booking.membership %}{{ booking.membership.membership.name }}{% elif booking.block %}{{ booking.block | format_block }}{% endif %}</td>
                                         <td class="text-center studioadmin-tbl">
                                             {% if booking.no_show and booking.status == 'OPEN' %}
                                                 {% if booking.instructor_confirmed_no_show %}

@@ -452,7 +452,7 @@ class AddBookingForm(forms.ModelForm):
         model = Booking
         fields = (
             'user', 'event',
-            'paid', 'status', 'no_show', 'instructor_confirmed_no_show', 'attended', 'block',
+            'paid', 'status', 'no_show', 'instructor_confirmed_no_show', 'attended', 'block', 'membership',
             'free_class'
         )
 
@@ -465,7 +465,7 @@ class AddBookingForm(forms.ModelForm):
             'no_show': forms.CheckboxInput(attrs={'class': "form-check-input"}),
             'instructor_confirmed_no_show': forms.CheckboxInput(attrs={'class': "form-check-input"}),
             'attended': forms.CheckboxInput(attrs={'class': "form-check-input"}),
-            'free_class': forms.CheckboxInput(attrs={'class': "form-check-input"})
+            'free_class': forms.CheckboxInput(attrs={'class': "form-check-input"}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -499,6 +499,14 @@ class AddBookingForm(forms.ModelForm):
             empty_label="--------None--------"
         ))
 
+        if self.user.has_membership():
+            self.fields['membership'] = forms.ModelChoiceField(
+                queryset=self.user.memberships.filter(subscription_status="active"),
+                widget=forms.Select(attrs={'class': 'form-control input-sm'}),
+                required=False,
+                empty_label="--------None--------"
+            )
+
         for field in self.fields:
             self.fields[field].widget.attrs.update(
                 {'id': 'id_new_{}'.format(field)}
@@ -510,18 +518,25 @@ class AddBookingForm(forms.ModelForm):
         Add form validation for cancelled bookings
         """
         block = self.cleaned_data.get('block')
+        membership = self.cleaned_data.get("membership")
         event = self.cleaned_data.get('event')
         free_class = self.cleaned_data.get('free_class')
         status = self.cleaned_data.get('status')
 
-        if block and status == 'CANCELLED':
-            error_msg = 'A cancelled booking cannot be assigned to a block.'
+        if (block or membership) and status == 'CANCELLED':
+            error_msg = 'A cancelled booking cannot be assigned to a block/membership.'
             raise forms.ValidationError(error_msg)
+
+        if membership and block:
+            raise forms.ValidationError("Select a membership OR block to use (not both)")
 
         if event.event_type.event_type == 'CL':
             ev_type = "class"
         elif event.event_type.event_type == 'EV':
             ev_type = "event"
+
+        if membership and not membership.valid_for_event(event):
+            self.add_error('membership', f"User's membership is not valid for this {ev_type}")
 
         if block and event.event_type != block.block_type.event_type:
             available_block_type = BlockType.objects.filter(

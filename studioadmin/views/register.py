@@ -324,15 +324,24 @@ def process_event_booking_updates(form, event, request):
             booking.instructor_confirmed_no_show = False
             action = 'reopened'
 
-        if not booking.block:  # reopened no-show could already have block
-            active_block = booking.get_next_active_block()
-            if active_block is not None:
-                booking.block = active_block
+        # reopened no-show could already have block or membership
+        if not (booking.block or booking.membership):
+            active_membership = booking.get_next_active_user_membership()
+            if active_membership is not None:
+                booking.membership = active_membership
                 booking.paid = True
                 booking.payment_confirmed = True
+            else:
+                active_block = booking.get_next_active_block()
+                if active_block is not None:
+                    booking.block = active_block
+                    booking.paid = True
+                    booking.payment_confirmed = True
 
         if booking.block:  # check after assignment
             extra_msg = "Available block assigned."
+        if booking.membership:  # check after assignment
+            extra_msg = "Available membership used."
 
         booking.save()
 
