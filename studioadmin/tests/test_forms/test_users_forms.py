@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
-
 from datetime import timedelta
+from unittest.mock import patch
+
 from model_bakery import baker
 
 from django.conf import settings
+from django.contrib.sites.models import Site
 from django.test import TestCase
 from django.utils import timezone
 
 from booking.models import Event, BlockType
 from common.tests.helpers import PatchRequestMixin
+from stripe_payments.tests.mock_connector import MockConnector
 from studioadmin.forms import AddBookingForm, ChooseUsersFormSet, \
     EditBookingForm, EditPastBookingForm, \
     EmailUsersForm, UserFilterForm, UserBookingFormSet, UserBlockFormSet
@@ -743,7 +746,7 @@ class EditPastBookingFormTests(PatchRequestMixin, TestCase):
         self.assertFalse(form.is_valid())
         self.assertEqual(
             form.errors,
-            {'free_class': ['Free class cannot be assigned to a block.']}
+            {'free_class': ['Free class cannot be assigned to a block/membership.']}
         )
 
     def test_cannot_assign_cancelled_class_to_block(self):
@@ -766,8 +769,7 @@ class EditPastBookingFormTests(PatchRequestMixin, TestCase):
             form.errors,
             {
                 'block': [
-                    'Cannot assign cancelled booking to a block. To assign '
-                    'to block, please also change booking status to OPEN.'
+                    'Cannot assign cancelled booking to a block/membership.'
                 ]
             }
         )
@@ -909,6 +911,7 @@ class AddBookingFormTests(PatchRequestMixin, TestCase):
 
     def setUp(self):
         super(AddBookingFormTests, self).setUp()
+        baker.make("stripe_payments.Seller", site=Site.objects.get_current())
         self.event = baker.make_recipe('booking.future_EV', cost=10)
         self.poleclass = baker.make_recipe('booking.future_PC', cost=10)
         self.poleclass1 = baker.make_recipe('booking.future_PC', cost=10)
@@ -1024,7 +1027,7 @@ class AddBookingFormTests(PatchRequestMixin, TestCase):
             form.errors,
             {
                 '__all__': [
-                    'A cancelled booking cannot be assigned to a block.'
+                    'A cancelled booking cannot be assigned to a block/membership.'
                 ]
             }
         )
@@ -1107,3 +1110,79 @@ class AddBookingFormTests(PatchRequestMixin, TestCase):
                 ],
             },
         )
+
+    @patch("booking.models.membership_models.StripeConnector", MockConnector)
+    def test_cannot_assign_free_class_to_membership(self):
+        user_membership = baker.make("booking.UserMembership", membership__name="mem", user=self.user, subscription_status="active")
+        baker.make("booking.MembershipItem", membership=user_membership.membership, event_type=self.event.event_type, quantity=3)
+
+        data = {
+            'user': self.user.id,
+            'event': self.event.id,
+            'paid': '',
+            'status': 'OPEN',
+            'free_class': True,
+            'membership': user_membership.id
+        }
+        form = AddBookingForm(data=data, user=self.user)
+        assert not form.is_valid()
+        assert form.errors == {'free_class': ['"Free class" cannot be assigned to a membership.']}
+
+    @patch("booking.models.membership_models.StripeConnector", MockConnector)
+    def test_invalid_membership(self):
+        user_membership = baker.make("booking.UserMembership", membership__name="mem", user=self.user)
+
+        data = {
+            'user': self.user.id,
+            'event': self.event.id,
+            'paid': '',
+            'status': 'OPEN',
+            'membership': user_membership.id
+        }
+        form = AddBookingForm(data=data, user=self.user)
+        assert not form.is_valid()
+        assert form.errors == {'membership': ["User's membership is not valid for this event"]}
+
+    @patch("booking.models.membership_models.StripeConnector", MockConnector)
+    def test_cannot_assign_cancelled_class_to_membership(self):
+        user_membership = baker.make("booking.UserMembership", membership__name="mem", user=self.user, subscription_status="active")
+        baker.make("booking.MembershipItem", membership=user_membership.membership, event_type=self.event.event_type, quantity=3)
+
+        data = {
+            'user': self.user.id,
+            'event': self.event.id,
+            'paid': True,
+            'status': 'CANCELLED',
+            'membership': user_membership.id
+        }
+        form = AddBookingForm(data=data, user=self.user)
+        assert not form.is_valid()
+        assert form.errors == {
+                '__all__': [
+                    'A cancelled booking cannot be assigned to a block/membership.'
+                ]
+            }
+
+    @patch("booking.models.membership_models.StripeConnector", MockConnector)
+    def test_cannot_select_block_and_membership(self):
+        block = baker.make_recipe(
+            'booking.block', block_type=self.block_type_ev, paid=True, user=self.user
+        )
+        user_membership = baker.make("booking.UserMembership", membership__name="mem", user=self.user, subscription_status="active")
+        baker.make("booking.MembershipItem", membership=user_membership.membership, event_type=self.event.event_type, quantity=3)
+
+        data = {
+            'user': self.user.id,
+            'event': self.event.id,
+            'paid': '',
+            'status': 'OPEN',
+            'membership': user_membership.id,
+            "block": block.id
+        }
+        form = AddBookingForm(data=data, user=self.user)
+        assert not form.is_valid()
+        assert form.errors == {
+                '__all__': [
+                    'Select a membership OR block to use (not both)'
+                ]
+            }

@@ -559,6 +559,8 @@ class BookingAddView(CreateView):
 
 
 def process_user_booking_updates(form, request):
+    # The form clean removes block/membership if status is cancelled
+    had_membership_or_block = form.data.get("block") or form.data.get("membership")
     booking = form.save(commit=False)
     if form.has_changed():
         if form.changed_data == ['send_confirmation']:
@@ -570,14 +572,10 @@ def process_user_booking_updates(form, request):
             extra_msgs = []  # these will be displayed as a list in the email to the user
             action = 'updated' if form.instance.id else 'created'
             transfer_block_created = False
-            block_removed = False
 
             if 'status' in form.changed_data and action == 'updated':
                 if booking.status == 'CANCELLED':
-                    if booking.block:
-                        booking.block = None
-                        block_removed = True
-                    elif booking.paid \
+                    if booking.paid \
                             and booking.event.event_type.event_type != 'EV':
                         block_type = BlockType.get_transfer_block_type(booking.event.event_type )
                         Block.objects.create(
@@ -598,15 +596,7 @@ def process_user_booking_updates(form, request):
             elif 'no_show' in form.changed_data and action == 'updated' and booking.status == 'OPEN':
                 action = 'cancelled' if booking.no_show else 'reopened'
                 extra_msgs.append("Booking {} as 'no-show'".format(action))
-
-            if booking.block:
-                booking.paid = True
-                booking.payment_confirmed = True
-            elif 'block' in form.changed_data:
-                booking.block = None
-                booking.paid = False
-                booking.payment_confirmed = False
-
+            
             # check for existence of free child block on pre-saved booking
             has_free_block_pre_save = False
             if booking.block and booking.block.children.exists():
@@ -687,11 +677,28 @@ def process_user_booking_updates(form, request):
             )
 
             if not booking.block and 'block' in form.changed_data:
-                 messages.info(
-                     request,
-                     'Block removed for {}; booking is now marked as '
-                     'unpaid'.format(booking.event),
-                 )
+                if booking.membership:
+                    messages.info(
+                        request,
+                        f'Payment method changed from block to membership for {booking.event}',
+                    )
+                else:
+                     messages.info(
+                        request,
+                        f'Block removed for {booking.event}; booking is now marked as unpaid'
+                    )
+            
+            if not booking.membership and 'membership' in form.changed_data:
+                if booking.block:
+                    messages.info(
+                        request,
+                        f'Payment method changed from membership to membeblockrship for {booking.event}',
+                    )
+                else:
+                     messages.info(
+                        request,
+                        f'Membership removed for {booking.event}; booking is now marked as unpaid'
+                    )
 
             if action == 'reopened':
                 messages.info(
@@ -699,7 +706,7 @@ def process_user_booking_updates(form, request):
                     mark_safe(
                         'Note: this booking was previously cancelled and has now been reopened. '
                         '<span class="cancel-warning">Payment status has not been automatically '
-                        'updated. Please review the booking and update if paid and/or block used.</span>'
+                        'updated. Please review the booking and update if paid.</span>'
                     )
                 )
             elif action == 'cancelled':
@@ -715,11 +722,11 @@ def process_user_booking_updates(form, request):
                             )
                         )
                     )
-                elif block_removed:
+                elif had_membership_or_block:
                     messages.info(
                         request,
                         'Note: this booking has been cancelled. The booking has automatically been marked as '
-                        'unpaid and the block used has been updated.'
+                        'unpaid and the block/membership used has been updated.'
                     )
                 else:
                     messages.info(

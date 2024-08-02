@@ -14,7 +14,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit, Row, Column
 
 from booking.context_helpers import get_blocktypes_available_to_book
-from booking.models import Block, Booking, Event, BlockType
+from booking.models import Block, Booking, Event, BlockType, UserMembership
 from payments.models import PaypalBookingTransaction
 from studioadmin.fields import UserBlockModelChoiceField
 
@@ -559,13 +559,17 @@ class AddBookingForm(forms.ModelForm):
             self.add_error('free_class', error_msg)
 
 
+        if membership and free_class:
+            self.add_error('free_class', '"Free class" cannot be assigned to a membership.')
+
+
 class EditPastBookingForm(forms.ModelForm):
 
     class Meta:
         model = Booking
         fields = (
             'deposit_paid', 'paid', 'status', 'no_show', 'instructor_confirmed_no_show',
-            'attended', 'block', 'free_class'
+            'attended', 'block', 'membership', 'free_class'
         )
 
         widgets = {
@@ -611,18 +615,32 @@ class EditPastBookingForm(forms.ModelForm):
             empty_label="--------None--------"
         ))
 
+        
+        # show options for currently available membership and the instance membership, if different
+        next_membership = self.instance.get_next_active_user_membership()
+        membership_ids = {next_membership.id} if next_membership else set()
+        if self.instance.membership:
+            membership_ids.add(self.instance.membership.id)
+            
+        self.fields['membership'] = forms.ModelChoiceField(
+            queryset=UserMembership.objects.filter(id__in=membership_ids),
+            widget=forms.Select(attrs={'class': 'form-control input-sm'}),
+            required=False,
+            empty_label="--------None--------"
+        )
+
         widgets_to_disable_for_cancelled = {
             'attended', 'paid', 'deposit_paid', 'free_class', 'no_show'
         }
-        widgets_to_disable_for_blocks = {
+        widgets_to_disable_for_blocks_and_memberships = {
             'paid', 'deposit_paid', 'free_class'
         }
         self.disabled_attrs = set()
 
         if self.instance.status == 'CANCELLED':
             self.disabled_attrs |= widgets_to_disable_for_cancelled
-        if self.instance.block:
-            self.disabled_attrs |= widgets_to_disable_for_blocks
+        if self.instance.block or self.instance.membership:
+            self.disabled_attrs |= widgets_to_disable_for_blocks_and_memberships
 
         for field in self.disabled_attrs:
             self.fields[field].disabled = True
@@ -638,35 +656,42 @@ class EditPastBookingForm(forms.ModelForm):
         if status == 'CANCELLED' and 'status' in self.changed_data:
             self.cleaned_data['paid'] = False
             self.cleaned_data['block'] = None
+            self.cleaned_data['membership'] = None
 
         block = self.cleaned_data.get('block')
-        paid = self.cleaned_data.get('paid')
+        membership = self.cleaned_data.get('membership')
 
         ev_type = 'class' \
             if self.instance.event.event_type.event_type == 'CL' else 'event'
+
+        if block and membership:
+            if membership and block:
+                raise forms.ValidationError("Select a membership OR block to use (not both)")
 
         if self.instance.event.cancelled:
             base_error_msg = '{} is cancelled. '.format(self.instance.event)
             if block:
                 error_msg = 'Cannot assign booking to a block.'
                 self.add_error('block', base_error_msg + error_msg)
+            if membership:
+                error_msg = 'Cannot assign booking to a membership.'
+                self.add_error('membership', base_error_msg + error_msg)
             if status == 'OPEN':
                 error_msg = 'Cannot reopen booking for cancelled ' \
                             '{}.'.format(ev_type)
                 self.add_error('status', base_error_msg + error_msg)
 
         else:
-            if (block and free_class and
-                    block.block_type.identifier != 'free class'):
+            if free_class and (
+                membership or (block and block.block_type.identifier != 'free class')
+            ):
                 self.add_error(
-                    'free_class', 'Free class cannot be assigned to a block.'
+                    'free_class', 'Free class cannot be assigned to a block/membership.'
                 )
 
-            if block and status == 'CANCELLED':
+            if (block or membership) and status == 'CANCELLED':
                 self.add_error(
-                    'block', 'Cannot assign cancelled booking to a block. To '
-                             'assign to block, please also change booking status '
-                             'to OPEN.'
+                    'block', 'Cannot assign cancelled booking to a block/membership.'
                 )
 
             # this should be prevented by the disabled attribute on the field

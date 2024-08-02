@@ -4,6 +4,7 @@ from unittest.mock import patch
 from model_bakery import baker
 
 from django.conf import settings
+from django.contrib.sites.models import Site
 from django.urls import reverse
 from django.core import mail
 from django.test import TestCase
@@ -13,6 +14,7 @@ from booking.models import Booking, Block, BlockType, EventType, \
     WaitingListUser
 from common.tests.helpers import format_content
 from payments.helpers import create_booking_paypal_transaction
+from stripe_payments.tests.mock_connector import MockConnector
 from studioadmin.tests.test_views.helpers import TestPermissionMixin
 
 
@@ -1904,7 +1906,10 @@ class UserBookingsModalViewTests(TestPermissionMixin, TestCase):
             )
         )
 
+    @patch("booking.models.membership_models.StripeConnector", MockConnector)
     def test_payment_method(self):
+        baker.make("stripe_payments.Seller", site=Site.objects.get_current())
+
         user = baker.make_recipe('booking.user')
         
         url = reverse(
@@ -1932,6 +1937,14 @@ class UserBookingsModalViewTests(TestPermissionMixin, TestCase):
             event__date=timezone.now() + timedelta(2),
             user=user, paid=True, block=block, status='OPEN'
         )
+
+        # paid with membership
+        membership_booking = baker.make_recipe(
+            'booking.booking', 
+            event__date=timezone.now() + timedelta(2),
+            user=user, paid=True, membership__membership__name="Membership", status='OPEN'
+        )
+
         # paid with paypal
         paypal_booking = baker.make_recipe(
             'booking.booking', 
@@ -1964,6 +1977,7 @@ class UserBookingsModalViewTests(TestPermissionMixin, TestCase):
         assert soup.find(id=f'payment-method-{paypal_booking.id}').text == "PayPal"
         assert soup.find(id=f'payment-method-{stripe_booking.id}').text == "Stripe"
         assert soup.find(id=f'payment-method-{voucher_booking.id}').text == "Voucher"
+        assert soup.find(id=f'payment-method-{membership_booking.id}').text == "Membership"
 
 
 class BookingAddViewTests(TestPermissionMixin, TestCase):
