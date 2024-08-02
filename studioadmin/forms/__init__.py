@@ -13,7 +13,7 @@ from studioadmin.forms.timetable_forms import SessionAdminForm, \
     TimetableSessionFormSet, UploadTimetableForm, DAY_CHOICES
 from studioadmin.forms.user_forms import EditPastBookingForm, \
     EditBookingForm, UserBlockFormSet, \
-    UserBookingFormSet, UserListSearchForm, AddBookingForm, AttendanceSearchForm
+    UserListSearchForm, AddBookingForm, AttendanceSearchForm
 from studioadmin.forms.utils import StatusFilter
 from studioadmin.forms.voucher_forms import BlockVoucherStudioadminForm, \
     VoucherStudioadminForm, MembershipVoucherForm
@@ -29,7 +29,7 @@ __all__ = [
     'TicketedEventAdminForm',
     'TicketedEventFormSet', 'TicketBookingInlineFormSet',
     'TimetableSessionFormSet', 'UploadTimetableForm', 'UserBlockFormSet',
-    'UserBookingFormSet', 'UserFilterForm', 'UserListSearchForm',
+    'UserFilterForm', 'UserListSearchForm',
     'VoucherStudioadminForm', 'EditPastBookingForm', 'EditBookingForm',
     'AddBookingForm', 'AddRegisterBookingForm', 'OnlineTutorialAdminForm',
     'AttendanceSearchForm',

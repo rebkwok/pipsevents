@@ -38,7 +38,6 @@ from studioadmin.views import (BookingEditView,
                                unsubscribe,
                                upload_timetable_view,
                                choose_users_to_email,
-                               user_bookings_view_old,
                                user_modal_bookings_view,
                                user_blocks_view,
                                email_users_view,
@@ -175,9 +174,6 @@ urlpatterns = [
     ),
     path('users/<int:user_id>/mailing-list/unsubscribe/',
         unsubscribe, name='unsubscribe'
-    ),
-    path('users/<int:user_id>/bookings/old/',
-        user_bookings_view_old, name='user_bookings_list'
     ),
     path(
         'users/<int:user_id>/bookings/',

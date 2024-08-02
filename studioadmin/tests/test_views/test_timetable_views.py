@@ -709,4 +709,4 @@ class CloneEventTests(TestPermissionMixin, TestCase):
         assert cloned.name == "[CLONED] Mon_2"
 
         for session in Session.objects.all():
-            assert list(session.categories.values_list("category", flat=True)) == ["cat 1", "cat 2"]
+            assert set(session.categories.values_list("category", flat=True)) == {"cat 1", "cat 2"}

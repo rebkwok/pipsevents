@@ -7,6 +7,7 @@ from unittest.mock import patch
 from model_bakery import baker
 
 from django.contrib.auth.models import User
+from django.contrib.sites.models import Site
 from django.core import mail
 from django.urls import reverse
 from django.utils import timezone
@@ -14,6 +15,7 @@ from django.test import TestCase, RequestFactory
 
 from booking.models import Event, Block, BlockType, WaitingListUser
 from common.tests.helpers import format_content
+from stripe_payments.tests.mock_connector import MockConnector
 from studioadmin.views.register import process_event_booking_updates
 from studioadmin.forms.register_forms import AddRegisterBookingForm
 from studioadmin.tests.test_views.helpers import TestPermissionMixin
@@ -290,6 +292,7 @@ class RegisterAjaxAddBookingViewsTests(TestPermissionMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
         super().setUpTestData()
+        baker.make("stripe_payments.Seller", site=Site.objects.get_current())
         cls.pc = baker.make_recipe('booking.future_PC', max_participants=3)
         cls.ev = baker.make_recipe('booking.future_EV', max_participants=3)
         cls.pc_url = reverse('studioadmin:bookingregisteradd', args=(cls.pc.id,))
@@ -435,6 +438,21 @@ class RegisterAjaxAddBookingViewsTests(TestPermissionMixin, TestCase):
         self.assertEqual(booking.block, block)
         self.assertTrue(booking.paid)
         self.assertTrue(booking.payment_confirmed)
+
+    @patch("booking.models.membership_models.StripeConnector", MockConnector)
+    def test_assigns_available_membership(self):
+        assert not self.pc.bookings.exists()
+        membership = baker.make('booking.Membership', name="mem")
+        baker.make("booking.MembershipItem", membership=membership, event_type=self.pc.event_type, quantity=2)
+        user_membership = baker.make('booking.UserMembership', user=self.user, membership=membership, subscription_status="active")
+        assert user_membership.valid_for_event(self.pc)
+
+        self.client.post(self.pc_url, {'user': self.user.id})
+        booking = self.pc.bookings.first()
+        assert booking.user == self.user
+        assert booking.block is None
+        assert booking.membership == user_membership
+        assert booking.paid
 
     def test_remove_user_from_waiting_list(self):
         baker.make(WaitingListUser, user=self.user, event=self.pc)

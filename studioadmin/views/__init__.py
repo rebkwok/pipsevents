@@ -24,7 +24,7 @@ from studioadmin.views.timetable import timetable_admin_list, \
     upload_timetable_view, clone_timetable_session
 from studioadmin.views.users import MailingListView, \
     toggle_subscribed, unsubscribe, \
-    user_bookings_view_old, user_modal_bookings_view, user_blocks_view, UserListView, \
+    user_modal_bookings_view, user_blocks_view, UserListView, \
     BookingEditPastView, BookingEditView, BookingAddView, users_status, toggle_permission, user_memberships_list
 from studioadmin.views.vouchers import BlockVoucherCreateView, \
     BlockVoucherListView, BlockVoucherUpdateView, VoucherCreateView, \
@@ -61,7 +61,7 @@ __all__ = [
     'timetable_admin_list', 'TimetableSessionCreateView',
     'TimetableSessionUpdateView', 'toggle_subscribed', 'unsubscribe', 'toggle_permission',
     'upload_timetable_view', "clone_timetable_session",
-    'user_bookings_view_old', 'user_blocks_view', 'user_disclaimer',
+    'user_blocks_view', 'user_disclaimer',
     'UserListView', 'user_modal_bookings_view', 'VoucherCreateView',
     'VoucherListView', 'VoucherUpdateView',
     'BookingEditPastView', 'BookingAddView', 'BookingEditView',
