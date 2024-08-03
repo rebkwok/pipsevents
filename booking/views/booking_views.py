@@ -289,10 +289,6 @@ class BookingUpdateView(
                 booking.payment_confirmed = True
             else:
                 messages.error(self.request, 'Error: No available block')
-        # check for existence of free child block on pre-saved booking
-        has_free_block_pre_save = False
-        if booking.block and booking.block.children.exists():
-            has_free_block_pre_save = True
 
         booking.save()
         blocks_used, total_blocks = get_block_status(booking, self.request)
@@ -331,17 +327,7 @@ class BookingUpdateView(
             self.request, self.success_message.format(booking.event)
         )
         if booking.block and not booking.block.active_block():
-            if booking.block.children.exists() \
-                    and not has_free_block_pre_save:
-                messages.info(
-                    self.request,
-                    mark_safe(
-                        'You have just used the last space in your block and '
-                        'have qualified for a extra free class which has '
-                        'been added to <a href="/blocks">your blocks</a>!  '
-                    )
-                )
-            elif not booking.has_available_block:
+            if not booking.has_available_block:
                 messages.info(
                     self.request,
                     mark_safe(
@@ -905,14 +891,6 @@ def ajax_create_booking(request, event_id):
         case _: # pragma: no cover
             assert False
 
-    # check for existence of free child block on pre-saved booking
-    # note for prev no-shows booked with block, any free child blocks should
-    # have already been created.  Rebooking prev no-show doesn;t add a new
-    # block booking
-    has_free_block_pre_save = False
-    if booking.block and booking.block.children.exists():
-        has_free_block_pre_save = True
-
     if event.cost == 0:
         booking.paid = True
         booking.payment_confirmed = True
@@ -1038,13 +1016,8 @@ def ajax_create_booking(request, event_id):
         msg = "Booked with block. " if not transfer_block else "Booked with credit block."
 
         if not booking.block.active_block() and not transfer_block:
-            msg += 'You have just used the last space in your block. '
-            if booking.block.children.exists() and not has_free_block_pre_save:
-                msg += 'You have qualified for a extra free ' \
-                             'class which has been added to your blocks'
-            else:
-                alert_message['message_type'] = 'warning'
-                msg += 'Go to My Blocks buy a new one.'
+            msg += 'You have just used the last space in your block.'
+            alert_message['message_type'] = 'warning'
 
         alert_message['message'] = msg
     

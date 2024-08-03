@@ -707,154 +707,26 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(bookings.count(), 1)
         self.assertEqual(bookings[0].block, block1)
 
-    @patch('booking.models.booking_models.timezone')
-    def test_booking_with_block_if_original_and_free_available(self, mock_tz):
-        """
-        Usually there will only be an open free block attached to another block
-        if the original is full, but in case an admin has changed this, ensure
-        that the original block is used first (free block with parent block
-        should always be created after the original block)
-        """
-        mock_tz.now.return_value = datetime(2015, 1, 10, tzinfo=dt_timezone.utc)
+    def test_booking_with_block_completes_block(self):
+        event_type = baker.make_recipe('booking.event_type_PC')
 
-        event = baker.make_recipe(
-            'booking.future_PC', event_type=self.pole_class_event_type, cost=5
-        )
+        event = baker.make_recipe('booking.future_PC', event_type=event_type, cost=5)
         url = reverse('booking:ajax_create_booking', args=[event.id]) + "?ref=events"
-
         blocktype = baker.make_recipe(
-            'booking.blocktype', size=10, cost=60, duration=4,
-            event_type=self.pole_class_event_type, identifier='standard'
+            'booking.blocktype5', event_type=event_type, duration=2
         )
-
-        block = baker.make_recipe(
-            'booking.block', user=self.user, block_type=blocktype, paid=True
+        block1 = baker.make_recipe(
+            'booking.block', block_type=blocktype, user=self.user, paid=True,
         )
-        free_block = baker.make_recipe(
-            'booking.block', user=self.user, block_type=self.free_blocktype,
-            paid=True, parent=block
-        )
-
-        self.assertTrue(block.active_block())
-        self.assertTrue(free_block.active_block())
-        self.assertEqual(block.expiry_date, free_block.expiry_date)
-
-        blocks = self.user.blocks.all()
-        active_blocks = [
-            block for block in blocks if block.active_block()
-            and block.block_type.event_type == event.event_type
-        ]
-        # the original and free block are both available blocks for this event
-        self.assertEqual(set(active_blocks), set([block, free_block]))
+        baker.make("booking.booking", user=self.user, block=block1, paid=True, _quantity=4)
 
         self.client.login(username=self.user.username, password='test')
         resp = self.client.post(url)
-        self.assertEqual(
-            resp.context['alert_message']['message'],
-            "Booked with block. "
-        )
 
-        # booking created using the original block
         bookings = Booking.objects.filter(user=self.user)
-        self.assertEqual(bookings.count(), 1)
-        self.assertEqual(bookings[0].block, block)
-
-    def test_create_booking_uses_last_of_free_class_allowed_block(self):
-        block = baker.make_recipe(
-            'booking.block_10', user=self.user,
-            block_type__event_type=self.pole_class_event_type,
-            block_type__assign_free_class_on_completion=True,
-            paid=True, start_date=timezone.now()
-        )
-        event = baker.make_recipe(
-            'booking.future_CL', cost=10, event_type=self.pole_class_event_type
-        )
-        url = reverse('booking:ajax_create_booking', args=[event.id]) + "?ref=events"
-
-        baker.make_recipe(
-            'booking.booking', block=block, user=self.user, _quantity=9
-        )
-
-        self.assertEqual(Block.objects.count(), 1)
-        self.client.login(username=self.user.username, password='test')
-        resp = self.client.post(url)
-        self.assertEqual(
-            resp.context['alert_message']['message'],
-            "Booked with block. "
-            "You have just used the last space in your block. "
-            "You have qualified for a extra free class which has been added to your blocks"
-        )
-
-        self.assertEqual(block.bookings.count(), 10)
-        self.assertEqual(Block.objects.count(), 2)
-        self.assertEqual(Block.objects.latest('id').block_type, self.free_blocktype)
-
-    def test_booking_uses_last_of_free_class_allowed_block_free_block_already_exists(self):
-        block = baker.make_recipe(
-            'booking.block_10', user=self.user,
-            block_type__event_type=self.pole_class_event_type,
-            block_type__assign_free_class_on_completion=True,
-            paid=True, start_date=timezone.now()
-        )
-        event = baker.make_recipe(
-            'booking.future_EV', cost=10, event_type=self.pole_class_event_type
-        )
-        url = reverse('booking:ajax_create_booking', args=[event.id]) + "?ref=events"
-
-        baker.make_recipe(
-            'booking.block', user=self.user, block_type=self.free_blocktype,
-            paid=True, parent=block
-        )
-
-        baker.make_recipe(
-            'booking.booking', block=block, user=self.user, _quantity=9
-        )
-        self.assertEqual(Block.objects.count(), 2)
-
-        self.client.login(username=self.user.username, password='test')
-        resp = self.client.post(url)
-        self.assertEqual(
-            resp.context['alert_message']['message'],
-            "Booked with block. "
-            "You have just used the last space in your block. "
-            "Go to My Blocks buy a new one."
-        )
-
-        self.assertEqual(block.bookings.count(), 10)
-        self.assertEqual(Block.objects.count(), 2)
-
-    def test_create_booking_uses_last_of_block_but_doesnt_qualify_for_free(self):
-        block = baker.make_recipe(
-            'booking.block_10', user=self.user,
-            block_type__event_type=self.pole_class_event_type,
-            block_type__assign_free_class_on_completion=False,
-            paid=True, start_date=timezone.now()
-        )
-        event = baker.make_recipe(
-            'booking.future_CL', cost=10, event_type=self.pole_class_event_type
-        )
-        url = reverse('booking:ajax_create_booking', args=[event.id]) + "?ref=events"
-
-        baker.make_recipe(
-            'booking.booking', block=block, user=self.user, _quantity=9
-        )
-
-        self.assertEqual(Block.objects.count(), 1)
-
-        self.client.login(username=self.user.username, password='test')
-        resp = self.client.post(url)
-        self.assertEqual(
-            resp.context['alert_message']['message'],
-            "Booked with block. "
-            "You have just used the last space in your block. "
-            "Go to My Blocks buy a new one."
-        )
-
-        self.assertEqual(block.bookings.count(), 10)
-        self.assertTrue(block.full)
-        # 5 class blocks do not qualify for free classes, no free class block
-        # created
-        self.assertEqual(Block.objects.count(), 1)
+        assert bookings.count() == 5
+        assert block1.bookings.count() == 5
+        assert "You have just used the last space" in resp.content.decode()
 
     def test_create_booking_user_on_waiting_list(self):
         """

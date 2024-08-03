@@ -530,26 +530,12 @@ def update_block_bookings(request):
             booking.paid = True
             booking.payment_confirmed = True
 
-            # check for existence of free child block on pre-saved booking
-            has_free_block_pre_save = False
-            if booking.block and booking.block.children.exists():
-                has_free_block_pre_save = True
-
             booking.save()
             block_booked.append(booking)
             get_block_status(booking, request)
 
             if not booking.block.active_block():
-                if booking.block.children.exists() \
-                        and not has_free_block_pre_save:
-                    messages.info(
-                        request,
-                        mark_safe(
-                            'You have just used the last space in your block and '
-                            'have qualified for a extra free class'
-                        )
-                    )
-                elif not booking.has_available_block:
+                if not booking.has_available_block:
                     messages.info(
                         request,
                         mark_safe(

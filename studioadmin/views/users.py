@@ -535,11 +535,6 @@ def process_user_booking_updates(form, request):
             elif 'no_show' in form.changed_data and action == 'updated' and pre_save_booking.status == 'OPEN':
                 action = 'cancelled' if booking.no_show else 'reopened'
                 extra_msgs.append("Booking {} as 'no-show'".format(action))
-            
-            # check for existence of free child block on pre-saved booking
-            has_free_block_pre_save = (
-                pre_save_booking and pre_save_booking.block and pre_save_booking.block.children.exists()
-            )
 
             if 'deposit_paid' in form.changed_data:
                 if booking.deposit_paid:
@@ -588,6 +583,7 @@ def process_user_booking_updates(form, request):
 
             set_as_free = 'free_class' in form.changed_data and booking.free_class
 
+            send_confirmation_msg = ""
             if 'send_confirmation' in form.changed_data:
                 # send confirmation email
                 host = 'http://{}'.format(request.META.get('HTTP_HOST'))
@@ -703,13 +699,6 @@ def process_user_booking_updates(form, request):
                 except WaitingListUser.DoesNotExist:
                     pass
 
-            if booking.block and not booking.block.active_block():
-                if booking.block.children.exists() and not has_free_block_pre_save:
-                     messages.info(
-                         request,
-                        'You have added the last booking to a block that assigns a free class on completion; free class '
-                        'block has been created.'
-                     )
     else:
         messages.info(request, 'No changes made')
 

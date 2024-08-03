@@ -1910,91 +1910,6 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
             resp.url, reverse('booking:already_paid', args=[booking.pk])
         )
 
-    def test_pay_with_block_uses_last_of_free_class_allowed_blocks(self):
-        # block of 10 for 'CL' blocktype creates free block
-        block = baker.make_recipe(
-            'booking.block_10', user=self.user,
-            block_type__event_type=self.pole_class_event_type,
-            block_type__assign_free_class_on_completion=True,
-            paid=True, start_date=timezone.now()
-        )
-        event = baker.make_recipe(
-            'booking.future_CL', cost=10, event_type=self.pole_class_event_type
-        )
-
-        booking = baker.make_recipe(
-            'booking.booking',
-            user=self.user, event=event, paid=False
-        )
-
-        baker.make_recipe(
-            'booking.booking', block=block, user=self.user, _quantity=9
-        )
-
-        self.assertEqual(Block.objects.count(), 1)
-        self._post_response(self.user, booking, {'block_book': 'yes'})
-
-        self.assertEqual(block.bookings.count(), 10)
-        self.assertEqual(Block.objects.count(), 2)
-        self.assertEqual(Block.objects.latest('id').block_type, self.free_blocktype)
-
-    def test_pay_with_block_uses_last_and_no_free_block_created(self):
-        # block of 5 for 'CL' blocktype does not create free block
-        block = baker.make_recipe(
-            'booking.block_5', user=self.user,
-            block_type__event_type=self.pole_class_event_type,
-            paid=True, start_date=timezone.now()
-        )
-        event = baker.make_recipe(
-            'booking.future_CL', cost=10, event_type=self.pole_class_event_type
-        )
-
-        booking = baker.make_recipe(
-            'booking.booking',
-            user=self.user, event=event, paid=False
-        )
-
-        baker.make_recipe(
-            'booking.booking', block=block, user=self.user, _quantity=4
-        )
-
-        self.assertEqual(Block.objects.count(), 1)
-        resp = self._post_response(self.user, booking, {'block_book': 'yes'})
-
-        self.assertEqual(block.bookings.count(), 5)
-        self.assertEqual(Block.objects.count(), 1)
-        self.assertEqual(Block.objects.latest('id'), block)
-
-    def test_pay_with_block_uses_last_of_free_class_allowed_blocks_free_block_already_exists(self):
-        block = baker.make_recipe(
-            'booking.block_10', user=self.user,
-            block_type__event_type=self.pole_class_event_type,
-            block_type__assign_free_class_on_completion=True,
-            paid=True, start_date=timezone.now()
-        )
-        event = baker.make_recipe(
-            'booking.future_EV', cost=10, event_type=self.pole_class_event_type
-        )
-
-        booking = baker.make_recipe(
-            'booking.booking',
-            user=self.user, event=event, paid=False
-        )
-
-        baker.make_recipe(
-            'booking.block', user=self.user, block_type=self.free_blocktype,
-            paid=True, parent=block
-        )
-
-        baker.make_recipe(
-            'booking.booking', block=block, user=self.user, _quantity=9
-        )
-        self.assertEqual(Block.objects.count(), 2)
-        self._post_response(self.user, booking, {'block_book': 'yes'})
-
-        self.assertEqual(block.bookings.count(), 10)
-        self.assertEqual(Block.objects.count(), 2)
-
     def test_cannot_access_if_no_disclaimer(self):
         event = baker.make_recipe('booking.future_EV', cost=10)
         booking = baker.make_recipe(
@@ -2427,6 +2342,40 @@ class BookingUpdateViewTests(TestSetupMixin, TestCase):
 
         # redirects back to shopping basket
         self.assertIn(resp.url, reverse('booking:shopping_basket'))
+
+    def test_update_with_block_completes_block(self):
+        """
+        Test updating a booking from basket returns to basket
+        """
+        block = baker.make_recipe(
+            'booking.block_10', user=self.user,
+            block_type__event_type=self.pole_class_event_type,
+            paid=True, start_date=timezone.now()
+        )
+        baker.make("booking.booking", user=self.user, block=block, paid=True, _quantity=9)
+        event = baker.make_recipe(
+            'booking.future_CL', cost=10, event_type=self.pole_class_event_type
+        )
+
+        booking = baker.make_recipe(
+            'booking.booking',
+            user=self.user, event=event, paid=False
+        )
+
+        self.client.login(username=self.user.username, password='test')
+
+        url = reverse('booking:update_booking', args=[booking.id]) \
+              + '?next=shopping_basket'
+        resp = self.client.post(
+            url, data={'block_book': True, 'shopping_basket': True},
+            follow=True
+        )
+
+        booking.refresh_from_db()
+        self.assertTrue(booking.paid)
+        self.assertTrue(booking.payment_confirmed)
+        self.assertEqual(booking.block, block)
+        assert "You have just used the last space in your block" in resp.rendered_content
 
     def test_update_with_block_from_shopping_basket_with_voucher_code(self):
         """

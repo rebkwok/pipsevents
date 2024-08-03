@@ -17,9 +17,9 @@
                     class="fas fa-check-circle text-success"
                 {% endif %}>
                 {% if booking.block %}
-                <img src={% static 'booking/images/circle-b.svg' %} />
+                <a href={% url 'booking:block_list' %}><img src={% static 'booking/images/circle-b.svg' %} /></a>
                 {% elif booking.membership %}
-                <img src={% static 'booking/images/circle-m.svg' %} />
+                <a href={% url 'membership_status' booking.membership.subscription_id %}><img src={% static 'booking/images/circle-m.svg' %}/></a>
                 {% endif %}
             {% endif %}</span>
         {{ event.date|date:"H:i" }} 

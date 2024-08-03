@@ -381,7 +381,6 @@ class BlockType(models.Model):
     duration_weeks = models.PositiveIntegerField(
         help_text="Number of weeks until block expires", blank=True, null=True)    
     active = models.BooleanField(default=False)
-    assign_free_class_on_completion = models.BooleanField(default=False)
     paypal_email = models.EmailField(
         default="thewatermelonstudio@hotmail.com",
         help_text='Email for the paypal account to be used for payment.  '
@@ -464,7 +463,7 @@ class Block(models.Model):
     )
     parent = models.ForeignKey(
         'self', blank=True, null=True, related_name='children',
-        on_delete=models.CASCADE, help_text="Used for auto-assigned free classes"
+        on_delete=models.CASCADE, help_text="Previously used for auto-assigned free classes; kept for historic reasons"
     )
     transferred_booking_id = models.PositiveIntegerField(blank=True, null=True)
     extended_expiry_date = models.DateTimeField(blank=True, null=True)
@@ -520,13 +519,8 @@ class Block(models.Model):
         # replace block expiry date with very end of day in local time
         # move forwards 1 day and set hrs/min/sec/microsec to 0, then move
         # back 1 sec
-        # For a with a parent block with a parent (free class block),
-        # override blocktype duration to be same as parent's blocktype
         duration = self.block_type.duration
         duration_weeks = self.block_type.duration_weeks
-        if self.parent:
-            duration = self.parent.block_type.duration
-            duration_weeks = self.block_type.duration_weeks
 
         if duration_weeks:
             expiry_datetime = self.start_date + timedelta(weeks=duration_weeks)
@@ -614,15 +608,12 @@ class Block(models.Model):
         # (in case a user leaves a block sitting in basket for a while)
         if self.id:
             pre_save_block = Block.objects.get(id=self.id)
-            if not pre_save_block.paid and self.paid and not self.parent:
+            if not pre_save_block.paid and self.paid:
                 self.start_date = timezone.now()
             # also update expiry date based on revised start date if changed
             if pre_save_block.start_date != self.start_date:
                 self.expiry_date = self.get_expiry_date()
 
-        # if block has parent, make start date same as parent
-        if self.parent:
-            self.start_date = self.parent.start_date
         if self.block_type.cost == 0:
             self.paid = True
 
@@ -918,31 +909,6 @@ class Booking(models.Model):
         if (cancellation and orig.block) or \
                 (orig and orig.block and not self.block):
             # cancelling a booking from a block or removing booking from block
-            # if block has a used free class, move the booking from the
-            #  free
-            # class to this block, otherwise delete the free class block
-            free_class_block = orig.block.children.first()
-            if free_class_block:
-                if free_class_block.bookings.exists():
-                    free_booking = free_class_block.bookings.first()
-                    free_booking.block = orig.block
-                    free_booking.free_class = False
-                    free_booking.save()
-                    ActivityLog.objects.create(
-                        log="Booking {} cancelled from block {} (user {}); "
-                            "free booking {} moved to parent block".format(
-                            self.id, orig.block.id, self.user.username,
-                            free_booking.id
-                        )
-                    )
-                else:
-                    free_class_block.delete()
-                    ActivityLog.objects.create(
-                        log="Booking {} cancelled from block {} (user {}); unused "
-                            "free class block deleted".format(
-                            self.id, orig.block.id, self.user.username
-                        )
-                    )
             self.block = None
             self.paid = False
             self.payment_confirmed = False
@@ -952,9 +918,6 @@ class Booking(models.Model):
             self.reminder_sent = False
             self.warning_sent = False
             self.date_warning_sent = None
-
-        if self.block and self.block.block_type.identifier == 'free class':
-            self.free_class = True
 
         if self.free_class or self.block or self.membership:
             self.paid = True
@@ -977,41 +940,6 @@ class Booking(models.Model):
         # Done with changes to current booking; call super to save the
         # booking so we can check block status
         super(Booking, self).save(*args, **kwargs)
-
-
-@receiver(post_save, sender=Booking)
-def update_free_blocks(sender, instance, **kwargs):
-    # saving open booking block booking where block is no longer active (i.e. just
-    # used last in block) and block allows creation of free class on completetion,
-    if instance.status == 'OPEN' \
-        and instance.block \
-            and instance.block.block_type.assign_free_class_on_completion \
-                and instance.block.paid \
-                    and not instance.block.active_block():
-
-        free_blocktype, _ = BlockType.objects.get_or_create(
-            identifier='free class', event_type=instance.block.block_type.event_type,
-            defaults={
-                'size': 1, 'cost': 0, 'duration': 1, 'active': False,
-                'assign_free_class_on_completion': False
-            }
-        )
-
-        # User just used last block in block that credits free classes on completion;
-        # check for free class block, add one if doesn't exist already (unless block has already expired)
-        if not instance.block.children.exists() and not instance.block.expired:
-            free_block = Block.objects.create(
-                user=instance.user, parent=instance.block,
-                block_type=free_blocktype
-            )
-            ActivityLog.objects.create(
-                log='Free class block created with booking {}. '
-                    'Block id {}, parent block id {}, user {}'.format(
-                        instance.id,
-                        free_block.id, instance.block.id,
-                        instance.user.username
-                    )
-            )
 
 
 class WaitingListUser(models.Model):

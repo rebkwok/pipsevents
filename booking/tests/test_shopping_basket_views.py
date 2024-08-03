@@ -937,12 +937,6 @@ class UpdateBlockBookingsTests(TestSetupMixin, TestCase):
         # need to specify subtype for free block creation to happen
         cls.blocktype_cl_10 = baker.make_recipe(
             'booking.blocktype10', event_type__subtype="Pole level class",
-            assign_free_class_on_completion=True
-        )
-        # create free block type associated with blocktype_cl_10
-        cls.free_blocktype = baker.make_recipe(
-            'booking.blocktype', size=1, cost=0,
-            event_type=cls.blocktype_cl_10.event_type, identifier='free class'
         )
         cls.pc1 = baker.make_recipe(
             'booking.future_PC', event_type=cls.blocktype_cl_5.event_type,
@@ -1050,83 +1044,6 @@ class UpdateBlockBookingsTests(TestSetupMixin, TestCase):
             Booking.objects.filter(user=self.user, block__isnull=False).count(),
             5
         )
-
-    def test_use_block_for_all_uses_last_block_free_class_created(self):
-        baker.make_recipe(
-            'booking.future_PC', event_type=self.blocktype_cl_10.event_type,
-            cost=10, _quantity=11
-        )
-
-        # free class created and used
-        block = baker.make_recipe(
-            'booking.block', user=self.user,
-            block_type=self.blocktype_cl_10, paid=True,
-        )
-        self.assertTrue(block.active_block())
-
-        for ev in Event.objects.all():
-            baker.make_recipe('booking.booking', user=self.user, event=ev)
-
-        self.assertEqual(Booking.objects.filter(user=self.user).count(), 14)
-        # 11 bookings are eligible for block booking
-        self.assertEqual(
-            Booking.objects.filter(
-                user=self.user, event__event_type=block.block_type.event_type
-            ).count(), 11
-        )
-        self.client.post(self.url)
-        # 10 bookings are updated with available blocks,
-        # 10 from existing block, 1 free block created and used
-        self.assertEqual(
-            Booking.objects.filter(user=self.user, block__isnull=False).count(),
-            11
-        )
-        self.assertEqual(
-            Block.objects.latest('id').block_type, self.free_blocktype
-        )
-
-    def test_uses_last_block_free_class_block_already_exists(self):
-        baker.make_recipe(
-            'booking.future_PC', event_type=self.blocktype_cl_10.event_type,
-            cost=10, _quantity=11
-        )
-
-        block = baker.make_recipe(
-            'booking.block', user=self.user,
-            block_type=self.blocktype_cl_10, paid=True
-        )
-        # free related block already exists
-        free_block = baker.make_recipe(
-            'booking.block', user=self.user,
-            block_type=self.free_blocktype, paid=True, parent=block
-        )
-        self.assertTrue(block.active_block())
-        self.assertTrue(free_block.active_block())
-
-        for ev in Event.objects.all():
-            baker.make_recipe('booking.booking', user=self.user, event=ev)
-
-        self.assertEqual(Booking.objects.filter(user=self.user).count(), 14)
-        # 11 bookings are eligible for block booking with block or free block
-        self.assertEqual(
-            Booking.objects.filter(
-                user=self.user, event__event_type=block.block_type.event_type
-            ).count(), 11
-        )
-        self.assertEqual(
-            Booking.objects.filter(
-                user=self.user, event__event_type=free_block.block_type.event_type
-            ).count(), 11
-        )
-        self.client.post(self.url)
-        # 10 bookings are updated with available blocks,
-        # 10 from existing block, 1 free block used
-        self.assertEqual(
-            Booking.objects.filter(user=self.user, block__isnull=False).count(),
-            11
-        )
-        # no additional free block created
-        self.assertEqual(Block.objects.count(), 2)
 
 
 class SubmitZeroBookingPaymentViewTests(TestSetupMixin, TestCase):
