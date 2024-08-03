@@ -273,6 +273,7 @@ class BookingEditViewTests(TestPermissionMixin, TestCase):
             'status': "OPEN",
             'block': '',
             'free_class': False,
+            'send_confirmation': True,
         }
         resp = self.client.post(self.url, data=data)
         assert not Block.objects.exists()
@@ -301,7 +302,6 @@ class BookingEditViewTests(TestPermissionMixin, TestCase):
             'status': "OPEN",
             'block': '',
             'free_class': False,
-            'send_confirmation': True
         }
         self.client.post(self.url, data=data)
         self.booking.refresh_from_db()
@@ -361,6 +361,7 @@ class BookingEditViewTests(TestPermissionMixin, TestCase):
         assert self.booking.status == "OPEN"
         assert self.booking.no_show
         assert 'Booking cancelled' in mail.outbox[0].body
+        assert not Block.objects.filter(block_type__identifier="transferred").exists()
 
     def test_can_update_booking_deposit_paid(self):
         unpaid_booking = baker.make_recipe(
@@ -403,6 +404,37 @@ class BookingEditViewTests(TestPermissionMixin, TestCase):
         assert booking.status == 'CANCELLED'
         assert booking.block is None
         assert not booking.paid
+        # no transfer blocks created for block-paid
+        assert not Block.objects.filter(block_type__identifier="transferred").exists()
+
+    @patch("booking.models.membership_models.StripeConnector", MockConnector)   
+    def test_changing_booking_status_to_cancelled_removed_membership(self):
+        user_membership = baker.make(
+            "booking.UserMembership", membership__name="mem", user=self.booking.user, subscription_status="active"
+        )
+        baker.make(
+            "booking.MembershipItem", membership=user_membership.membership, event_type=self.booking.event.event_type, quantity=3
+        )
+        assert user_membership.valid_for_event(self.booking.event)
+        self.booking.membership = user_membership
+        self.booking.save()
+        assert self.booking.membership == user_membership
+       
+        data = {
+            'id': self.booking.id,
+            'paid': self.booking.paid,
+            'status': "CANCELLED",
+            'membership': user_membership.id
+        }
+
+        resp = self.client.post(self.url, data=data)
+        self.booking.refresh_from_db()
+        assert self.booking.status == 'CANCELLED'
+        assert self.booking.block is None
+        assert self.booking.membership is None
+        assert not self.booking.paid
+        # no transfer blocks created for membership-paid
+        assert not Block.objects.filter(block_type__identifier="transferred").exists()
 
     def test_can_assign_booking_to_available_block(self):
         booking = baker.make_recipe(

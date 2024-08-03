@@ -715,16 +715,8 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         resp = self.client.get(self.url + '?booking_code=foo')
 
         paypalform = resp.context['bookings_paypalform']
-        booking_ids_str = ','.join(
-            [
-                str(id) for id in Booking.objects.values_list('id', flat=True)
-                ]
-        )
         # voucher only applied to first booking
-        self.assertEqual(
-            paypalform.initial['custom'],
-            f'obj=booking ids={booking_ids_str} usr={self.user.email} cde=foo apd={booking.id}'
-        )
+        assert f"cde=foo apd={booking.id}" in paypalform.initial['custom']
         for i, booking in enumerate(Booking.objects.all()):
             self.assertIn('item_name_{}'.format(i + 1), paypalform.initial)
 

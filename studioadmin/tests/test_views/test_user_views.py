@@ -17,6 +17,7 @@ from common.tests.helpers import assert_mailchimp_post_data
 from studioadmin.utils import int_str, chaffify
 from studioadmin.views.users import NAME_FILTERS
 from studioadmin.tests.test_views.helpers import TestPermissionMixin
+from stripe_payments.tests.mock_connector import MockConnector
 
 
 class UserListViewTests(TestPermissionMixin, TestCase):
@@ -540,3 +541,18 @@ def test_attendance_list_with_dates(client):
     assert resp.context["user_counts"] == {
         user1: {event.event_type.subtype: 1}
     }
+
+
+@pytest.mark.django_db
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+def test_user_memberships_list(client, configured_stripe_user, purchasable_membership):
+    user = User.objects.create_user(username="staff", password="test")
+    user.is_staff = True
+    user.save()
+    baker.make("booking.UserMembership", membership=purchasable_membership, user=configured_stripe_user, subscription_status="active")
+    url = reverse("studioadmin:user_memberships_list", args=(configured_stripe_user.id,))
+    client.login(username=user.username, password="test")
+    resp = client.get(url)
+    assert resp.context["sidenav_selection"] == "users"
+    assert resp.status_code == 200
+    assert resp.context["user"] == configured_stripe_user

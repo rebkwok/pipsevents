@@ -499,7 +499,9 @@ class BookingAddView(CreateView):
 def process_user_booking_updates(form, request):
     # The form clean removes block/membership if status is cancelled
     pre_save_booking = Booking.objects.get(id=form.instance.id) if form.instance.id else None
-    had_membership_or_block = pre_save_booking and (pre_save_booking.block or pre_save_booking.membership)
+    had_membership_or_block = pre_save_booking is not None and (
+        pre_save_booking.block is not None or pre_save_booking.membership is not None
+    )
     booking = form.save(commit=False)
     if form.has_changed():
         if form.changed_data == ['send_confirmation']:
@@ -514,7 +516,9 @@ def process_user_booking_updates(form, request):
 
             if 'status' in form.changed_data and action == 'updated':
                 if booking.status == 'CANCELLED':
+                    # create transfer block for paid, non-block, non-membership bookings
                     if pre_save_booking.paid \
+                            and not had_membership_or_block \
                             and booking.event.event_type.event_type != 'EV':
                         block_type = BlockType.get_transfer_block_type(booking.event.event_type)
                         Block.objects.create(
