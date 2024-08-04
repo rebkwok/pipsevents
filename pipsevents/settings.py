@@ -56,12 +56,11 @@ if str(DEBUG).lower() in ['true', 'on']:  # pragma: no cover
 else:  # pragma: no cover
     DEBUG = False
 
-ALLOWED_HOSTS = [
-    'booking.thewatermelonstudio.co.uk', 'test.pipsevents.co.uk',
-    'vagrant.pipsevents.co.uk', 'vagrant.booking.thewatermelonstudio.co.uk'
-]
+DOMAIN = "booking.thewatermelonstudio.co.uk"
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=[DOMAIN])
+
 # https://docs.djangoproject.com/en/4.0/ref/settings/#std:setting-CSRF_TRUSTED_ORIGINS
-CSRF_TRUSTED_ORIGINS = ['https://booking.thewatermelonstudio.co.uk']
+CSRF_TRUSTED_ORIGINS = [f"https://{host}" for host in ALLOWED_HOSTS]
 
 
 CSRF_FAILURE_VIEW = "common.views.csrf_failure"
@@ -510,10 +509,6 @@ USE_CRISPY = True
 # notices
 NOTICES_COLOUR="rgb(240, 139, 165)"
 NOTICES_SAFE = True
-
-
-DOMAIN = "booking.thewatermelonstudio.co.uk"
-
 
 # STRIPE
 PAYMENT_METHOD = env("PAYMENT_METHOD")
