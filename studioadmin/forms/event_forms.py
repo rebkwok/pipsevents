@@ -306,7 +306,7 @@ class EventAdminForm(forms.ModelForm):
         model = Event
         fields = (
             'name', 'event_type', 'date', 'categories', 'new_category',
-            'allowed_group_override',
+            'allowed_group_override', 'members_only',
             'video_link', 'video_link_available_after_class',
             'description', 'location',
             'max_participants', 'contact_person', 'contact_email', 'cost',
@@ -383,6 +383,9 @@ class EventAdminForm(forms.ModelForm):
                 attrs={'class': "form-check-input"},
             ),
             'email_studio_when_booked': forms.CheckboxInput(
+                attrs={'class': "form-check-input"},
+            ),
+            'members_only': forms.CheckboxInput(
                 attrs={'class': "form-check-input"},
             ),
             'cancelled': forms.CheckboxInput(

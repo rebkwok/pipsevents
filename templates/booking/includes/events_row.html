@@ -30,6 +30,7 @@
         {% elif ev_type_for_url == 'room_hires' %}
             <a href="{% url 'booking:room_hire_detail' event.slug %}">{{ event.name }}</a>
         {% endif %}
+        {% if event.members_only %}<span class="badge badge-pill badge-dark">Members only</span>{% endif %}
         {% if booking and booking.status == 'OPEN' and not booking.no_show and booking.paid %}
             {% if event.show_video_link %}
                 <a id="video_link_id_{{ event.id }}" class="btn btn-info table-btn" href="{{ event.video_link }}">Join online class</a>

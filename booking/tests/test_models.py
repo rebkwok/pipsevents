@@ -16,6 +16,8 @@ from booking.models import AllowedGroup, Banner, Event, EventType, Block, BlockT
     Booking, TicketBooking, Ticket, TicketBookingError, BlockVoucher, \
     EventVoucher, GiftVoucherType, FilterCategory, UsedBlockVoucher, UsedEventVoucher
 from common.tests.helpers import PatchRequestMixin
+from stripe_payments.tests.mock_connector import MockConnector
+
 
 now = timezone.now()
 
@@ -1434,3 +1436,33 @@ def test_allowed_group_create():
     gp = AllowedGroup.create_with_group(group_name="foo", description="foo group")
     assert gp.description == "foo group"
     assert Group.objects.filter(name="foo").exists()
+
+
+@pytest.mark.django_db
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+def test_event_has_permission_to_book(configured_user, purchasable_membership):
+    gp = AllowedGroup.create_with_group(group_name="foo", description="foo group")
+    event = baker.make_recipe("booking.future_PC")
+    restricted_event = baker.make_recipe("booking.future_PC", allowed_group_override=gp)
+    members_only_event = baker.make_recipe("booking.future_PC", members_only=True)
+    
+    member = baker.make(User)
+    baker.make("booking.UserMembership", user=member, membership=purchasable_membership, subscription_status="active")
+
+    allowed_user = baker.make(User)
+    gp.add_user(allowed_user)
+
+    assert event.has_permission_to_book(configured_user)
+    assert not restricted_event.has_permission_to_book(configured_user)
+    assert not members_only_event.has_permission_to_book(configured_user)
+
+    assert event.has_permission_to_book(allowed_user)
+    assert restricted_event.has_permission_to_book(allowed_user)
+    assert not members_only_event.has_permission_to_book(allowed_user)
+
+    assert event.has_permission_to_book(member)
+    assert not restricted_event.has_permission_to_book(member)
+    assert members_only_event.has_permission_to_book(member)
+
+
+

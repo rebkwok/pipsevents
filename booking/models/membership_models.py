@@ -63,7 +63,10 @@ class Membership(models.Model):
         return slug
 
     def active_user_memberships(self):
-        not_cancelled_yet = self.user_memberships.filter(models.Q(end_date__isnull=True) | models.Q(end_date__gt=timezone.now()))
+        not_cancelled_yet = self.user_memberships.filter(
+            models.Q(subscription_status__in=["active", "past_due", "setup_pending"])
+         & (models.Q(end_date__isnull=True) | models.Q(end_date__gt=timezone.now()))
+        )
         results = {
             "all": [], "ongoing": [], "cancelling": []
         }

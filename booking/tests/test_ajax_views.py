@@ -607,6 +607,18 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         self.assertIsNone(bookings[0].block)
         self.assertFalse(bookings[0].paid)
 
+    def test_cannot_book_for_members_only_class(self):
+        event = baker.make_recipe(
+            'booking.future_PC', members_only=True, cost=5
+        )
+        url = reverse('booking:ajax_create_booking', args=[event.id]) + "?ref=events"
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.post(url)
+        assert resp.status_code == 400
+        assert resp.content.decode('utf-8') == (
+            "Only members are allowed to book this class; please contact the studio for further information."
+        )
+
     def test_cannot_book_for_pole_practice_without_permission(self):
         """
         Test trying to create a booking for pole practice without permission returns 400

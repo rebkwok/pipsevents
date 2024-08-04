@@ -154,6 +154,15 @@ class EventListViewTests(TestSetupMixin, TestCase):
         self.assertEqual(len(booked_events), 1)
         self.assertTrue(event.id in booked_events)
 
+    def test_event_list_members_only(self):
+        resp = self.client.get(self.url)
+        assert "Members only" not in resp.rendered_content
+        event = self.events[0]
+        event.members_only = True
+        event.save()
+        resp = self.client.get(self.url)
+        assert "Members only" in resp.rendered_content
+
     def test_event_list_booked_paid_events(self):
         """
         test that booked events are shown on listing
@@ -670,6 +679,18 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
         resp = self._get_response(self.user, self.event, 'event')
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.context_data['ev_type_for_url'], 'events')
+
+    def test_event_members_only(self):
+        self.client.force_login(self.user)
+        url = reverse('booking:event_detail', kwargs={'slug': self.event.slug})
+
+        resp = self.client.get(url)
+        assert "open to members only" not in resp.rendered_content
+        
+        self.event.members_only = True
+        self.event.save()
+        resp = self.client.get(url)
+        assert "open to members only" in resp.rendered_content
 
     def test_with_booked_event(self):
         """

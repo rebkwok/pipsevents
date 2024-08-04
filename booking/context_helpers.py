@@ -113,11 +113,17 @@ def get_event_context(context, event, user, booking=None):
         context['bookable'] = False
         context['needs_permission'] = True
         description = event.allowed_group_description
-        extra_info = f" ({description})" if description else ""
-        booking_info_text = "<span class='cancel-warning'>NOT AVAILABLE FOR BOOKING</br>" \
-                            f"This class requires additional permission{extra_info}. Please contact " \
-                            "<a href='mailto:{}' target=_blank>{}</a> to request to have your account " \
-                            "upgraded.</span>".format(event.contact_email, event.contact_email)
+        if event.members_only:
+            permission_msg = f"This {ev_type_str} is open to members only."
+        else:
+            extra_info = f" ({description})" if description else ""
+            permission_msg = (
+                f"This class requires additional permission{extra_info}. Please contact "
+                f"<a href='mailto:{event.contact_email}' target=_blank>{event.contact_email}</a> "
+                "to request to have your account upgraded.</span>"
+            )
+
+        booking_info_text = f"<span class='cancel-warning'>NOT AVAILABLE FOR BOOKING</br>{permission_msg}"
     else:
         if auto_cancelled:
             context['auto_cancelled'] = True

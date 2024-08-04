@@ -364,7 +364,13 @@ class ChooseMembershipForm(forms.Form):
         queryset=Membership.objects.purchasable(),
         widget=forms.RadioSelect,    
     )
-    agree_to_terms = forms.BooleanField(required=True, label="Please tick to confirm that you understand and agree that by setting up a membership, your payment details will be held by Stripe and collected on a recurring basis")
+    agree_to_terms = forms.BooleanField(
+        required=True, 
+        label=(
+            "I understand that by setting up a membership my payment details will be held by Stripe "
+            "and membership payments will be collected on a recurring monthly basis."
+        )
+    )
     
     def __init__(self, *args, **kwargs):
         has_cancelled_current_membership = kwargs.pop("has_cancelled_current_membership")

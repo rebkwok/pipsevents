@@ -1,0 +1,6 @@
+New classes have been added at The Watermelon Studio!
+
+{% for class in new_classes %}- {{ class }}{% endfor %}
+
+{% include "account/email/do_not_reply.txt" %}
+

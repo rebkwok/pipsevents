@@ -238,6 +238,8 @@ class Event(models.Model):
         help_text="Override group allowed to book this event (defaults to same group as the event type)"
     )
 
+    members_only = models.BooleanField(default=False, help_text="Can only be booked by members")
+
     class Meta:
         ordering = ['-date']
         indexes = [
@@ -300,6 +302,8 @@ class Event(models.Model):
         return self.event_type.allowed_group
 
     def has_permission_to_book(self, user):
+        if self.members_only:
+            return user.has_membership()
         return self.allowed_group.has_permission(user)
     
     @property

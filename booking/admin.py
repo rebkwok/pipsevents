@@ -192,6 +192,9 @@ class EventAdmin(admin.ModelAdmin):
             'fields': ('cancellation_period',),
             'description': '<div class="help">%s</div>' % CANCELLATION_TEXT,
         }),
+        ('Permissions', {
+            'fields': ('allowed_group_override', "members_only"),
+        }),
     ]
 
     def get_spaces_left(self, obj):
