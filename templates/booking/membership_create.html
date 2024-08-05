@@ -15,6 +15,7 @@
                     allows your membership to run continuously.
                 </p>
                 <h4>Memberships available:</h4>
+                {% if memberships %}
                     {% for membership in memberships %}
                         <details>
                         <summary>{{ membership }}</summary>
@@ -28,32 +29,35 @@
                         </details>
                     {% endfor %}
                 
-                {% if has_ongoing_membership %}
-                    <p class="mt-4">You already have an active membership. View <a href="{% url 'membership_list' %}">your memberships</a> to update or cancel.</p>
-                {% elif has_cancelled_current_membership %}
-                    <p class="mt-4">You already have an active membership which ends after this month. You can create a new membership to 
-                        start from next month.</p>  
-                {% endif %}
+                    {% if has_ongoing_membership %}
+                        <p class="mt-4">You already have an active membership. View <a href="{% url 'membership_list' %}">your memberships</a> to update or cancel.</p>
+                    {% elif has_cancelled_current_membership %}
+                        <p class="mt-4">You already have an active membership which ends after this month. You can create a new membership to 
+                            start from next month.</p>  
+                    {% endif %}
 
-                {% if form %}
-                    <p>Select a membership to add.</p>
-                    <form method="post" action="{% url 'membership_checkout' %}">
-                        {% csrf_token %}
-                        <div class="form-group">
-                            <label>Choose a membership:</label> {{ form.membership }}
+                    {% if form %}
+                        <p>Select a membership to add.</p>
+                        <form method="post" action="{% url 'membership_checkout' %}">
+                            {% csrf_token %}
+                            <div class="form-group">
+                                <label>Choose a membership:</label> {{ form.membership }}
+                            </div>
+                            <div class="form-group">
+                                <label>{{ form.backdate.label }}</label> {{ form.backdate }}
+                                <span class="studioadmin-help">{{ form.backdate.help_text }}</span>
+                            </div>
+                            <div class="form-group">
+                                {{ form.agree_to_terms }} <label>{{ form.agree_to_terms.label }}</label> 
+                            </div>
+                            <div class="form-group">
+                            <input class="btn btn-wm" type="submit" value="Checkout" />
+                            </div>
+                        </form>
                         </div>
-                        <div class="form-group">
-                            <label>{{ form.backdate.label }}</label> {{ form.backdate }}
-                            <span class="studioadmin-help">{{ form.backdate.help_text }}</span>
-                        </div>
-                        <div class="form-group">
-                            {{ form.agree_to_terms }} <label>{{ form.agree_to_terms.label }}</label> 
-                        </div>
-                        <div class="form-group">
-                        <input class="btn btn-wm" type="submit" value="Checkout" />
-                        </div>
-                    </form>
-                    </div>
+                    {% endif %}
+                {% else %}
+                    No memberships are currently available.
                 {% endif %}
        </div>
 
