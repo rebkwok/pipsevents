@@ -122,7 +122,6 @@ def membership_change(request, subscription_id):
             ActivityLog.objects.create(
                 log=f"User {request.user} requested to change membership plan from {old_membership.name} to {membership.name})"
             )
-            
             # rearrange bookings for future memberships from the cancelled membership to the new one
             # Done in webhook when first membership is cancelled, and when second membership is created
 
@@ -248,12 +247,17 @@ def subscription_cancel(request, subscription_id):
         client = StripeConnector()
         cancel_immediately = not user_membership.payment_has_started()
         # Cancel immediately if the first subscription payment is in the future
-        client.cancel_subscription(subscription_id, cancel_immediately=cancel_immediately) 
-        # unset bookings for dates after the subscription end date - done in webhook
-        ActivityLog.objects.create(log=f"User {request.user} cancelled membership {user_membership.membership.name}")
-        messages.success(
-            request, "Your membership has been cancelled."
-        )
+        try:
+            client.cancel_subscription(subscription_id, cancel_immediately=cancel_immediately)
+        except Exception as err:
+            logger.error(err)
+            messages.error(request, "Something went wrong")
+        else:
+            # unset bookings for dates after the subscription end date - done in webhook
+            ActivityLog.objects.create(log=f"User {request.user} cancelled membership {user_membership.membership.name}")
+            messages.success(
+                request, "Your membership has been cancelled."
+            )
         return HttpResponseRedirect(reverse("membership_list"))
     return TemplateResponse(request,  "booking/membership_cancel.html", {"user_membership": user_membership})
 

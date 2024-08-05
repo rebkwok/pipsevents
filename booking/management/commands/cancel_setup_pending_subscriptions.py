@@ -41,9 +41,12 @@ class Command(BaseCommand):
                 logger.error("Could not cancel subscription %s in unexpected status %s", user_membership.subscription_id, user_membership.subscription_status)
             else:
                 if (timezone.now() - user_membership.subscription_start_date) > timedelta(hours=23):
-                    client.cancel_subscription(user_membership.subscription_id, cancel_immediately=True)
-                
-                    message = f"Setup pending membership {user_membership.membership.name} for {user_membership.user} was unpaid after 23 hrs and has been deleted"
-                    ActivityLog.objects.create(log=message)
-                    self.stdout.write(message)
-                    user_membership.delete()
+                    try:
+                        client.cancel_subscription(user_membership.subscription_id, cancel_immediately=True)
+                    except Exception as err:
+                        logger.error(err)
+                    else:
+                        message = f"Setup pending membership {user_membership.membership.name} for {user_membership.user} was unpaid after 23 hrs and has been deleted"
+                        ActivityLog.objects.create(log=message)
+                        self.stdout.write(message)
+                        user_membership.delete()

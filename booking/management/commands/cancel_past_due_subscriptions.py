@@ -7,7 +7,7 @@ Email user that their subscription has been cancelled
 '''
 import logging
 from datetime import timedelta
-import pytz
+import stripe
 
 from django.utils import timezone
 from django.conf import settings
@@ -38,25 +38,29 @@ class Command(BaseCommand):
             elif user_membership.subscription_status != "past_due":
                 logger.error("Could not cancel subscription %s in unexpected status %s", user_membership.subscription_id, user_membership.subscription_status)
             else:
-                client.cancel_subscription(user_membership.subscription_id, cancel_immediately=True)
-                # Don't reallocate bookings because it'll be done in the webhook
-                
-                ctx = {
-                    'host': "http://booking.thewatermelonstudio.co.uk",
-                    'user_membership': user_membership
-                }
-                send_mail(
-                    f'{settings.ACCOUNT_EMAIL_SUBJECT_PREFIX} Your membership has been cancelled',
-                    get_template(
-                        'booking/email/membership_auto_cancelled_email.txt'
-                    ).render(ctx),
-                    settings.DEFAULT_FROM_EMAIL,
-                    [user_membership.user.email],
-                    html_message=get_template(
-                        'booking/email/membership_auto_cancelled_email.html'
+                try:
+                    client.cancel_subscription(user_membership.subscription_id, cancel_immediately=True)
+                    # Don't reallocate bookings because it'll be done in the webhook
+                except Exception as err:
+                    logger.error(err)
+                    self.stdout.write(f"Error cancelling subscription: {str(err)}")
+                else:
+                    ctx = {
+                        'host': "http://booking.thewatermelonstudio.co.uk",
+                        'user_membership': user_membership
+                    }
+                    send_mail(
+                        f'{settings.ACCOUNT_EMAIL_SUBJECT_PREFIX} Your membership has been cancelled',
+                        get_template(
+                            'booking/email/membership_auto_cancelled_email.txt'
                         ).render(ctx),
-                    fail_silently=False
-                )
-                message = f"Past due membership {user_membership.membership.name} for {user_membership.user} has been cancelled"
-                ActivityLog.objects.create(log=message)
-                self.stdout.write(message)
+                        settings.DEFAULT_FROM_EMAIL,
+                        [user_membership.user.email],
+                        html_message=get_template(
+                            'booking/email/membership_auto_cancelled_email.html'
+                            ).render(ctx),
+                        fail_silently=False
+                    )
+                    message = f"Past due membership {user_membership.membership.name} for {user_membership.user} has been cancelled"
+                    ActivityLog.objects.create(log=message)
+                    self.stdout.write(message)

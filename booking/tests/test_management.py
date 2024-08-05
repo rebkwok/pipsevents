@@ -3274,6 +3274,27 @@ def test_cancel_past_due_subscriptions(mock_cancel, mock_get, seller):
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 @patch("booking.management.commands.cancel_past_due_subscriptions.StripeConnector.get_subscription")
 @patch("booking.management.commands.cancel_past_due_subscriptions.StripeConnector.cancel_subscription")
+def test_cancel_past_due_subscriptions_error(mock_cancel, mock_get, seller):
+    mock_get.side_effect = [
+        get_mock_subscription(None, status="past_due", cancel_at=None, canceled_at=None),
+        get_mock_subscription(None, status="past_due", cancel_at=None, canceled_at=None)
+    ]
+    # raise except from first attempt to cancel
+    mock_cancel.side_effect = [Exception, None]
+    # to be cancelled
+    baker.make(UserMembership, membership__name="foo", subscription_status="past_due", user__email="t1@example.com")
+    baker.make(UserMembership, membership__name="bar", subscription_status="past_due", user__email="t1@example.com")
+    # command succeeds but only one cancelled
+    management.call_command("cancel_past_due_subscriptions")
+    assert mock_cancel.call_count == 2
+    assert len(mail.outbox) == 1
+    assert mail.outbox[0].to == ["t1@example.com"]
+
+
+@pytest.mark.django_db
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+@patch("booking.management.commands.cancel_past_due_subscriptions.StripeConnector.get_subscription")
+@patch("booking.management.commands.cancel_past_due_subscriptions.StripeConnector.cancel_subscription")
 def test_cancel_past_due_subscriptions_mismatched_status(mock_cancel, mock_get, seller):
     # only called for the first two past due subscriptions
     mock_get.side_effect = [
@@ -3321,6 +3342,34 @@ def test_cancel_setup_pending_subscriptions(mock_cancel, mock_get, seller):
     management.call_command("cancel_setup_pending_subscriptions")
     assert mock_cancel.call_count == 1
     assert UserMembership.objects.count() == 3
+
+
+@pytest.mark.django_db
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+@patch("booking.management.commands.cancel_setup_pending_subscriptions.StripeConnector.get_subscription")
+@patch("booking.management.commands.cancel_setup_pending_subscriptions.StripeConnector.cancel_subscription")
+def test_cancel_setup_pending_subscriptions_error(mock_cancel, mock_get, seller):
+    # Return start date and setup pending data that match the UserMemberships
+    start = timezone.now() - timedelta(hours=24)
+    mock_get.side_effect = [
+        get_mock_subscription(
+            None, status="active", cancel_at=None, canceled_at=None, start_date=start.timestamp(),
+            default_payment_method=None, pending_setup_intent=Mock(status="incomplete")    
+        ),
+        get_mock_subscription(
+            None, status="active", cancel_at=None, canceled_at=None, start_date=start.timestamp(),
+            default_payment_method=None, pending_setup_intent=Mock(status="incompleted")
+        )
+    ]
+    # raise except from first attempt to cancel
+    mock_cancel.side_effect = [Exception, None]
+    # to be cancelled
+    baker.make(UserMembership, membership__name="foo", subscription_status="setup_pending", user__email="t1@example.com", subscription_start_date=start)
+    baker.make(UserMembership, membership__name="foo", subscription_status="setup_pending", user__email="t2@example.com", subscription_start_date=start)
+    # command succeeds but only one cancelled
+    management.call_command("cancel_setup_pending_subscriptions")
+    assert mock_cancel.call_count == 2
+    assert UserMembership.objects.count() == 1
 
 
 @pytest.mark.django_db

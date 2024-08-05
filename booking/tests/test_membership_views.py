@@ -744,12 +744,12 @@ def test_subscription_cancel_get_404(
     "now,subscription_start_date,cancel_immediately",
     [
         # start date in past, first billig date (25th) in future -> cancel immediately
-        (datetime(2024, 2, 12), datetime(2024, 2, 10), True),
+        (datetime(2024, 2, 12, tzinfo=datetime_tz.utc), datetime(2024, 2, 10, tzinfo=datetime_tz.utc), True),
         # start date in past, currently >= 25th, first billing date past -> cancel in future
-        (datetime(2024, 2, 25, 10), datetime(2024, 2, 10), False),
+        (datetime(2024, 2, 25, 10, tzinfo=datetime_tz.utc), datetime(2024, 2, 10, tzinfo=datetime_tz.utc), False),
         # start date in past, first billig date in past -> cancel in future
-        (datetime(2024, 2, 12), datetime(2024, 1, 10), False),
-        (datetime(2024, 2, 28), datetime(2024, 2, 25), False),
+        (datetime(2024, 2, 12, tzinfo=datetime_tz.utc), datetime(2024, 1, 10, tzinfo=datetime_tz.utc), False),
+        (datetime(2024, 2, 28, tzinfo=datetime_tz.utc), datetime(2024, 2, 25, tzinfo=datetime_tz.utc), False),
     ]
 )
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
@@ -781,6 +781,30 @@ def test_subscription_cancel(
              ]
         }
 
+
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+@patch("booking.views.membership_views.StripeConnector.cancel_subscription")
+def test_subscription_cancel_with_error(
+    mock_cancel, freezer, client, seller, configured_stripe_user, purchasable_membership,
+):
+    mock_cancel.side_effect = [Exception]
+
+    client.force_login(configured_stripe_user)
+    baker.make(
+        UserMembership, 
+        user=configured_stripe_user, 
+        membership=purchasable_membership, 
+        subscription_id="sub-1",
+        subscription_status="active",
+        subscription_start_date=datetime(2024, 2, 10, tzinfo=datetime_tz.utc),
+    )
+    freezer.move_to(datetime(2024, 2, 12, tzinfo=datetime_tz.utc))
+
+    client.post(reverse("subscription_cancel", args=("sub-1",)))
+    # get booking list to check messages (not using follow=True b/c the redirected URL also uses the StripeConnector)
+    resp = client.get(reverse("booking:events"))
+    assert "Something went wrong" in resp.rendered_content
+    
 
 # membership status
 # get_subscription

@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import patch, call
 import pytest
 import re
 
@@ -10,6 +10,7 @@ from model_bakery import baker
 
 from booking.models import Membership, MembershipItem, UserMembership
 from stripe_payments.tests.mock_connector import MockConnector
+from conftest import get_mock_subscription
 
 pytestmark = pytest.mark.django_db
 
@@ -334,26 +335,36 @@ def test_membership_deactivate_no_active_user_memberships(mock_connector, client
 
 
 @patch("booking.models.membership_models.StripeConnector")
-@patch("studioadmin.views.memberships.StripeConnector")
-def test_membership_deactivate_active_user_memberships(mock_connector, mock_connector1, client, seller, staff_user, purchasable_membership):
+@patch("studioadmin.views.memberships.StripeConnector.get_subscription")
+@patch("studioadmin.views.memberships.StripeConnector.cancel_subscription")
+def test_membership_deactivate_active_user_memberships(mock_cancel, mock_get_sub, mock_connector, client, seller, staff_user, purchasable_membership):
     conn = MockConnector()
     mock_connector.return_value = conn
-    mock_connector1.return_value = conn
+
+    mock_start = timezone.now() - timedelta(30)
+    mock_end = timezone.now() + timedelta(30)
+    mock_future_start = timezone.now() + timedelta(10)
+    # active subscriptions are in reverse order by id
+    mock_get_sub.side_effect = [
+        get_mock_subscription(None, id="s4", status="active", cancel_at=None, canceled_at=None, start_date=mock_future_start.timestamp()),
+        get_mock_subscription(None, id="s3", status="active", cancel_at=mock_end.timestamp(), canceled_at=None, start_date=mock_start.timestamp()),
+        get_mock_subscription(None, id="s2", status="active", cancel_at=None, canceled_at=None),
+    ]
 
     # cancelled already
     baker.make(UserMembership, subscription_id="s1", membership=purchasable_membership, subscription_status="canceled", subscription_start_date=timezone.now() - timedelta(30))
-    # ongoign
+    # ongoing
     baker.make(UserMembership, subscription_id="s2", membership=purchasable_membership, subscription_status="active", subscription_start_date=timezone.now() - timedelta(30))
     # cancelling already in future
     baker.make(
         UserMembership, subscription_id="s3", membership=purchasable_membership, 
-        subscription_status="active", subscription_start_date=timezone.now() - timedelta(30), end_date=timezone.now() + timedelta(30)
+        subscription_status="active", subscription_start_date=mock_start, subscription_end_date=mock_end
     )
     # starting in future, cancel immediately
     baker.make(
         UserMembership, subscription_id="s4", 
         membership=purchasable_membership, subscription_status="active", 
-        subscription_start_date=timezone.now() + timedelta(10)
+        subscription_start_date=mock_future_start
     )
 
     client.force_login(staff_user)
@@ -376,11 +387,49 @@ def test_membership_deactivate_active_user_memberships(mock_connector, mock_conn
                     'price_id': 'price_1234'
                 }
             }
-        ],
-        'cancel_subscription': [
-            {'args': ('s4',), 'kwargs': {'cancel_immediately': True}}, 
-            {'args': ('s2',), 'kwargs': {'cancel_immediately': False}}
         ]
+    }
+    assert mock_cancel.call_count == 2
+    mock_cancel.assert_has_calls(
+        [
+            call(subscription_id="s4", cancel_immediately=True),
+            call(subscription_id="s2", cancel_immediately=False),
+        ]
+    )
+
+
+@patch("booking.models.membership_models.StripeConnector")
+@patch("studioadmin.views.memberships.StripeConnector.get_subscription")
+def test_membership_deactivate_cancelled_not_up_to_date_user_memberships(mock_get_sub, mock_connector, client, seller, staff_user, purchasable_membership):
+    conn = MockConnector()
+    mock_connector.return_value = conn
+    mock_get_sub.return_value = get_mock_subscription(None, id="s1", status="canceled", cancel_at=None, canceled_at=None)
+
+    # active, but ensure_subscription_up_to_date will return it cancelled
+    baker.make(
+        UserMembership, subscription_id="s1", membership=purchasable_membership, subscription_status="active", subscription_start_date=timezone.now() - timedelta(30)
+    )
+
+    client.force_login(staff_user)
+    resp = client.post(reverse("studioadmin:membership_deactivate", args=(purchasable_membership.id,)))
+    assert resp.status_code == 302
+    assert resp.url == memberships_url
+    
+    # called to archive (active = False)
+    # no call to cancel subscription because it's already cancelled
+    assert conn.method_calls == {
+        'update_stripe_product': [
+            {
+                'args': (), 
+                'kwargs': {
+                    'product_id': 'm', 
+                    'name': 'm', 
+                    'description': None, 
+                    'active': False, 
+                    'price_id': 'price_1234'
+                }
+            }
+        ],
     }
 
 

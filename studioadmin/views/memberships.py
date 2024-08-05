@@ -11,6 +11,7 @@ from django.views.decorators.http import require_POST
 
 from activitylog.models import ActivityLog
 from booking.models import Membership, UserMembership
+from booking.views.membership_views import ensure_subscription_up_to_date
 from common.email import send_email
 from stripe_payments.utils import StripeConnector
 from studioadmin.forms import MembershipAddEditForm, MembershipItemFormset
@@ -93,6 +94,12 @@ def membership_deactivate(request, pk):
         membership.save()
         ActivityLog.objects.create(log=f"Membership {membership} deactivated by admin user {request.user}")
 
+        for user_membership in membership.active_user_memberships()["ongoing"]:
+            # make sure each usermembership is up to date
+            subscription = client.get_subscription(user_membership.subscription_id)
+            user_membership = ensure_subscription_up_to_date(user_membership, subscription)
+
+        # Fetch again to ensure we don't try to cancel any already cancelled subscriptions
         for user_membership in membership.active_user_memberships()["ongoing"]:
             cancel_immediately = not user_membership.payment_has_started()
             client.cancel_subscription(subscription_id=user_membership.subscription_id, cancel_immediately=cancel_immediately)
