@@ -1,0 +1,11 @@
+{% extends 'email_base.html' %}
+
+{% block messagecontent %}
+<div style="font-family: sans-serif;">
+
+<p>Your membership for {{ user_membership.membership.name }} has been cancelled as this membership type is no longer active.</p>
+
+<p>You can update to a new membership here: {{ host }}{% url 'membership_list' %}</p>
+
+</div>
+{% endblock %}

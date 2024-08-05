@@ -1,22 +1,28 @@
 # -*- coding: utf-8 -*-
+import logging
 
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
-from django.shortcuts import HttpResponseRedirect
+from django.shortcuts import HttpResponseRedirect, get_object_or_404, render
 from django.views.generic import CreateView, DetailView, ListView, UpdateView
 from django.urls import reverse
 from django.utils.safestring import mark_safe
+from django.template.response import TemplateResponse
 
 from braces.views import LoginRequiredMixin
 
-from booking.models import BaseVoucher, BlockVoucher, EventVoucher, UsedBlockVoucher, \
-    UsedEventVoucher
-from studioadmin.forms import BlockVoucherStudioadminForm, \
+from booking.models import BlockVoucher, EventVoucher, UsedBlockVoucher, \
+    UsedEventVoucher, StripeSubscriptionVoucher
+from studioadmin.forms import BlockVoucherStudioadminForm, MembershipVoucherForm, \
     VoucherStudioadminForm
 from studioadmin.views.helpers import StaffUserMixin
 from activitylog.models import ActivityLog
 from common.views import _set_pagination_context
+from stripe_payments.utils import StripeConnector
+
+
+logger = logging.getLogger(__name__)
 
 
 class VoucherListView(LoginRequiredMixin, StaffUserMixin, ListView):
@@ -243,3 +249,71 @@ class BlockVoucherDetailView(EventVoucherDetailView):
         context['sidenav_selection'] = 'block_vouchers'
         context['is_block_voucher'] = True
         return context
+
+
+class MembershipVoucherListView(LoginRequiredMixin, StaffUserMixin, ListView):
+    model = StripeSubscriptionVoucher
+    template_name = 'studioadmin/membership_vouchers.html'
+    context_object_name = 'vouchers'
+    paginate_by = 20
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['sidenav_selection'] = 'membership_vouchers'
+        _set_pagination_context(context)
+        return context
+
+
+class MembershipVoucherCreateView(LoginRequiredMixin, StaffUserMixin, CreateView):
+
+    form_class = MembershipVoucherForm
+    model = StripeSubscriptionVoucher
+    template_name = 'studioadmin/membership_voucher_create_update.html'
+    context_object_name = 'voucher'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['sidenav_selection'] = 'add_membership_voucher'
+        return context
+
+    def form_valid(self, form):
+        voucher = form.save()
+        try:
+            voucher.create_stripe_code()
+        except Exception as err:
+            logger.error("Error creating stripe promo code %s", err)
+            messages.error(self.request, f"Stripe promo code could not be created: {err}")
+            voucher.delete()
+        else:
+            voucher.save()
+            msg = 'Membership Voucher with code <strong>{}</strong> has been created!'.format(
+                voucher.code
+            )
+            messages.success(self.request, mark_safe(msg))
+            ActivityLog.objects.create(
+                log=f'Membership Voucher with code {voucher.code} created by admin user {self.request.user}'
+            )
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get_success_url(self):
+        return reverse('studioadmin:membership_vouchers')
+
+
+
+def membership_voucher_toggle_active(request, pk):
+    voucher = get_object_or_404(StripeSubscriptionVoucher, pk=pk)
+    voucher.active = not voucher.active
+    voucher.save()
+    return render(request, "studioadmin/includes/toggle_voucher_active_button.html", {"voucher": voucher})
+
+
+def membership_voucher_detail(request, code):
+    voucher = get_object_or_404(StripeSubscriptionVoucher, code=code)
+    client = StripeConnector()
+    promo_code = client.get_promo_code(voucher.promo_code_id)
+    voucher.times_used = promo_code.times_redeemed
+    return TemplateResponse(
+        request, 
+        "studioadmin/membership_voucher_detail.html", 
+        {"voucher": voucher, 'sidenav_selection': 'membership_vouchers'}
+    )

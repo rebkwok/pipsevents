@@ -25,8 +25,7 @@ from booking.models import (
 )
 from booking.forms import BookingVoucherForm, BlockVoucherForm
 import booking.context_helpers as context_helpers
-from booking.views.views_utils import _get_active_user_block, \
-    _get_block_status, validate_block_voucher_code, validate_voucher_code
+from booking.views.views_utils import get_block_status, validate_block_voucher_code, validate_voucher_code
 
 from payments.helpers import (
     create_booking_paypal_transaction, create_multiblock_paypal_transaction,
@@ -144,7 +143,7 @@ def add_total_bookings_and_payment_context(request, context):
             if context['total_unpaid_booking_cost'] > 0:
                 # total_unpaid_block_cost can be 0 if 100% voucher(s) applied;
                 # paypal button replaced with an update button in template
-                item_ids_str = ','.join([str(item.id) for item in unpaid_bookings])
+                item_ids_str = ','.join([str(item.id) for item in sorted(unpaid_bookings, key=lambda x: x.id)])
                 custom = context_helpers.get_paypal_custom(
                     item_type='booking',
                     item_ids=item_ids_str,
@@ -525,32 +524,18 @@ def update_block_bookings(request):
 
     block_booked = []
     for booking in unpaid_bookings:
-        active_block = _get_active_user_block(request.user, booking)
+        active_block = booking.get_next_active_block()
         if active_block:
             booking.block = active_block
             booking.paid = True
             booking.payment_confirmed = True
 
-            # check for existence of free child block on pre-saved booking
-            has_free_block_pre_save = False
-            if booking.block and booking.block.children.exists():
-                has_free_block_pre_save = True
-
             booking.save()
             block_booked.append(booking)
-            _get_block_status(booking, request)
+            get_block_status(booking, request)
 
             if not booking.block.active_block():
-                if booking.block.children.exists() \
-                        and not has_free_block_pre_save:
-                    messages.info(
-                        request,
-                        mark_safe(
-                            'You have just used the last space in your block and '
-                            'have qualified for a extra free class'
-                        )
-                    )
-                elif not booking.has_available_block:
+                if not booking.has_available_block:
                     messages.info(
                         request,
                         mark_safe(

@@ -1,0 +1,24 @@
+<form 
+    method="post"
+    action="{% url 'membership_voucher_apply_validate' %}" 
+    hx-post="{% url 'membership_voucher_apply_validate' %}" 
+    hx-trigger="input from:#id_voucher_code delay:1s"
+    hx-target="#membership-voucher-apply-form"
+    >
+    {% csrf_token %}
+    <div class="form-group">
+        <label>Voucher code:</label> 
+        <input type="text" id="id_voucher_code" name="voucher_code" value="{{ voucher_code }}" /> 
+        {% if voucher_valid %}
+            <input class="btn btn-sm btn-wm" type="submit" value="Apply" name="apply"/>
+        {% endif %}
+        <br/>
+        {% if voucher_message %}
+            <span class={% if voucher_valid %}"text-success font-italic small"{% else %}"errorlist"{% endif %}>{{ voucher_message }}</span>
+        {% else %}
+            <span class="studioadmin-help">Enter your code and wait a second for us to validate it</span>
+        {% endif %}
+        
+        <input type="hidden" value={{ user_membership.id }} name="user_membership_id" />
+    </div>
+</form>

@@ -1,5 +1,7 @@
 from datetime import datetime
 from datetime import timezone as dt_timezone
+from decimal import Decimal
+import re
 
 from model_bakery import baker
 
@@ -9,7 +11,7 @@ from django.utils import timezone
 from common.tests.helpers import PatchRequestMixin
 from payments import helpers
 from payments.models import PaypalBookingTransaction, PaypalBlockTransaction, \
-    PaypalTicketBookingTransaction
+    PaypalTicketBookingTransaction, PaypalGiftVoucherTransaction
 
 
 class TestHelpers(PatchRequestMixin, TestCase):
@@ -346,3 +348,51 @@ class TestHelpers(PatchRequestMixin, TestCase):
         self.assertEqual(
             second_tbooking_txn.invoice_id, '{}002'.format(tbooking.booking_reference)
         )
+
+    def test_create_gift_voucher_transaction_with_existing_no_txn_id(self):
+        voucher_type = baker.make("booking.GiftVoucherType", block_type__cost=10)
+        block_voucher = baker.make("booking.BlockVoucher", code="1234")
+        block_voucher.block_types.add(voucher_type.block_type)
+
+        transaction = baker.make(
+            PaypalGiftVoucherTransaction, 
+            invoice_id=f"gift-voucher-1234-inv#001",
+            transaction_id=None,
+            voucher_type=voucher_type,
+            voucher_code="1234"
+        )
+        new_txn = helpers.create_gift_voucher_paypal_transaction(voucher_type, "1234")
+        assert new_txn.id == transaction.id
+        transaction.refresh_from_db()
+        assert str(new_txn) == str(transaction)
+
+
+    def test_create_gift_voucher_transaction_with_existing(self):
+        voucher_type = baker.make("booking.GiftVoucherType", block_type__cost=10)
+        block_voucher = baker.make("booking.BlockVoucher", code="1234")
+        block_voucher.block_types.add(voucher_type.block_type)
+
+        transaction = baker.make(
+            PaypalGiftVoucherTransaction, 
+            invoice_id=f"gift-voucher-1234-inv#124",
+            transaction_id="txn1",
+            voucher_type=voucher_type,
+            voucher_code="1234"
+        )
+        new_txn = helpers.create_gift_voucher_paypal_transaction(voucher_type, "1234")
+        assert new_txn.id != transaction.id
+        assert new_txn.invoice_id == "gift-voucher-1234-inv#125"
+
+
+    def test_create_gift_voucher_transaction_with_existing_invoice(self):
+        voucher_type = baker.make("booking.GiftVoucherType", block_type__cost=10)
+        block_voucher = baker.make("booking.BlockVoucher", code="1234")
+        block_voucher.block_types.add(voucher_type.block_type)
+
+        transaction = baker.make(
+            PaypalGiftVoucherTransaction, 
+            invoice_id=f"gift-voucher-1234-inv#001",
+        )
+        new_txn = helpers.create_gift_voucher_paypal_transaction(voucher_type, "1234")
+        assert new_txn.id != transaction.id
+        assert re.match("gift-voucher-1234-inv#\d{3}001", new_txn.invoice_id)

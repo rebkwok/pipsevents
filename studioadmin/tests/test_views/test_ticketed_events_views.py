@@ -8,28 +8,21 @@ from django.conf import settings
 from django.urls import reverse
 from django.core import mail
 from django.test import TestCase
-from django.contrib.messages.storage.fallback import FallbackStorage
 
 from django.utils import timezone
 
 from booking.models import TicketedEvent, TicketBooking, Ticket
 from common.tests.helpers import (
-    _add_user_email_addresses, _create_session, format_content
+    _add_user_email_addresses, format_content
 )
 
-from studioadmin.views import (
-    ConfirmTicketBookingRefundView,
-    TicketedEventAdminCreateView, TicketedEventAdminListView,
-    TicketedEventAdminUpdateView, TicketedEventBookingsListView,
-    cancel_ticketed_event_view, print_tickets_list
-)
 from studioadmin.tests.test_views.helpers import TestPermissionMixin
 
 
 class TicketedEventAdminListViewTests(TestPermissionMixin, TestCase):
 
     def setUp(self):
-        super(TicketedEventAdminListViewTests, self).setUp()
+        super().setUp()
         self.ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
             date=timezone.now() + timedelta(2)
@@ -38,28 +31,8 @@ class TicketedEventAdminListViewTests(TestPermissionMixin, TestCase):
             'booking.ticketed_event_max10',
             date=timezone.now() - timedelta(2)
         )
-
-    def _get_response(self, user):
-        url = reverse('studioadmin:ticketed_events')
-        session = _create_session()
-        request = self.factory.get(url)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        view = TicketedEventAdminListView.as_view()
-        return view(request)
-
-    def _post_response(self, user, form_data):
-        url = reverse('studioadmin:ticketed_events')
-        session = _create_session()
-        request = self.factory.post(url, form_data)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        view = TicketedEventAdminListView.as_view()
-        return view(request)
+        self.url = reverse('studioadmin:ticketed_events')
+        self.client.force_login(self.staff_user)
 
     def formset_data(self, extra_data={}):
 
@@ -75,22 +48,24 @@ class TicketedEventAdminListViewTests(TestPermissionMixin, TestCase):
         return data
 
     def test_cannot_access_without_login(self):
-        url = reverse('studioadmin:ticketed_events')
-        resp = self.client.get(url)
-        redirected_url = reverse('account_login') + "?next={}".format(url)
+        self.client.logout()
+        resp = self.client.get(self.url)
+        redirected_url = reverse('account_login') + "?next={}".format(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
     def test_cannot_access_unless_staff_user(self):
-        resp = self._get_response(self.user)
+        self.client.force_login(self.user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
-        resp = self._get_response(self.staff_user)
+        self.client.force_login(self.staff_user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 200)
 
     def test_get_shows_upcoming_events(self):
-        resp = self._get_response(self.staff_user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 200)
         formset = resp.context_data['ticketed_event_formset']
         self.assertEqual(
@@ -99,13 +74,13 @@ class TicketedEventAdminListViewTests(TestPermissionMixin, TestCase):
         )
 
     def test_side_nav_selection_in_context(self):
-        resp = self._get_response(self.staff_user)
+        resp = self.client.get(self.url)
         self.assertEqual(
             resp.context_data['sidenav_selection'], 'ticketed_evs'
         )
 
     def test_show_ticketed_events_by_past_or_upcoming(self):
-        resp = self._post_response(self.staff_user, {'past': 'Show past events'})
+        resp = self.client.post(self.url, {'past': 'Show past events'})
         self.assertEqual(resp.status_code, 200)
         formset = resp.context_data['ticketed_event_formset']
         self.assertEqual(
@@ -113,9 +88,7 @@ class TicketedEventAdminListViewTests(TestPermissionMixin, TestCase):
             [self.past_ticketed_event.id]
         )
 
-        resp = self._post_response(
-            self.staff_user, {'upcoming': 'Show upcoming events'}
-        )
+        resp = self.client.post(self.url, {'upcoming': 'Show upcoming events'})
         self.assertEqual(resp.status_code, 200)
         formset = resp.context_data['ticketed_event_formset']
         self.assertEqual(
@@ -129,7 +102,7 @@ class TicketedEventAdminListViewTests(TestPermissionMixin, TestCase):
             date=timezone.now() + timedelta(2),
             cancelled=True
         )
-        resp = self._get_response(self.staff_user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 200)
         formset = resp.context_data['ticketed_event_formset']
         self.assertEqual(formset.queryset.count(), 2)
@@ -144,7 +117,7 @@ class TicketedEventAdminListViewTests(TestPermissionMixin, TestCase):
             'form-0-DELETE': 'on',
             'formset_submitted': 'Save changes'
             })
-        resp = self._post_response(self.staff_user, formset_data)
+        resp = self.client.post(self.url, formset_data)
         self.assertEqual(TicketedEvent.objects.all().count(), 1)
 
     def test_cancel_button_shown_for_events_with_bookings(self):
@@ -161,7 +134,7 @@ class TicketedEventAdminListViewTests(TestPermissionMixin, TestCase):
             purchase_confirmed=True
         )
 
-        resp = self._get_response(self.staff_user)
+        resp = self.client.get(self.url)
         self.assertIn(
             'id="DELETE_0"', resp.rendered_content
         )
@@ -181,7 +154,7 @@ class TicketedEventAdminListViewTests(TestPermissionMixin, TestCase):
             'form-0-advance_payment_required': False,
             'formset_submitted': 'Save changes'
             })
-        self._post_response(self.staff_user, formset_data)
+        resp = self.client.post(self.url, formset_data)
         self.ticketed_event.refresh_from_db()
         self.assertFalse(self.ticketed_event.show_on_site)
         self.assertFalse(self.ticketed_event.payment_open)
@@ -196,9 +169,6 @@ class TicketedEventAdminListViewTests(TestPermissionMixin, TestCase):
                 'form-0-show_on_site': self.ticketed_event.show_on_site,
                 'formset_submitted': 'Save changes'
             }
-        )
-        self.assertTrue(self.client.login(
-            username=self.staff_user.username, password='test')
         )
         resp = self.client.post(
             reverse('studioadmin:ticketed_events'),
@@ -224,32 +194,13 @@ class TicketedEventAdminUpdateViewTests(TestPermissionMixin, TestCase):
             'booking.ticketed_event_max10',
             date=timezone.now() - timedelta(2)
         )
-
-    def _get_response(self, user, ticketed_event):
-        url = reverse(
-            'studioadmin:edit_ticketed_event', kwargs={'slug': ticketed_event.slug}
+        self.url = reverse(
+            'studioadmin:edit_ticketed_event', kwargs={'slug': self.ticketed_event.slug}
         )
-        session = _create_session()
-        request = self.factory.get(url)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        view = TicketedEventAdminUpdateView.as_view()
-        return view(request, slug=ticketed_event.slug)
-
-    def _post_response(self, user, ticketed_event, form_data):
-        url = reverse(
-            'studioadmin:edit_ticketed_event', kwargs={'slug': ticketed_event.slug}
+        self.past_url = reverse(
+            'studioadmin:edit_ticketed_event', kwargs={'slug': self.past_ticketed_event.slug}
         )
-        session = _create_session()
-        request = self.factory.post(url, form_data)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        view = TicketedEventAdminUpdateView.as_view()
-        return view(request, slug=ticketed_event.slug)
+        self.client.force_login(self.staff_user)
 
     def form_data(self, extra_data={}):
         # make the date uk time before stringifying for form input
@@ -271,21 +222,20 @@ class TicketedEventAdminUpdateViewTests(TestPermissionMixin, TestCase):
         return data
 
     def test_cannot_access_without_login(self):
-        url = reverse(
-            'studioadmin:edit_ticketed_event',
-            kwargs={'slug': self.ticketed_event.slug}
-        )
-        resp = self.client.get(url)
-        redirected_url = reverse('account_login') + "?next={}".format(url)
+        self.client.logout()
+        resp = self.client.get(self.url)
+        redirected_url = reverse('account_login') + "?next={}".format(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
     def test_cannot_access_unless_staff_user(self):
-        resp = self._get_response(self.user, self.ticketed_event)
+        self.client.force_login(self.user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
-        resp = self._get_response(self.staff_user, self.ticketed_event)
+        self.client.force_login(self.staff_user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 200)
 
     def test_can_edit_event(self):
@@ -296,8 +246,9 @@ class TicketedEventAdminUpdateViewTests(TestPermissionMixin, TestCase):
         self.assertEqual(
             self.ticketed_event.contact_email, settings.DEFAULT_STUDIO_EMAIL
         )
-        resp = self._post_response(
-            self.staff_user, self.ticketed_event, self.form_data(
+        resp = self.client.post(
+            self.url,
+            self.form_data(
                 {
                     'ticket_cost': 5,
                     'location': 'Test location',
@@ -317,10 +268,6 @@ class TicketedEventAdminUpdateViewTests(TestPermissionMixin, TestCase):
     def test_submit_form_without_changes(self):
         self.ticketed_event.payment_time_allowed = 8
         self.ticketed_event.save()
-        url = reverse(
-            'studioadmin:edit_ticketed_event',
-            kwargs={'slug': self.ticketed_event.slug}
-        )
 
         form_data = self.form_data(
             {
@@ -344,14 +291,14 @@ class TicketedEventAdminUpdateViewTests(TestPermissionMixin, TestCase):
             username=self.staff_user.username, password='test')
         )
         resp = self.client.post(
-            url, form_data, follow=True
+            self.url, form_data, follow=True
         )
         self.assertIn(
             'No changes made', format_content(resp.rendered_content)
         )
 
     def test_side_nav_selection_in_context(self):
-        resp = self._get_response(self.staff_user, self.ticketed_event)
+        resp = self.client.get(self.url)
         self.assertEqual(
             resp.context_data['sidenav_selection'], 'ticketed_evs'
         )
@@ -364,12 +311,8 @@ class TicketedEventAdminUpdateViewTests(TestPermissionMixin, TestCase):
                 'paypal_email_check': 'testpaypal@test.com'
             }
         )
-        self.client.login(username=self.staff_user.username, password='test')
         resp = self.client.post(
-            reverse(
-                'studioadmin:edit_ticketed_event',
-                kwargs={'slug': self.ticketed_event.slug}),
-            form_data, follow=True
+            self.url, form_data, follow=True
         )
 
         self.assertIn(
@@ -391,11 +334,7 @@ class TicketedEventAdminUpdateViewTests(TestPermissionMixin, TestCase):
             }
         )
         resp = self.client.post(
-            reverse(
-                'studioadmin:edit_ticketed_event',
-                kwargs={'slug': self.ticketed_event.slug}
-            ),
-            form_data, follow=True
+            self.url, form_data, follow=True
         )
         self.assertNotIn(
             "You have changed the paypal receiver email.",
@@ -409,45 +348,33 @@ class TicketedEventAdminUpdateViewTests(TestPermissionMixin, TestCase):
 
 class TicketedEventAdminCreateViewTests(TestPermissionMixin, TestCase):
 
-    def _get_response(self, user):
-        url = reverse('studioadmin:add_ticketed_event')
-        session = _create_session()
-        request = self.factory.get(url)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        view = TicketedEventAdminCreateView.as_view()
-        return view(request)
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.url = reverse('studioadmin:add_ticketed_event')
 
-    def _post_response(self, user, form_data):
-        url = reverse('studioadmin:add_ticketed_event')
-        session = _create_session()
-        request = self.factory.post(url, form_data)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        view = TicketedEventAdminCreateView.as_view()
-        return view(request)
+    def setUp(self):
+        self.client.force_login(self.staff_user)
 
     def test_cannot_access_without_login(self):
-        url = reverse('studioadmin:add_ticketed_event')
-        resp = self.client.get(url)
-        redirected_url = reverse('account_login') + "?next={}".format(url)
+        self.client.logout()
+        resp = self.client.get(self.url)
+        redirected_url = reverse('account_login') + "?next={}".format(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
     def test_cannot_access_unless_staff_user(self):
-        resp = self._get_response(self.user)
+        self.client.force_login(self.user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
-        resp = self._get_response(self.staff_user)
+        self.client.force_login(self.staff_user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 200)
 
     def test_side_nav_selection_in_context(self):
-        resp = self._get_response(self.staff_user)
+        resp = self.client.get(self.url)
         self.assertEqual(
             resp.context_data['sidenav_selection'], 'add_ticketed_ev'
         )
@@ -463,7 +390,7 @@ class TicketedEventAdminCreateViewTests(TestPermissionMixin, TestCase):
             'ticket_cost': 5,
             'paypal_email': settings.DEFAULT_PAYPAL_EMAIL,
         }
-        self._post_response(self.staff_user, data)
+        resp = self.client.post(self.url, data)
         self.assertEqual(TicketedEvent.objects.count(), 1)
 
     def test_create_ticketed_event_with_non_default_paypal_email(self):
@@ -477,11 +404,7 @@ class TicketedEventAdminCreateViewTests(TestPermissionMixin, TestCase):
             'paypal_email': 'testpaypal@test.com',
             'paypal_email_check': 'testpaypal@test.com'
             }
-        self.client.login(username=self.staff_user.username, password='test')
-        resp = self.client.post(
-            reverse('studioadmin:add_ticketed_event'),
-            form_data, follow=True
-        )
+        resp = self.client.post(self.url, form_data, follow=True)
 
         self.assertIn(
             "You have changed the paypal receiver email from the default value. "
@@ -501,10 +424,7 @@ class TicketedEventAdminCreateViewTests(TestPermissionMixin, TestCase):
                 'paypal_email_check': ''
             }
         )
-        resp = self.client.post(
-            reverse('studioadmin:add_ticketed_event'),
-            form_data, follow=True
-        )
+        resp = self.client.post(self.url, form_data, follow=True)
         self.assertNotIn(
             "You have changed the paypal receiver email from the default value.",
             resp.rendered_content
@@ -518,7 +438,7 @@ class TicketedEventAdminCreateViewTests(TestPermissionMixin, TestCase):
 class TicketedEventBookingsListViewTests(TestPermissionMixin, TestCase):
 
     def setUp(self):
-        super(TicketedEventBookingsListViewTests, self).setUp()
+        super().setUp()
         self.ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
             date=timezone.now() + timedelta(2)
@@ -532,34 +452,11 @@ class TicketedEventBookingsListViewTests(TestPermissionMixin, TestCase):
         )
         for tb in [self.ticket_booking, self.ticket_booking1]:
             baker.make(Ticket, ticket_booking=tb)
-
-    def _get_response(self, user, ticketed_event):
-        url = reverse(
+        self.client.force_login(self.staff_user)
+        self.url = reverse(
             'studioadmin:ticketed_event_bookings',
-            kwargs={'slug': ticketed_event.slug}
+            kwargs={'slug': self.ticketed_event.slug}
         )
-        session = _create_session()
-        request = self.factory.get(url)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        view = TicketedEventBookingsListView.as_view()
-        return view(request, slug=ticketed_event.slug)
-
-    def _post_response(self, user, ticketed_event, form_data):
-        url = reverse(
-            'studioadmin:ticketed_event_bookings',
-            kwargs={'slug': ticketed_event.slug}
-        )
-        session = _create_session()
-        request = self.factory.post(url, form_data)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        view = TicketedEventBookingsListView.as_view()
-        return view(request, slug=ticketed_event.slug)
 
     def formset_data(self, extra_data={}):
 
@@ -575,28 +472,27 @@ class TicketedEventBookingsListViewTests(TestPermissionMixin, TestCase):
         return data
 
     def test_cannot_access_without_login(self):
-        url = reverse(
-            'studioadmin:ticketed_event_bookings',
-            kwargs={'slug': self.ticketed_event.slug}
-        )
-        resp = self.client.get(url)
-        redirected_url = reverse('account_login') + "?next={}".format(url)
+        self.client.logout()
+        resp = self.client.get(self.url)
+        redirected_url = reverse('account_login') + "?next={}".format(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
     def test_cannot_access_unless_staff_user(self):
-        resp = self._get_response(self.user, self.ticketed_event)
+        self.client.force_login(self.user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
-        resp = self._get_response(self.staff_user, self.ticketed_event)
+        self.client.force_login(self.staff_user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 200)
 
     def test_show_only_ticket_bookings_on_event(self):
         """
         confirmed bookings for other events are not shown
         """
-        resp = self._get_response(self.staff_user, self.ticketed_event)
+        resp = self.client.get(self.url)
         formset = resp.context_data['ticket_booking_formset']
         self.assertEqual(
             [tb.id for tb in formset.queryset],
@@ -611,7 +507,7 @@ class TicketedEventBookingsListViewTests(TestPermissionMixin, TestCase):
         baker.make(Ticket, ticket_booking=tb)
 
         self.assertEqual(self.ticketed_event.ticket_bookings.count(), 2)
-        resp = self._get_response(self.staff_user, self.ticketed_event)
+        resp = self.client.get(self.url)
         formset = resp.context_data['ticket_booking_formset']
 
         # tb is not shown as not confirmed
@@ -625,7 +521,7 @@ class TicketedEventBookingsListViewTests(TestPermissionMixin, TestCase):
         tb = baker.make(TicketBooking, ticketed_event=self.ticketed_event)
 
         self.assertEqual(self.ticketed_event.ticket_bookings.count(), 2)
-        resp = self._get_response(self.staff_user, self.ticketed_event)
+        resp = self.client.get(self.url)
         formset = resp.context_data['ticket_booking_formset']
 
         # tb is not shown as no tickets attached
@@ -642,7 +538,7 @@ class TicketedEventBookingsListViewTests(TestPermissionMixin, TestCase):
         )
         baker.make(Ticket, ticket_booking=tb)
         self.assertEqual(self.ticketed_event.ticket_bookings.count(), 2)
-        resp = self._get_response(self.staff_user, self.ticketed_event)
+        resp = self.client.get(self.url)
         formset = resp.context_data['ticket_booking_formset']
 
         # tb is not shown as cancelled
@@ -659,9 +555,7 @@ class TicketedEventBookingsListViewTests(TestPermissionMixin, TestCase):
         )
         baker.make(Ticket, ticket_booking=tb)
         self.assertEqual(self.ticketed_event.ticket_bookings.count(), 2)
-        resp = self._post_response(
-            self.staff_user, self.ticketed_event, {'show_cancelled': True}
-        )
+        resp = self.client.post(self.url, {'show_cancelled': True})
         formset = resp.context_data['ticket_booking_formset']
 
         # tb is not shown as cancelled
@@ -673,15 +567,15 @@ class TicketedEventBookingsListViewTests(TestPermissionMixin, TestCase):
         self.assertTrue(resp.context_data['show_cancelled_ctx'])
 
     def test_side_nav_selection_in_context(self):
-        resp = self._get_response(self.staff_user, self.ticketed_event)
+        resp = self.client.get(self.url)
         self.assertEqual(
             resp.context_data['sidenav_selection'], 'ticketed_evs'
         )
 
     def test_update_booking(self):
         self.assertFalse(self.ticket_booking.paid)
-        resp = self._post_response(
-            self.staff_user, self.ticketed_event,
+        resp = self.client.post(
+            self.url, 
             self.formset_data(
                 {
 
@@ -694,11 +588,6 @@ class TicketedEventBookingsListViewTests(TestPermissionMixin, TestCase):
         self.assertTrue(self.ticket_booking.paid)
 
     def test_submit_form_without_changes(self):
-
-        url = reverse(
-            'studioadmin:ticketed_event_bookings',
-            kwargs={'slug': self.ticketed_event.slug}
-        )
         data = self.formset_data(
             {
                 'ticket_bookings-0-paid': self.ticket_booking.paid,
@@ -710,7 +599,7 @@ class TicketedEventBookingsListViewTests(TestPermissionMixin, TestCase):
                 username=self.staff_user.username, password='test'
             )
         )
-        resp = self.client.post(url, data, follow=True)
+        resp = self.client.post(self.url, data, follow=True)
 
         self.assertIn(
             'No changes were made', format_content(resp.rendered_content)
@@ -718,11 +607,6 @@ class TicketedEventBookingsListViewTests(TestPermissionMixin, TestCase):
 
 
     def test_submit_form_without_changes_send_confirmation_ticked(self):
-
-        url = reverse(
-            'studioadmin:ticketed_event_bookings',
-            kwargs={'slug': self.ticketed_event.slug}
-        )
         data = self.formset_data(
             {
                 'ticket_bookings-0-paid': self.ticket_booking.paid,
@@ -730,12 +614,7 @@ class TicketedEventBookingsListViewTests(TestPermissionMixin, TestCase):
                 'formset_submitted': 'Save changes'
             }
         )
-        self.assertTrue(
-            self.client.login(
-                username=self.staff_user.username, password='test'
-            )
-        )
-        resp = self.client.post(url, data, follow=True)
+        resp = self.client.post(self.url, data, follow=True)
 
         self.assertIn(
             "&#x27;Send confirmation&#x27; checked for &#x27;{}&#x27; but no "
@@ -746,8 +625,8 @@ class TicketedEventBookingsListViewTests(TestPermissionMixin, TestCase):
 
     def test_cancel_booking(self):
         self.assertFalse(self.ticket_booking.cancelled)
-        resp = self._post_response(
-            self.staff_user, self.ticketed_event,
+        resp = self.client.post(
+            self.url, 
             self.formset_data(
                 {
 
@@ -766,9 +645,9 @@ class TicketedEventBookingsListViewTests(TestPermissionMixin, TestCase):
             user=self.user
         )
         baker.make(Ticket, ticket_booking=cancelled_tb)
-        resp = self._post_response(
-            self.staff_user, self.ticketed_event,
-            form_data=self.formset_data(
+        resp = self.client.post(
+            self.url, 
+            self.formset_data(
                 {
                     'ticket_bookings-TOTAL_FORMS': 2,
                     'ticket_bookings-INITIAL_FORMS': 2,
@@ -796,7 +675,8 @@ class TicketedEventBookingsListViewTests(TestPermissionMixin, TestCase):
         baker.make(Ticket, ticket_booking=cancelled_tb, _quantity=2)
         tb = baker.make(
             TicketBooking, ticketed_event=ticketed_event,
-            purchase_confirmed=True
+            purchase_confirmed=True,
+            user=self.user
         )
         # make tickets for the event so there is only 1 left
         baker.make(
@@ -804,10 +684,6 @@ class TicketedEventBookingsListViewTests(TestPermissionMixin, TestCase):
         )
         self.assertEqual(ticketed_event.tickets_left(), 1)
 
-        url = reverse(
-            'studioadmin:ticketed_event_bookings',
-            kwargs={'slug': ticketed_event.slug}
-        )
         data = {
             'ticket_bookings-TOTAL_FORMS': 2,
             'ticket_bookings-INITIAL_FORMS': 2,
@@ -817,10 +693,9 @@ class TicketedEventBookingsListViewTests(TestPermissionMixin, TestCase):
             'show_cancelled': True,
             'formset_submitted': 'Save changes',
         }
-        self.assertTrue(
-            self.client.login(
-                username=self.staff_user.username, password='test'
-            )
+        url = reverse(
+            'studioadmin:ticketed_event_bookings',
+            kwargs={'slug': ticketed_event.slug}
         )
         resp = self.client.post(url, data, follow=True)
         content = format_content(resp.rendered_content)
@@ -837,8 +712,8 @@ class TicketedEventBookingsListViewTests(TestPermissionMixin, TestCase):
 
     def test_send_confirmation_to_user_on_update(self):
         self.assertFalse(self.ticket_booking.paid)
-        resp = self._post_response(
-            self.staff_user, self.ticketed_event,
+        resp = self.client.post(
+            self.url, 
             self.formset_data(
                 {
 
@@ -865,8 +740,8 @@ class TicketedEventBookingsListViewTests(TestPermissionMixin, TestCase):
     def test_send_confirmation_email_errors(self, mock_send):
         mock_send.side_effect = Exception('Error sending email')
         self.assertFalse(self.ticket_booking.paid)
-        self._post_response(
-            self.staff_user, self.ticketed_event,
+        resp = self.client.post(
+            self.url, 
             self.formset_data(
                 {
 
@@ -891,8 +766,8 @@ class TicketedEventBookingsListViewTests(TestPermissionMixin, TestCase):
 
     def test_send_confirmation_to_user_on_cancel(self):
         self.assertFalse(self.ticket_booking.cancelled)
-        resp = self._post_response(
-            self.staff_user, self.ticketed_event,
+        resp = self.client.post(
+            self.url, 
             self.formset_data(
                 {
 
@@ -923,22 +798,20 @@ class TicketedEventBookingsListViewTests(TestPermissionMixin, TestCase):
             user=self.user
         )
         baker.make(Ticket, ticket_booking=cancelled_tb)
-        resp = self._post_response(
-            self.staff_user, self.ticketed_event,
-            form_data=self.formset_data(
+        resp = self.client.post(
+            self.url, 
+            self.formset_data(
                 {
                     'ticket_bookings-TOTAL_FORMS': 2,
                     'ticket_bookings-INITIAL_FORMS': 2,
                     'ticket_bookings-1-id': cancelled_tb.id,
                     'ticket_bookings-1-reopen': True,
+                    'ticket_bookings-1-send_confirmation': True,
                     'show_cancelled': True,
                     'formset_submitted': 'Save changes',
-                    'ticket_bookings-1-send_confirmation': True,
                 }
             )
-
         )
-
         cancelled_tb.refresh_from_db()
         self.assertFalse(cancelled_tb.cancelled)
         self.assertEqual(len(mail.outbox), 1)
@@ -971,56 +844,37 @@ class CancelTicketedEventTests(TestPermissionMixin, TestCase):
             'booking.ticketed_event_max10',
             date=timezone.now() + timedelta(2)
         )
-
-    def _get_response(self, user, ticketed_event):
-        url = reverse(
-            'studioadmin:cancel_ticketed_event',
-            kwargs={'slug': ticketed_event.slug}
-        )
-        session = _create_session()
-        request = self.factory.get(url)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        return cancel_ticketed_event_view(request, slug=ticketed_event.slug)
-
-    def _post_response(self, user, ticketed_event, form_data):
-        url = reverse(
-            'studioadmin:cancel_ticketed_event',
-            kwargs={'slug': ticketed_event.slug}
-        )
-        session = _create_session()
-        request = self.factory.post(url, form_data)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        return cancel_ticketed_event_view(request, slug=ticketed_event.slug)
-
-    def test_cannot_access_without_login(self):
-        url = reverse(
+        self.url_with_booking = reverse(
             'studioadmin:cancel_ticketed_event',
             kwargs={'slug': self.ticketed_event_with_booking.slug}
         )
-        resp = self.client.get(url)
-        redirected_url = reverse('account_login') + "?next={}".format(url)
+        self.url_without_booking = reverse(
+            'studioadmin:cancel_ticketed_event',
+            kwargs={'slug': self.ticketed_event_without_booking.slug}
+        )
+
+        self.client.force_login(self.staff_user)
+
+    def test_cannot_access_without_login(self):
+        self.client.logout()
+        resp = self.client.get(self.url_with_booking)
+        redirected_url = reverse('account_login') + "?next={}".format(self.url_with_booking)
         self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
     def test_cannot_access_unless_staff_user(self):
-        resp = self._get_response(self.user, self.ticketed_event_with_booking)
+        self.client.force_login(self.user)
+        resp = self.client.get(self.url_with_booking)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
-        resp = self._get_response(self.staff_user, self.ticketed_event_with_booking)
+        self.client.force_login(self.staff_user)
+        resp = self.client.get(self.url_with_booking)
         self.assertEqual(resp.status_code, 200)
 
     def test_get_cancel_page_with_no_bookings(self):
         # no bookings displayed on page
-        resp = self._get_response(
-            self.staff_user, self.ticketed_event_without_booking
-        )
+        resp = self.client.get(self.url_without_booking)
         self.assertEqual(resp.context_data['open_paid_ticket_bookings'], [])
         self.assertEqual(resp.context_data['open_unpaid_ticket_bookings'], [])
 
@@ -1041,18 +895,14 @@ class CancelTicketedEventTests(TestPermissionMixin, TestCase):
         for tb in TicketBooking.objects.all():
             baker.make(Ticket, ticket_booking=tb)
 
-        resp = self._get_response(
-            self.staff_user, self.ticketed_event_without_booking
-        )
+        resp = self.client.get(self.url_without_booking)
         self.assertEqual(resp.context_data['open_paid_ticket_bookings'], [])
         self.assertEqual(resp.context_data['open_unpaid_ticket_bookings'], [])
 
     def test_get_cancel_page_open_unpaid_bookings(self):
         # open bookings displayed on page, not in due_refunds list
         self.assertFalse(self.ticket_booking.paid)
-        resp = self._get_response(
-            self.staff_user, self.ticketed_event_with_booking
-        )
+        resp = self.client.get(self.url_with_booking)
         self.assertEqual(resp.context_data['open_paid_ticket_bookings'], [])
         self.assertEqual(
             resp.context_data['open_unpaid_ticket_bookings'],
@@ -1062,9 +912,7 @@ class CancelTicketedEventTests(TestPermissionMixin, TestCase):
     def test_get_cancel_page_open_paid_bookings(self):
         self.ticket_booking.paid = True
         self.ticket_booking.save()
-        resp = self._get_response(
-            self.staff_user, self.ticketed_event_with_booking
-        )
+        resp = self.client.get(self.url_with_booking)
         self.assertEqual(
             resp.context_data['open_paid_ticket_bookings'],
             [self.ticket_booking]
@@ -1095,9 +943,7 @@ class CancelTicketedEventTests(TestPermissionMixin, TestCase):
         for tb in TicketBooking.objects.all():
             baker.make(Ticket, ticket_booking=tb)
 
-        resp = self._get_response(
-            self.staff_user, self.ticketed_event_with_booking
-        )
+        resp = self.client.get(self.url_with_booking)
         self.assertEqual(
             resp.context_data['open_paid_ticket_bookings'],
             [paid_tb]
@@ -1116,10 +962,7 @@ class CancelTicketedEventTests(TestPermissionMixin, TestCase):
         self.assertTrue(self.ticketed_event_with_booking.payment_open)
         self.assertFalse(self.ticketed_event_with_booking.cancelled)
 
-        self._post_response(
-            self.staff_user, self.ticketed_event_with_booking,
-            {'confirm': 'Yes, cancel this event'}
-        )
+        self.client.post(self.url_with_booking, {'confirm': 'Yes, cancel this event'})
         self.ticketed_event_with_booking.refresh_from_db()
         self.assertFalse(self.ticketed_event_with_booking.show_on_site)
         self.assertFalse(self.ticketed_event_with_booking.payment_open)
@@ -1152,10 +995,7 @@ class CancelTicketedEventTests(TestPermissionMixin, TestCase):
                 ticketed_event=self.ticketed_event_with_booking
             ).count(), 5
         )
-        self._post_response(
-            self.staff_user, self.ticketed_event_with_booking,
-            {'confirm': 'Yes, cancel this event'}
-        )
+        self.client.post(self.url_with_booking, {'confirm': 'Yes, cancel this event'})
         self.ticketed_event_with_booking.refresh_from_db()
         self.assertEqual(
             TicketBooking.objects.filter(
@@ -1189,10 +1029,7 @@ class CancelTicketedEventTests(TestPermissionMixin, TestCase):
         self.assertEqual(
             self.ticketed_event_with_booking.ticket_bookings.count(), 2
         )
-        self._post_response(
-            self.staff_user, self.ticketed_event_with_booking,
-            {'confirm': 'Yes, cancel this event'}
-        )
+        self.client.post(self.url_with_booking, {'confirm': 'Yes, cancel this event'})
 
         self.ticketed_event_with_booking.refresh_from_db()
         self.ticket_booking.refresh_from_db()
@@ -1212,10 +1049,8 @@ class CancelTicketedEventTests(TestPermissionMixin, TestCase):
         for tb in TicketBooking.objects.all():
             baker.make(Ticket, ticket_booking=tb)
         _add_user_email_addresses(TicketBooking)
-        self._post_response(
-            self.staff_user, self.ticketed_event_with_booking,
-            {'confirm': 'Yes, cancel this event'}
-        )
+        self.client.post(self.url_with_booking, {'confirm': 'Yes, cancel this event'})
+        
 
         # send 1 email per booking, plus 1 to studio if there are open paid bkgs
         self.assertEqual(len(mail.outbox), 3)
@@ -1232,10 +1067,7 @@ class CancelTicketedEventTests(TestPermissionMixin, TestCase):
         for tb in TicketBooking.objects.all():
             baker.make(Ticket, ticket_booking=tb)
 
-        self._post_response(
-            self.staff_user, self.ticketed_event_with_booking,
-            {'confirm': 'Yes, cancel this event'}
-        )
+        self.client.post(self.url_with_booking, {'confirm': 'Yes, cancel this event'})
 
         # send 1 email per booking, plus 1 to studio if there are open paid bkgs
         # 3 error emails
@@ -1267,10 +1099,7 @@ class CancelTicketedEventTests(TestPermissionMixin, TestCase):
         for tb in TicketBooking.objects.all():
             baker.make(Ticket, ticket_booking=tb)
 
-        self._post_response(
-            self.staff_user, self.ticketed_event_with_booking,
-            {'confirm': 'Yes, cancel this event'}
-        )
+        self.client.post(self.url_with_booking, {'confirm': 'Yes, cancel this event'})
 
         # send 1 email per open booking(1); no email to studio as
         # self.ticket_booking is unpaid
@@ -1286,10 +1115,7 @@ class CancelTicketedEventTests(TestPermissionMixin, TestCase):
             paid=True,
         )
 
-        self._post_response(
-            self.staff_user, self.ticketed_event_with_booking,
-            {'confirm': 'Yes, cancel this event'}
-        )
+        self.client.post(self.url_with_booking, {'confirm': 'Yes, cancel this event'})
 
         # send 1 email per confirmed booking(1); no email to studio as
         # self.ticket_booking is unpaid
@@ -1300,11 +1126,8 @@ class CancelTicketedEventTests(TestPermissionMixin, TestCase):
         self.ticket_booking.paid = True
         self.ticket_booking.save()
 
-        self._post_response(
-            self.staff_user, self.ticketed_event_with_booking,
-            {'confirm': 'Yes, cancel this event'}
-        )
-
+        self.client.post(self.url_with_booking, {'confirm': 'Yes, cancel this event'})
+    
         # send 1 email per confirmed booking(1); 1 email to studio as
         # self.ticket_booking is paid
         self.assertEqual(len(mail.outbox), 2)
@@ -1321,10 +1144,7 @@ class CancelTicketedEventTests(TestPermissionMixin, TestCase):
         )
 
     def test_can_abort_cancel_event_request(self):
-        self._post_response(
-            self.staff_user, self.ticketed_event_with_booking,
-            {'cancel': 'No, take me back'}
-        )
+        self.client.post(self.url_with_booking, {'cancel': 'No, take me back'})
         self.ticketed_event_with_booking.refresh_from_db()
         self.assertFalse(self.ticketed_event_with_booking.cancelled)
         for tb in self.ticketed_event_with_booking.ticket_bookings.all():
@@ -1345,59 +1165,34 @@ class ConfirmTicketBookingRefundViewTests(TestPermissionMixin, TestCase):
             cancelled=True
         )
         baker.make(Ticket, ticket_booking=self.ticket_booking)
-
-
-    def _get_response(self, user, ticket_booking):
-        url = reverse(
+        self.client.force_login(self.staff_user)
+        self.url = reverse(
             'studioadmin:confirm_ticket_booking_refund',
-            args=[ticket_booking.id]
+            args=[self.ticket_booking.id]
         )
-        session = _create_session()
-        request = self.factory.get(url)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        view = ConfirmTicketBookingRefundView.as_view()
-        return view(request, pk=ticket_booking.pk)
-
-    def _post_response(self, user, ticket_booking, form_data):
-        url = reverse(
-            'studioadmin:confirm_ticket_booking_refund',
-            args=[ticket_booking.id]
-        )
-        session = _create_session()
-        request = self.factory.post(url, form_data)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        view = ConfirmTicketBookingRefundView.as_view()
-        return view(request, pk=ticket_booking.pk)
 
     def test_cannot_access_without_login(self):
-        url = reverse(
-            'studioadmin:confirm_ticket_booking_refund',
-            args=[self.ticket_booking.pk]
-        )
-        resp = self.client.get(url)
-        redirected_url = reverse('account_login') + "?next={}".format(url)
+        self.client.logout()
+        resp = self.client.get(self.url)
+        redirected_url = reverse('account_login') + "?next={}".format(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
     def test_cannot_access_unless_staff_user(self):
-        resp = self._get_response(self.user, self.ticket_booking)
+        self.client.force_login(self.user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
-        resp = self._get_response(self.staff_user, self.ticket_booking)
+        self.client.force_login(self.staff_user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 200)
 
 
     def test_shows_already_confirmed_msg_for_already_refunded(self):
         self.ticket_booking.paid = False
         self.ticket_booking.save()
-        resp = self._get_response(self.staff_user, self.ticket_booking)
+        resp = self.client.get(self.url)
         self.assertIn(
             'This ticket booking is unpaid or payment has already been '
             'refunded.',
@@ -1406,24 +1201,18 @@ class ConfirmTicketBookingRefundViewTests(TestPermissionMixin, TestCase):
 
     def test_confirm_refund_for_paid_booking(self):
         self.assertTrue(self.ticket_booking.paid)
-        self._post_response(
-            self.staff_user, self.ticket_booking, {'confirmed': True}
-        )
+        self.client.post(self.url, {'confirmed': True})
         self.ticket_booking.refresh_from_db()
         self.assertFalse(self.ticket_booking.paid)
 
     def test_email_sent_to_user(self):
         self.assertTrue(self.ticket_booking.paid)
-        self._post_response(
-            self.staff_user, self.ticket_booking, {'confirmed': True}
-        )
+        self.client.post(self.url, {'confirmed': True})
         self.assertEqual(len(mail.outbox), 1)
 
     def test_cancel_confirm_form(self):
         self.assertTrue(self.ticket_booking.paid)
-        self._post_response(
-            self.staff_user, self.ticket_booking, {'cancelled': True}
-        )
+        self.client.post(self.url, {'cancelled': True})
         self.ticket_booking.refresh_from_db()
         self.assertTrue(self.ticket_booking.paid)
         self.assertEqual(len(mail.outbox), 0)
@@ -1463,40 +1252,24 @@ class PrintTicketsTests(TestPermissionMixin, TestCase):
                     10 - i, tb.user.first_name
                 ),
             )
-
-    def _get_response(self, user):
-        url = reverse('studioadmin:print_tickets_list',)
-        session = _create_session()
-        request = self.factory.get(url)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        return print_tickets_list(request)
-
-    def _post_response(self, user, form_data):
-        url = reverse('studioadmin:print_tickets_list',)
-        session = _create_session()
-        request = self.factory.post(url, form_data)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        return print_tickets_list(request)
+        self.client.force_login(self.staff_user)
+        self.url = reverse('studioadmin:print_tickets_list')
 
     def test_cannot_access_without_login(self):
-        url = reverse('studioadmin:print_tickets_list',)
-        resp = self.client.get(url)
-        redirected_url = reverse('account_login') + "?next={}".format(url)
+        self.client.logout()
+        resp = self.client.get(self.url)
+        redirected_url = reverse('account_login') + "?next={}".format(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
     def test_cannot_access_unless_staff_user(self):
-        resp = self._get_response(self.user)
+        self.client.force_login(self.user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
-        resp = self._get_response(self.staff_user)
+        self.client.force_login(self.staff_user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 200)
 
     def test_selecting_event_shows_its_extra_info_fields(self):
@@ -1505,7 +1278,7 @@ class PrintTicketsTests(TestPermissionMixin, TestCase):
         "ticketed_event" and updates the order_field and show_fields with the
          event's extra_ticket_info if available
         """
-        resp = self._get_response(self.staff_user)
+        resp = self.client.get(self.url)
         self.assertEqual(
             resp.context_data['form'].fields['show_fields'].widget.choices,
             [
@@ -1516,8 +1289,9 @@ class PrintTicketsTests(TestPermissionMixin, TestCase):
             ]
         )
 
-        post_resp = self._post_response(
-            self.staff_user, {
+        resp = self.client.post(
+            self.url, 
+            {
                 'ticketed_event': self.ticketed_event.id,
                 'show_fields': ['show_booking_user', 'show_date_booked',
                 'show_booking_reference'],
@@ -1525,7 +1299,7 @@ class PrintTicketsTests(TestPermissionMixin, TestCase):
             }
         )
         self.assertEqual(
-            post_resp.context_data['form'].fields['show_fields'].widget.choices,
+            resp.context_data['form'].fields['show_fields'].widget.choices,
             [
                 ('show_booking_user', 'User who made the booking'),
                 ('show_date_booked', 'Date booked'),
@@ -1537,15 +1311,16 @@ class PrintTicketsTests(TestPermissionMixin, TestCase):
         )
 
     def test_side_nav_selection_in_context(self):
-        resp = self._get_response(self.staff_user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(
             resp.context_data['sidenav_selection'], 'print_tickets_list'
         )
 
     def test_print_event_ticket_list(self):
-        post_resp = self._post_response(
-            self.staff_user, {
+        post_resp = self.client.post(
+            self.url,
+            {
                 'ticketed_event': self.ticketed_event.id,
                 'show_fields': ['show_booking_user', 'show_date_booked',
                 'show_booking_reference'],
@@ -1570,8 +1345,9 @@ class PrintTicketsTests(TestPermissionMixin, TestCase):
                 tb.purchase_confirmed = False
                 tb.save()
 
-        post_resp = self._post_response(
-            self.staff_user, {
+        post_resp = self.client.post(
+            self.url,
+            {
                 'ticketed_event': self.ticketed_event.id,
                 'show_fields': ['show_booking_user', 'show_date_booked',
                 'show_booking_reference'],
@@ -1587,8 +1363,9 @@ class PrintTicketsTests(TestPermissionMixin, TestCase):
         )
 
     def test_print_event_ticket_list_with_form_errors(self):
-        post_resp = self._post_response(
-            self.staff_user, {
+        post_resp = self.client.post(
+            self.url,
+            {
                 'ticketed_event': self.ticketed_event.id,
                 'show_fields': ['user'],
                 'order_field': 'ticket_booking__user__first_name',
@@ -1621,8 +1398,9 @@ class PrintTicketsTests(TestPermissionMixin, TestCase):
                 Ticket, ticket_booking=tb,
             )
 
-        post_resp = self._post_response(
-            self.staff_user, {
+        post_resp = self.client.post(
+            self.url, 
+            {
                 'ticketed_event': self.ticketed_event.id,
                 'show_fields': ['show_booking_user', 'show_date_booked',
                 'show_booking_reference'],
@@ -1650,8 +1428,9 @@ class PrintTicketsTests(TestPermissionMixin, TestCase):
         )
 
     def test_print_event_ticket_list_shows_only_selected_fields(self):
-        post_resp = self._post_response(
-            self.staff_user, {
+        post_resp = self.client.post(
+            self.url, 
+            {
                 'ticketed_event': self.ticketed_event.id,
                 'show_fields': ['show_booking_reference'],
                 'order_field': 'ticket_booking__user__first_name',
@@ -1675,8 +1454,9 @@ class PrintTicketsTests(TestPermissionMixin, TestCase):
 
         self.assertNotIn("Extra provided info", post_resp.rendered_content)
 
-        post_resp = self._post_response(
-            self.staff_user, {
+        post_resp = self.client.post(
+            self.url, 
+            {
                 'ticketed_event': self.ticketed_event.id,
                 'show_fields': [
                     'show_extra_ticket_info', 'show_extra_ticket_info1'
@@ -1696,8 +1476,9 @@ class PrintTicketsTests(TestPermissionMixin, TestCase):
             )
 
     def test_order_tickets_by_date_booked(self):
-        post_resp = self._post_response(
-            self.staff_user, {
+        post_resp = self.client.post(
+            self.url,
+            {
                 'ticketed_event': self.ticketed_event.id,
                 'show_fields': ['show_booking_reference'],
                 'order_field': 'ticket_booking__date_booked',
@@ -1714,8 +1495,9 @@ class PrintTicketsTests(TestPermissionMixin, TestCase):
         )
 
     def test_order_tickets_by_booking_user_first_name(self):
-        post_resp = self._post_response(
-            self.staff_user, {
+        post_resp = self.client.post(
+            self.url,
+            {
                 'ticketed_event': self.ticketed_event.id,
                 'show_fields': ['show_booking_reference'],
                 'order_field': 'ticket_booking__user__first_name',
@@ -1732,8 +1514,9 @@ class PrintTicketsTests(TestPermissionMixin, TestCase):
         )
 
     def test_order_tickets_by_booking_reference(self):
-        post_resp = self._post_response(
-            self.staff_user, {
+        post_resp = self.client.post(
+            self.url,
+            {
                 'ticketed_event': self.ticketed_event.id,
                 'show_fields': ['show_booking_reference'],
                 'order_field': 'ticket_booking__booking_reference',
@@ -1750,8 +1533,9 @@ class PrintTicketsTests(TestPermissionMixin, TestCase):
         )
 
     def test_order_tickets_by_extra_info_fields(self):
-        post_resp = self._post_response(
-            self.staff_user, {
+        post_resp = self.client.post(
+            self.url,
+            {
                 'ticketed_event': self.ticketed_event.id,
                 'show_fields': ['show_booking_reference'],
                 'order_field': 'extra_ticket_info',
@@ -1765,8 +1549,9 @@ class PrintTicketsTests(TestPermissionMixin, TestCase):
             [tck.id for tck in ordered_tickets]
         )
 
-        post_resp = self._post_response(
-            self.staff_user, {
+        post_resp = self.client.post(
+            self.url,
+            {
                 'ticketed_event': self.ticketed_event.id,
                 'show_fields': ['show_booking_reference'],
                 'order_field': 'extra_ticket_info1',

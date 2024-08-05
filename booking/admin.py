@@ -14,7 +14,7 @@ from ckeditor.widgets import CKEditorWidget
 from booking.models import AllowedGroup, Banner, Event, Booking, Block, BlockType, \
     EventType, GiftVoucherType, WaitingListUser, TicketedEvent, TicketBooking, Ticket, \
     BlockVoucher, EventVoucher, UsedBlockVoucher, UsedEventVoucher, FilterCategory, \
-    TicketedEventWaitingListUser
+    TicketedEventWaitingListUser, Membership, UserMembership, MembershipItem
 from booking.forms import TicketBookingAdminForm, WaitingListUserAdminForm
 from booking.widgets import DurationSelectorWidget
 
@@ -191,6 +191,9 @@ class EventAdmin(admin.ModelAdmin):
         ('Cancellation Period', {
             'fields': ('cancellation_period',),
             'description': '<div class="help">%s</div>' % CANCELLATION_TEXT,
+        }),
+        ('Permissions', {
+            'fields': ('allowed_group_override', "members_only"),
         }),
     ]
 
@@ -566,6 +569,20 @@ class EventTypeAdmin(admin.ModelAdmin):
     model = FilterCategory
     list_display = ("event_type", "subtype", "hide")
     list_editable = ("hide",)
+
+
+class MembershipItemAdmin(admin.TabularInline):
+    model = MembershipItem
+
+
+@admin.register(Membership)
+class MembershipAdmin(admin.ModelAdmin):
+    inlines = (MembershipItemAdmin,)
+
+
+@admin.register(UserMembership)
+class UserMembershipAdmin(admin.ModelAdmin):
+    ...
 
 
 admin.site.site_header = "Watermelon Admin"

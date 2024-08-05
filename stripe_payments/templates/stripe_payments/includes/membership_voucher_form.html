@@ -1,0 +1,29 @@
+<form 
+    method="post" 
+    hx-post="{% url 'membership_voucher_validate' %}" 
+    hx-trigger="input from:#id_voucher_code delay:1s"
+    hx-target="#membership-voucher-form"
+    >
+    {% csrf_token %}
+    <div class="form-group">
+        <h3>Voucher/Promo code?</h3>
+        <label>Code:</label> <input type="text" id="id_voucher_code" name="voucher_code" value="{{ voucher_code }}" /> <br/>
+        {% if voucher_message %}<span class={% if voucher_valid %}"text-success font-italic small"{% else %}"errorlist"{% endif %}>{{ voucher_message }}</span>
+        {% else %}
+            <span class="studioadmin-help">Enter your code and wait a second for us to validate it</span>
+        {% endif %}
+        <input type="hidden" value={{ client_secret }} name="client_secret" />
+        <input type="hidden" value={{ confirm_type }} name="confirm_type" />
+        <input type="hidden" value={{ amount }} name="amount" />
+        <input type="hidden" value={{ backdate }} name="backdate" />
+        <input type="hidden" value={{ creating }} name="creating" />
+        <input type="hidden" value={{ membership.id }} name="membership_id" />
+    </div>
+
+</form>
+
+{% if htmx and has_changed %}
+    <div id="stripe-subscription-form" hx-swap-oob="true" >
+        {% include 'stripe_payments/includes/stripe_subscription_form.html' %}
+    </div>
+{% endif %}

@@ -9,7 +9,7 @@ from booking.views.booking_views import ajax_create_booking, \
     has_active_block, cancellation_period_past, update_shopping_basket_count, \
     toggle_waiting_list, PurchasedTutorialsListView
 from booking.views.block_views import BlockCreateView, BlockDeleteView, \
-    BlockListView, blocks_modal
+    BlockListView, blocks_modal, payment_plans
 from booking.views.checkout_views import stripe_checkout, check_total
 from booking.views.gift_vouchers import GiftVoucherPurchaseView, gift_voucher_details, gift_voucher_delete
 from booking.views.shopping_basket_views import shopping_basket, \
@@ -18,7 +18,9 @@ from booking.views.ticketed_views import TicketBookingListView, \
     TicketedEventListView, TicketCreateView, TicketBookingHistoryListView, \
     TicketBookingView, TicketBookingCancelView, ticket_purchase_expired, \
     toggle_ticketed_event_waiting_list
-
+from booking.views.membership_views import membership_create, stripe_subscription_checkout, \
+    subscription_create, membership_status, MembershipListView, membership_change, subscription_cancel, \
+    membership_voucher_validate, membership_voucher_apply_validate
 
 __all__ = [
     'ajax_create_booking', 'already_cancelled', 'already_paid',
@@ -37,7 +39,11 @@ __all__ = [
     'toggle_waiting_list',
     'blocks_modal',
     "OnlineTutorialListView", "PurchasedTutorialsListView", "OnlineTutorialDetailView",
-    "stripe_checkout", "check_total", "toggle_ticketed_event_waiting_list"
+    "stripe_checkout", "check_total", "toggle_ticketed_event_waiting_list",
+    "membership_create", "stripe_subscription_checkout", "subscription_create",
+    "membership_status", "MembershipListView", "membership_change", "subscription_cancel",
+    "membership_voucher_validate", "membership_voucher_apply_validate"
+    "payment_plans",
 ]
 
 

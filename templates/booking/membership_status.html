@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<div class="extra-top-margin container-fluid row">
+    <div class="col-sm-12">
+       <div class="card card-wm">
+            <div class="card-header">
+                <h2 class="card-title">Membership</h2>
+            </div>
+            <div class="card-body">
+                <a class="float-right" href={% url 'membership_list' %}>My memberships</a>
+                <dl>
+                    <dt>Membership Plan</dt>
+                    <dd>{{ user_membership.membership }}</dd>
+                    {% if user_membership.membership.description %}
+                    <dd>{{ user_membership.membership.description }}</dd>
+                    {% endif %}
+                    
+
+                    <dt>Plan includes (per calendar month):</dt>
+                    <dd>{% for item in user_membership.membership.membership_items.all %}
+                        {{ item.event_type.subtype }} x {{ item.quantity }}</br>
+                        {% endfor %}
+                    </dd>   
+
+                    <dt>Status</dt>
+                    <dd>{{ user_membership.hr_status }} {% if user_membership.subscription_status == "active" and user_membership.end_date %}(ends on {{ user_membership.end_date|date:"d M Y"}}){% endif %}</dd>
+                    <dd>
+                        {% if user_membership.subscription_status == "past_due" or user_membership.subscription_status == "incomplete" or user_membership.subscription_status == "setup_pending" %}
+                            <strong class="text-danger">
+                                {% if user_membership.subscription_status == "past_due" %}
+                                Your membership payment is over due; complete payment now to avoid your membership lapsing!
+                                {% else %}
+                                Your membership payment is incomplete; complete payment now to finish setting up your membership!
+                                {% endif %}
+                            </strong>
+                            <form method="post" action="{% url 'membership_checkout' %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="subscription_id" value="{{ user_membership.subscription_id }}"/>
+                                <div class="form-group">
+                                <input class="btn btn-sm btn-wm" type="submit" value="Complete payment" />
+                                </div>
+                            </form>
+                        {% endif %}
+                        
+                    </dd>
+
+                    {% if not user_membership.end_date %}
+                    <dt>Change your plan</dt>
+                    <dd>You can change this membership to a different plan; changes will take effect from the next calendar month.
+                        <br/><a class="btn btn-sm btn-wm" href="{% url 'membership_change' user_membership.subscription_id %}">Change plan</a>
+                    </dd>
+                    <dt>Cancel your plan</dt>
+                    <dd>
+                        You can cancel this membership from the end of the current month. No refunds will be given for
+                        unused memberships.
+                        <br/><a class="btn btn-sm btn-secondary" href="{% url 'subscription_cancel' user_membership.subscription_id %}">Cancel membership</a>
+                    </dd>
+                    {% endif %}
+                </dl>
+                <hr/>
+                <dl>
+                    <dt>Payment Methods</dt>
+                        <a href="{% url 'stripe_payments:stripe_portal' user_membership.user.userprofile.stripe_customer_id %}" class="btn btn-sm btn-wm">View/update payment methods</a><br/>
+                        <span class="studioadmin-help">Note: this will open a Stripe portal where you can update the payment method associated with your subscription. Payment information is not held on this site.</span>                        
+                    </dd>
+                </dl>
+                <dl>
+                    <dt>Apply a voucher code</dt>
+                    <p>If you have a voucher code, you can apply it to your next membership payment(s) here. Please note that only
+                        one code can be applied at a time; if you have already applied a code, it will be removed and replaced. You
+                        can see the code applied to your next invoice (if any) below.</p>
+                    <dd>
+                        <div id="membership-voucher-apply-form">
+                        {% include "booking/includes/membership_voucher_apply_form.html" %}
+                        </div>
+                    </dd>
+
+                    <dt>Next payment due</dt>
+                    <dd>
+                        <span class="studioadmin-help">
+                            Membership payments are taken in advance, on the 25th of each month, for the next month's membership. This
+                            is to allow any payment issues to be resolved before the start of the next membership period, and avoid
+                            membership lapses.</span><br/>
+                        <dd>
+                        {% if upcoming_invoice %}
+                            {{ upcoming_invoice.date|date:"d M Y" }} - £{{ upcoming_invoice.amount|floatformat:2 }}
+                            {% if upcoming_invoice.voucher_code %}<span class="badge badge-info">voucher code: {{ upcoming_invoice.voucher_code }}</span>{% endif %}
+                        {% else %}
+                            -
+                        {% endif %}</dd>
+                </dl>
+                <dl>
+                    <dt>Last payment received</dt>
+                    <dd>{% if last_invoice %}{{ last_invoice.date|date:"d M Y" }} - £{{ last_invoice.amount|floatformat:2 }}{% else %}-{% endif %}
+                        {% if last_invoice.voucher_code %}<span class="badge badge-info">voucher code: {{ last_invoice.voucher_code }}</span>{% endif %}</dd>
+                </dl>
+                <hr/>
+                <dl>
+                    <dt>Membership start date</dt>
+                    <dd>{{ user_membership.start_date|date:"d M Y" }}</dd>
+                </dl>
+                {% if user_membership.end_date %}
+                    <dl>
+                        <dt>Membership end date (exclusive)</dt>
+                        {{ user_membership.end_date|date:"d M Y" }}</dd>
+                    </dl>
+                {% endif %}
+                <dl>
+                    <dt>Bookings this month ({{this_month}})</dt>
+                    <dd>
+                        {% if user_membership.bookings_this_month %}
+                            {% for booking in user_membership.bookings_this_month %}
+                                {{ booking.event }}<br/<
+                            {% endfor %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </dd>
+                </dl>
+                <dl>
+                    <dt>Bookings next month ({{next_month}})</dt>
+                    <dd>
+                        {% if user_membership.bookings_next_month %}
+                            {% for booking in user_membership.bookings_next_month %}
+                                {{ booking.event }}<br/>
+                            {% endfor %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </dd>
+                </dl>
+            </div>
+       </div>
+
+</div>
+</div>
+
+{% endblock content %}

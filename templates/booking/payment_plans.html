@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<div class="extra-top-margin container-fluid row">
+    <div class="col-sm-12">
+       <div class="card card-wm">
+            <div class="card-header">
+                <h2 class="card-title">Payment Plans</h2>
+                </div>
+            <div class="card-body">
+                <p>
+                    You can book classes and pay on a pay-as-you-go basis. However, if you are a regular student, you'll
+                    find it easier and more cost-effective to set up a membership or to purchase blocks.
+                </p>
+
+                <h4>Memberships</h4>
+                <p>
+                    Memberships run continuously; you select the membership that best suits you, and set up a regular
+                    subscription payment that will be taken from your specified payment card or payment method each month. 
+                    Depending on the membership you choose, you will be able to book a certain
+                    number of classes per calendar month. If you want to book more than your allowance, you can purchase
+                    a block to top up for that month.
+
+                    Memberships give you some additional benefits, such as merchandise discounts and advance notice of 
+                    special classes and workshops.
+                </p>
+                <p><a href="{% url 'membership_create' %}">Set up a membership</a></p>
+                <h4>Blocks</h4>
+                <p>Purchasing a block effectively means purchasing a quantity of classes in advance. Blocks last for
+                   a specific length of time (usually one or two months).
+                </p>   
+                <p><a href="{% url 'booking:add_block' %}">Purchase a block</a></p>
+
+            </div>        
+       </div>   
+</div>
+</div>
+
+{% endblock content %}

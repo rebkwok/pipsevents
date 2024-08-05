@@ -1,5 +1,6 @@
 from datetime import datetime
 from datetime import timezone as dt_timezone
+from unittest.mock import Mock, patch
 
 from model_bakery import baker
 import pytest
@@ -7,16 +8,16 @@ import pytest
 from django.urls import reverse
 from django.db.models import Q
 from django.test import TestCase
-from django.contrib.auth.models import Group, User, Permission
-from django.contrib.messages.storage.fallback import FallbackStorage
+from django.contrib.auth.models import Group, User
+from django.core import mail
 from django.utils import timezone
 
 from accounts.models import DisclaimerContent, OnlineDisclaimer, PrintDisclaimer
-from common.tests.helpers import _create_session, assert_mailchimp_post_data
+from common.tests.helpers import assert_mailchimp_post_data
 from studioadmin.utils import int_str, chaffify
-from studioadmin.views import UserListView
 from studioadmin.views.users import NAME_FILTERS
 from studioadmin.tests.test_views.helpers import TestPermissionMixin
+from stripe_payments.tests.mock_connector import MockConnector
 
 
 class UserListViewTests(TestPermissionMixin, TestCase):
@@ -25,6 +26,13 @@ class UserListViewTests(TestPermissionMixin, TestCase):
         super().setUp()
         self.url = reverse('studioadmin:users')
         self.client.force_login(self.staff_user)
+        mockresponse = Mock()
+        mockresponse.status_code = 200
+        self.patcher = patch('requests.request', return_value = mockresponse)
+        self.mock_request = self.patcher.start()
+
+    def tearDown(self):
+        self.patcher.stop()
 
     def test_cannot_access_if_not_logged_in(self):
         """
@@ -152,6 +160,18 @@ class UserListViewTests(TestPermissionMixin, TestCase):
             reverse('studioadmin:toggle_permission', args=[not_reg_student.id, pp.allowed_group.id])
         )
         assert pp.has_permission_to_book(not_reg_student)
+
+    def test_change_permission_to_experienced_sends_email(self):
+        pc = baker.make_recipe("booking.event_type_PC", allowed_group__group__name="experienced")
+        student = baker.make_recipe('booking.user', email="test@example.com")
+
+        self.client.force_login(self.staff_user)
+        self.client.get(
+            reverse('studioadmin:toggle_permission', args=(student.id, pc.allowed_group.id))
+        )
+        assert pc.has_permission_to_book(student)
+        assert len(mail.outbox) == 1
+        assert "Account upgraded" in mail.outbox[0].subject
 
     def test_user_search(self):
 
@@ -514,3 +534,25 @@ def test_attendance_list_with_dates(client):
     assert resp.context["user_counts"] == {
         user1: {event.event_type.subtype: 1}
     }
+
+    # post start/end
+    url = reverse("studioadmin:users_status")
+    resp = client.post(url, data={"start_date": "01 Jun 2022", "end_date": "01 Oct 2022"})
+    assert resp.context["user_counts"] == {
+        user1: {event.event_type.subtype: 1}
+    }
+
+
+@pytest.mark.django_db
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+def test_user_memberships_list(client, configured_stripe_user, purchasable_membership):
+    user = User.objects.create_user(username="staff", password="test")
+    user.is_staff = True
+    user.save()
+    baker.make("booking.UserMembership", membership=purchasable_membership, user=configured_stripe_user, subscription_status="active")
+    url = reverse("studioadmin:user_memberships_list", args=(configured_stripe_user.id,))
+    client.login(username=user.username, password="test")
+    resp = client.get(url)
+    assert resp.context["sidenav_selection"] == "users"
+    assert resp.status_code == 200
+    assert resp.context["user"] == configured_stripe_user

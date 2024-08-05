@@ -13,5 +13,6 @@ def booking(request):
         # only show room hires if available to book
         "room_hires_exist": Event.objects.filter(event_type__event_type="RH", date__gt=timezone.now(), visible_on_site=True).exists(),
         # hide online tutorials
-        "online_tutorials_exist": False
+        "online_tutorials_exist": False,
+        "show_memberships": settings.SHOW_MEMBERSHIPS,
     }

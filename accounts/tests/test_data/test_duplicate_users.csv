@@ -1,5 +1,0 @@
-Name,Username1,Email 1,Used?,Verified?,Disclaimer?,FB Account?,username2,Email 2,Used?,Verified?,Disclaimer?,FB Account?,Username3,Email3,Used?,Verified?,Disclaimer?,FB Account?
-Test User1,one_email_used,user1A@test.com,N,N,N,Y,one_email_used1,user1B@test.com,Y,Y,N,N,,,,,,
-Test User2,two_emails_used,user2A@test.com,Y,Y,N,N,two_emails_used1,user2B@test.com,Y,Y,N,N,,,,,,
-TestUser3,three_emails,user3A@test.com,Y,Y,Y,N,three_emails1,user3B@test.com,Y,Y,N,N,three_emails2,user3C@test.com,N,Y,N,Y
-Test User4,two_emails_not_used,user4A@test.com,N,Y,N,N,two_emails_not_used1,user4B@test.com,N,Y,N,N,,,,,,

@@ -106,27 +106,6 @@ class BookingtagTests(TestSetupMixin, TestCase):
         self.assertNotIn(tb.booking_reference, content)
         self.assertIn(tb.booking_reference[0:5] + '...', content)
 
-    def test_format_block(self):
-        Group.objects.get_or_create(name='instructors')
-        user = baker.make_recipe('booking.user')
-        block = baker.make_recipe('booking.block_5', user=user,)
-        event = baker.make_recipe(
-            'booking.future_PC', event_type=block.block_type.event_type
-        )
-        baker.make_recipe(
-            'booking.booking', event=event, user=user, block=block
-        )
-        baker.make_recipe('booking.booking', block=block, _quantity=3)
-
-        self.client.login(username=self.user.username, password='test')
-
-        resp = self.client.get(reverse('studioadmin:event_register', args=[event.slug]))
-
-        self.assertIn(
-            '{} (1/5 left); exp 01 Mar 15'.format(event.event_type.subtype),
-            resp.rendered_content
-        )
-
     def test_disclaimer_medical_info(self):
         Group.objects.get_or_create(name='instructors')
         self.client.login(username=self.user.username, password='test')

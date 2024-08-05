@@ -125,19 +125,33 @@
             </li>
 
             <li class="dropdown">
+                <a href="#" class="dropdown-toggle adminmenu d-block d-md-none" data-toggle="dropdown" role="button" aria-expanded="false"><strong>Memberships </strong></a>
+                <ul class="dropdown-menu ml-4" role="menu">
+                  <li class="active-nav"><a href="{% url 'studioadmin:memberships_list' %}">{% if sidenav_selection == 'memberships' %}
+                        <span class="sidebar_active">Memberships</span>{% else %}Memberships{% endif %}</a></li>
+                  <li class="active-nav"><a href="{% url 'studioadmin:membership_add' %}">{% if sidenav_selection == 'membership_adds' %}
+                    <span class="sidebar_active">Add a new membership</span>{% else %}Add a new membership{% endif %}</a></li>
+                </ul>
+              </li>
+
+            <li class="dropdown">
                 <a href="#" class="dropdown-toggle adminmenu d-block d-md-none" data-toggle="dropdown" role="button" aria-expanded="false"><strong>Vouchers </strong></a>
                   <ul class="dropdown-menu ml-4" role="menu">
                     <li class="active-nav"><a href="{% url 'studioadmin:vouchers' %}">{% if sidenav_selection == 'vouchers' %}
                         <span class="sidebar_active">Class/event vouchers</span>{% else %}Class/event vouchers{% endif %}</a></li>
                     <li class="active-nav"><a href="{% url 'studioadmin:add_voucher' %}">{% if sidenav_selection == 'add_voucher' %}
-                        <span class="sidebar_active">Add new voucher</span>{% else %}Add new voucher{% endif %}</a></li>
+                        <span class="sidebar_active">Add voucher</span>{% else %}Add voucher{% endif %}</a></li>
                     <li class="active-nav"><a href="{% url 'studioadmin:block_vouchers' %}">{% if sidenav_selection == 'block_vouchers' %}
                         <span class="sidebar_active">Block vouchers</span>{% else %}Block vouchers{% endif %}</a></li>
                     <li class="active-nav"><a href="{% url 'studioadmin:add_block_voucher' %}">{% if sidenav_selection == 'add_block_voucher' %}
-                        <span class="sidebar_active">Add new block voucher</span>{% else %}Add new block voucher{% endif %}</a></li>
+                        <span class="sidebar_active">Add block voucher</span>{% else %}Add block voucher{% endif %}</a></li>
                     <li class="active-nav"><a href="{% url 'studioadmin:gift_vouchers' %}">{% if sidenav_selection == 'gift_vouchers' %}
                         <span class="sidebar_active">Gift vouchers</span>{% else %}Gift vouchers{% endif %}</a></li>
-
+                    <li class="active-nav"><a href="{% url 'studioadmin:membership_vouchers' %}">{% if sidenav_selection == 'membership_vouchers' %}
+                        <span class="sidebar_active">Membership vouchers</span>{% else %}Membership vouchers{% endif %}</a></li>
+                    <li class="active-nav"><a href="{% url 'studioadmin:add_membership_voucher' %}">{% if sidenav_selection == 'add_membership_voucher' %}
+                        <span class="sidebar_active">Add membership voucher</span>{% else %}Add membership voucher{% endif %}</a></li>
+                        
                 </ul>
             </li>
 
@@ -146,6 +160,9 @@
                   <ul class="dropdown-menu ml-4" role="menu">
                     <li class="active-nav"><a href="{% url 'studioadmin:invoices' %}">{% if sidenav_selection == 'invoices' %}
                         <span class="sidebar_active">Transactions</span>{% else %}Transactions{% endif %}</a>
+                    </li>
+                    <li class="active-nav"><a href="{% url 'studioadmin:subscription_invoices' %}">{% if sidenav_selection == 'subscription_invoices' %}
+                        <span class="sidebar_active">Memberships</span>{% else %}Memberships{% endif %}</a>
                     </li>
                     {% if payment_method == "paypal" %}
                     <li class="active-nav"><a href="{% url 'studioadmin:test_paypal_email' %}">{% if sidenav_selection == 'test_paypal' %}
@@ -442,6 +459,26 @@
                             <span class="sidebar_active">View and print ticket lists</span>{% else %}View and print ticket lists{% endif %}</a></li>
                     </span>
 
+                      <li class="sidebar-title">
+                        <a id="toggler" href="#" data-toggle="collapse" class="active" data-target="#memberships">
+                            <span class="fa memberships
+                                {% if sidenav_selection in 'memberships,membership_add' %}
+                                    fa-minus-square
+                                {% else %}
+                                    fa-plus-square
+                                {% endif %}">
+                            </span>
+                            Memberships
+                        </a>
+                    </li>
+                    <span id="memberships" class="collapse {% if sidenav_selection in 'memberships,membership_add'%} in show{% endif %}">
+                        <li><a href="{% url 'studioadmin:memberships_list' %}">{% if sidenav_selection == 'memberships' %}
+                        <span class="sidebar_active">Memberships</span>{% else %}Memberships{% endif %}</a></li>
+                        <li><a href="{% url 'studioadmin:membership_add' %}">{% if sidenav_selection == 'membership_add' %}
+                        <span class="sidebar_active">Add membership</span>{% else %}Add membership{% endif %}</a></li>
+                    </span>
+
+
                     <li class="sidebar-title">
                         <a id="toggler" href="#" data-toggle="collapse" class="active" data-target="#users">
                             <span class="fa users
@@ -482,17 +519,21 @@
                             Vouchers
                         </a>
                     </li>
-                    <span id="vouchers" class="collapse {% if sidenav_selection in 'vouchers,add_voucher,block_vouchers,add_block_voucher,gift_vouchers' %} in show{% endif %}">
+                    <span id="vouchers" class="collapse {% if sidenav_selection in 'vouchers,add_voucher,block_vouchers,add_block_voucher,gift_vouchers,add_membership_voucher,membership_vouchers' %} in show{% endif %}">
                          <li><a href="{% url 'studioadmin:vouchers' %}">{% if sidenav_selection == 'vouchers' %}
                         <span class="sidebar_active">Class/event vouchers</span>{% else %}Class/event vouchers{% endif %}</a></li>
                          <li><a href="{% url 'studioadmin:add_voucher' %}">{% if sidenav_selection == 'add_voucher' %}
-                        <span class="sidebar_active">Add new voucher</span>{% else %}Add new voucher{% endif %}</a></li>
+                        <span class="sidebar_active">Add class voucher</span>{% else %}Add class voucher{% endif %}</a></li>
                         <li><a href="{% url 'studioadmin:block_vouchers' %}">{% if sidenav_selection == 'block_vouchers' %}
                         <span class="sidebar_active">Block vouchers</span>{% else %}Block vouchers{% endif %}</a></li>
                          <li><a href="{% url 'studioadmin:add_block_voucher' %}">{% if sidenav_selection == 'add_block_voucher' %}
-                        <span class="sidebar_active">Add new block voucher</span>{% else %}Add new block voucher{% endif %}</a></li>
+                        <span class="sidebar_active">Add block voucher</span>{% else %}Add block voucher{% endif %}</a></li>
                         <li class="active-nav"><a href="{% url 'studioadmin:gift_vouchers' %}">{% if sidenav_selection == 'gift_vouchers' %}
                         <span class="sidebar_active">Gift vouchers</span>{% else %}Gift vouchers{% endif %}</a></li>
+                        <li><a href="{% url 'studioadmin:membership_vouchers' %}">{% if sidenav_selection == 'membership_vouchers' %}
+                            <span class="sidebar_active">Membership vouchers</span>{% else %}Membership vouchers{% endif %}</a></li>
+                             <li><a href="{% url 'studioadmin:add_membership_voucher' %}">{% if sidenav_selection == 'add_membership_voucher' %}
+                            <span class="sidebar_active">Add membership voucher</span>{% else %}Add membership voucher{% endif %}</a></li>
                     </span>
 
                     <li class="sidebar-title">
@@ -507,7 +548,7 @@
                             Payments
                         </a>
                     </li>
-                    <span id="payments" class="collapse {% if sidenav_selection == 'test_paypal'  or sidenav_selection == 'invoices' or sidenav_selection == 'connect_stripe' or sidenav_selection == 'test_stripe' %} in show{% endif %}">
+                    <span id="payments" class="collapse {% if sidenav_selection in 'test_paypal,invoices,membership_payments,connect_stripe,test_stripe' %} in show{% endif %}">
                         <li class="active-nav"><a href="{% url 'studioadmin:invoices' %}">{% if sidenav_selection == 'invoices' %}
                             <span class="sidebar_active">Transactions</span>{% else %}Transactions{% endif %}</a></li>
                         {% if payment_method == "paypal" %}
@@ -517,6 +558,9 @@
                                 </a>
                             </li>
                         {% endif %}
+                        <li class="active-nav"><a href="{% url 'studioadmin:subscription_invoices' %}">{% if sidenav_selection == 'membership_payments' %}
+                            <span class="sidebar_active">Memberships</span>{% else %}Memberships{% endif %}</a>
+                        </li>
                         <li class="active-nav">
                             <a href="{% url 'studioadmin:stripe_test' %}">{% if sidenav_selection == 'stripe_test' %}
                                 <span class="sidebar_active">Test Stripe</span>{% else %}Test Stripe{% endif %}

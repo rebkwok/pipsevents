@@ -1,0 +1,15 @@
+{% extends 'email_base.html' %}
+
+{% block messagecontent %}
+<div style="font-family: sans-serif;">
+
+<p>New classes have been added at <a href="{{ host }}{% url 'booking:events' %}">The Watermelon Studio</a>!</p>
+
+<ul>
+    {% for class in new_classes %}
+    <li>{{ class }}</li>
+    {% endfor %}
+<ul>
+
+</div>
+{% endblock %}

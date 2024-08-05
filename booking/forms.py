@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import calendar
+from datetime import datetime
 from django import forms
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -6,7 +8,7 @@ from django.forms.models import inlineformset_factory, BaseInlineFormSet
 
 from booking.models import (
     BlockVoucher, Event, Block, BlockType, FilterCategory, TicketBooking,
-    Ticket, GiftVoucherType
+    Ticket, GiftVoucherType, Membership, UserMembership
 )
 
 
@@ -227,10 +229,10 @@ TicketFormSet = inlineformset_factory(
 
 class UserModelChoiceField(forms.ModelChoiceField):
 
-    def label_from_instance(self, obj):
+    def label_from_instance(self, obj):  # pragma: no cover
         return "{} {} ({})".format(obj.first_name, obj.last_name, obj.username)
 
-    def to_python(self, value):
+    def to_python(self, value):  # pragma: no cover
         if value:
             return User.objects.get(id=value)
 
@@ -356,3 +358,69 @@ class GiftVoucherForm(forms.Form):
         if user_email != user_email1:
             self.add_error("user_email1", "Email addresses do not match")
 
+
+class ChooseMembershipForm(forms.Form):
+    membership = forms.ModelChoiceField(
+        queryset=Membership.objects.purchasable(),
+        widget=forms.RadioSelect,    
+    )
+    agree_to_terms = forms.BooleanField(
+        required=True, 
+        label=(
+            "I understand that by setting up a membership my payment details will be held by Stripe "
+            "and membership payments will be collected on a recurring monthly basis."
+        )
+    )
+    
+    def __init__(self, *args, **kwargs):
+        has_cancelled_current_membership = kwargs.pop("has_cancelled_current_membership")
+        super().__init__(*args, **kwargs)
+
+        # if current date is <25th, give option to start membership from this month as well as next monht
+        today = datetime.today()
+        if today.day < 25 and not has_cancelled_current_membership: 
+            # choice values refer to whether to backdate or not
+            choices = ((1, calendar.month_name[today.month]), (0, calendar.month_name[today.month + 1]))
+            initial = None
+            help_text = (
+                f"Note that if you choose to start your membership in the current month ({calendar.month_name[today.month]}), "
+                f"payment will be taken immediately, and you will have the entire {calendar.month_name[today.month]} membership allowance to "
+                f"use until the end of the month. Payment will be taken again on the 25th {calendar.month_name[today.month]} "
+                f"for {calendar.month_name[today.month + 1]}'s membership, and on the 25th of each month thereafter."
+            )
+        else:
+            # no option to backdate if it's 25th or later in the month, only show option for next month
+            choices = ((0, calendar.month_name[today.month + 1]),)
+            initial = 0
+            if today.day >= 25:
+                help_text = (
+                    f"Payment will be taken immediately for {calendar.month_name[today.month + 1]}'s membership. You will be able to use this membership "
+                    f"immediately to book for classes scheduled in {calendar.month_name[today.month + 1]}. Payment will be taken on the 25th of each "
+                    "month thereafter, for the following month's membership."
+                )
+            else:
+                help_text = (
+                    f"Payment will be taken on 25th {calendar.month_name[today.month]} for {calendar.month_name[today.month + 1]}'s membership. "
+                    "You will be able to use this membership immediately to book for classes scheduled in "
+                    f"{calendar.month_name[today.month + 1]}. Payment will be taken on the 25th of each "
+                    "month thereafter, for the following month's membership."
+                )
+
+        self.fields["backdate"] = forms.ChoiceField(
+            choices=choices, label="When do you want the membership to start?",
+            required=True,
+            widget=forms.RadioSelect,  
+            initial=initial,  
+            help_text=help_text
+        )
+
+
+class ChangeMembershipForm(forms.Form):
+
+    def __init__(self, *args, **kwargs):
+        current_membership_id = kwargs.pop("current_membership_id")
+        super().__init__(*args, **kwargs)
+        self.fields["membership"] = forms.ModelChoiceField(
+            queryset=Membership.objects.purchasable().exclude(id=current_membership_id),
+            widget=forms.RadioSelect,    
+        )

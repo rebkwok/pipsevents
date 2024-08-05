@@ -11,10 +11,10 @@ from studioadmin.views.email_users import choose_users_to_email, \
 from studioadmin.views.events import cancel_event_view, event_admin_list, \
     EventAdminCreateView, EventAdminUpdateView, open_all_events, clone_event
 from studioadmin.views.misc import ConfirmPaymentView, ConfirmRefundView, \
-    test_paypal_view, reactivated_block_status, InvoiceListView, stripe_test
+    test_paypal_view, reactivated_block_status, InvoiceListView, stripe_test, SubscriptionInvoiceListView
 from studioadmin.views.register import EventRegisterListView, \
     register_print_day, register_view, booking_register_add_view, \
-    ajax_toggle_attended, ajax_assign_block, ajax_toggle_paid
+    ajax_toggle_attended
 from studioadmin.views.ticketed_events import cancel_ticketed_event_view, \
     ConfirmTicketBookingRefundView, print_tickets_list, \
     TicketedEventAdminCreateView, TicketedEventAdminListView, \
@@ -24,16 +24,19 @@ from studioadmin.views.timetable import timetable_admin_list, \
     upload_timetable_view, clone_timetable_session
 from studioadmin.views.users import MailingListView, \
     toggle_subscribed, unsubscribe, \
-    user_bookings_view_old, user_modal_bookings_view, user_blocks_view, UserListView, \
-    BookingEditPastView, BookingEditView, BookingAddView, users_status, toggle_permission
+    user_modal_bookings_view, user_blocks_view, UserListView, \
+    BookingEditPastView, BookingEditView, BookingAddView, users_status, toggle_permission, user_memberships_list
 from studioadmin.views.vouchers import BlockVoucherCreateView, \
     BlockVoucherListView, BlockVoucherUpdateView, VoucherCreateView, \
     VoucherListView, VoucherUpdateView, BlockVoucherDetailView, \
-    EventVoucherDetailView, GiftVoucherListView
+    EventVoucherDetailView, GiftVoucherListView, MembershipVoucherListView, \
+    MembershipVoucherCreateView, membership_voucher_toggle_active, membership_voucher_detail
 from studioadmin.views.waiting_list import event_waiting_list_view, email_waiting_list, \
     ticketed_event_waiting_list_view, email_ticketed_event_waiting_list
 from studioadmin.views.notifications import all_users_banner_view, new_users_banner_view, popup_notification_view
 from studioadmin.views.setup_views import AllowedGroupListView, EventTypeListView
+from studioadmin.views.memberships import memberships_list, membership_edit, membership_add, membership_delete, \
+    membership_deactivate, membership_users, email_members, email_all_members
 
 
 __all__ = [
@@ -58,16 +61,21 @@ __all__ = [
     'timetable_admin_list', 'TimetableSessionCreateView',
     'TimetableSessionUpdateView', 'toggle_subscribed', 'unsubscribe', 'toggle_permission',
     'upload_timetable_view', "clone_timetable_session",
-    'user_bookings_view_old', 'user_blocks_view', 'user_disclaimer',
+    'user_blocks_view', 'user_disclaimer',
     'UserListView', 'user_modal_bookings_view', 'VoucherCreateView',
     'VoucherListView', 'VoucherUpdateView',
     'BookingEditPastView', 'BookingAddView', 'BookingEditView',
     'export_mailing_list', 'booking_register_add_view',
-    'ajax_assign_block', 'ajax_toggle_paid', 'ajax_toggle_attended', 'open_all_events',
+    'ajax_toggle_attended', 'open_all_events',
     'clone_event', 'users_status', 'email_waiting_list',
     'all_users_banner_view', 'new_users_banner_view', 'popup_notification_view',
     "InvoiceListView", "stripe_test",
     "ticketed_event_waiting_list_view", "email_ticketed_event_waiting_list",
-    "AllowedGroupListView", "EventTypeListView"
+    "AllowedGroupListView", "EventTypeListView",
+    "memberships_list", "membership_edit", "membership_add", "membership_delete",
+    "SubscriptionInvoiceListView", "membership_deactivate",
+    "reactivated_block_status", "MembershipVoucherListView",
+    "MembershipVoucherCreateView", "membership_voucher_toggle_active", "membership_voucher_detail",
+    "membership_users", "email_members", "email_all_members", "user_memberships_list",
 ]
 

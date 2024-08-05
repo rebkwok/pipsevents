@@ -1,3 +1,4 @@
+from unittest.mock import patch
 from model_bakery import baker
 
 from django.contrib.auth.models import User
@@ -101,6 +102,54 @@ class TestGiftVoucherPurchseView(GiftVoucherTestMixin, TestCase):
         assert voucher.message == "Quack"
 
         assert "paypal_form" in resp.context_data
+
+    def test_purchase_gift_voucher_invalid_email(self):
+        data = {
+            'voucher_type': self.block_voucher_type1.id,
+            'user_email': "test@test.com",
+            'user_email1': "test1@test.com",
+            'recipient_name': 'Donald Duck',
+            'message': 'Quack'
+        }
+        resp = self.client.post(self.url, data)
+        assert resp.status_code == 200
+        assert resp.context_data["form"].errors == {
+            "user_email1": ["Email addresses do not match"]
+        }
+
+    def test_purchase_gift_voucher_block_duplicate_code(self):
+        
+        baker.make(BlockVoucher, code="1234")
+        data = {
+            'voucher_type': self.block_voucher_type1.id,
+            'user_email': "test@test.com",
+            'user_email1': "test@test.com",
+            'recipient_name': 'Donald Duck',
+            'message': 'Quack'
+        }
+        with patch("booking.views.gift_vouchers.ShortUUID.random") as mock_shortuuid_random:
+            mock_shortuuid_random.side_effect = ["1234", "2345"]
+            self.client.post(self.url, data)
+        
+        voucher = BlockVoucher.objects.latest("id")
+        assert voucher.code == "2345"
+
+    def test_purchase_gift_voucher_event_duplicate_code(self):
+        
+        baker.make(EventVoucher, code="1234")
+        data = {
+            'voucher_type': self.event_voucher_type1.id,
+            'user_email': "test@test.com",
+            'user_email1': "test@test.com",
+            'recipient_name': 'Donald Duck',
+            'message': 'Quack'
+        }
+        with patch("booking.views.gift_vouchers.ShortUUID.random") as mock_shortuuid_random:
+            mock_shortuuid_random.side_effect = ["1234", "2345"]
+            self.client.post(self.url, data)
+        
+        voucher = EventVoucher.objects.latest("id")
+        assert voucher.code == "2345"
 
 
 class TestGiftVoucherUpdateView(GiftVoucherTestMixin, TestCase):

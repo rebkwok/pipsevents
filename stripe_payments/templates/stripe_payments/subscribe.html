@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load static %}
+{% load accounttags bookingtags %}
+
+{% block extra_head %}
+  <title>Membership Subscription</title>
+    <link rel="stylesheet" href="{% static 'stripe_payments/css/stripe.css' %}" />
+  <script src="https://js.stripe.com/v3/"></script>
+{% endblock %}
+
+{% block content %}
+    {% if creating %}
+      <h1 class="mt-2">Setting up Membership: {{membership.name}}</h1>
+    {% else %}
+      <h1 class="mt-2">Updating Membership: {{membership.name}}</h1>
+    {% endif %}
+    <hr>
+
+    <div>
+      <div>
+
+      {% if preprocessing_error %}
+          <h3 class="mt-1">There was a problem with your checkout</h3>
+          {% if already_paid %}
+              <p>This subscription has already been paid.</p>
+          {% endif %}
+          <p>Technical support has been notified and someone will be in contact shortly.</p>
+
+      {% else %}
+
+      <div id="membership-voucher-form">
+        {% include 'stripe_payments/includes/membership_voucher_form.html' %}
+      </div>
+
+      <div id="stripe-subscription-form">
+        {% include 'stripe_payments/includes/stripe_subscription_form.html' %}
+      </div>
+
+      <div>
+          {% include "stripe_payments/includes/stripe_info.html" %}
+      </div>
+
+      {% endif %}
+    </div>
+</div>
+{% endblock content %}
+
+
+{% block extra_js %}
+    <script>
+      var CSRF_TOKEN = '{{ csrf_token }}';
+    </script>
+    <script type='text/javascript' src="{% static 'stripe_payments/js/stripe-subscribe-v1.2.js' %}"></script>
+{% endblock %}

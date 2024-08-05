@@ -38,7 +38,6 @@ from studioadmin.views import (BookingEditView,
                                unsubscribe,
                                upload_timetable_view,
                                choose_users_to_email,
-                               user_bookings_view_old,
                                user_modal_bookings_view,
                                user_blocks_view,
                                email_users_view,
@@ -59,8 +58,6 @@ from studioadmin.views import (BookingEditView,
                                BookingAddView,
                                booking_register_add_view,
                                ajax_toggle_attended,
-                               ajax_toggle_paid,
-                               ajax_assign_block,
                                GiftVoucherListView,
                                open_all_events,
                                clone_event,
@@ -77,6 +74,21 @@ from studioadmin.views import (BookingEditView,
                                toggle_permission,
                                AllowedGroupListView,
                                EventTypeListView,
+                               # memberships
+                               memberships_list,
+                               membership_edit,
+                               membership_add,
+                               membership_delete,
+                               membership_users,
+                               SubscriptionInvoiceListView,
+                               membership_deactivate,
+                               MembershipVoucherListView,
+                               MembershipVoucherCreateView,
+                               membership_voucher_toggle_active,
+                               membership_voucher_detail,
+                               email_members,
+                               email_all_members,
+                               user_memberships_list
                                )
 
 app_name = 'studioadmin'
@@ -163,9 +175,6 @@ urlpatterns = [
     path('users/<int:user_id>/mailing-list/unsubscribe/',
         unsubscribe, name='unsubscribe'
     ),
-    path('users/<int:user_id>/bookings/old/',
-        user_bookings_view_old, name='user_bookings_list'
-    ),
     path(
         'users/<int:user_id>/bookings/',
         user_modal_bookings_view, {'past': False},
@@ -178,6 +187,9 @@ urlpatterns = [
     ),
     path('users/<int:user_id>/blocks/',
         user_blocks_view, name='user_blocks_list'
+    ),
+    path('users/<int:user_id>/memberships/',
+        user_memberships_list, name='user_memberships_list'
     ),
     path(
         'users/<int:user_id>/toggle_permission/<int:allowed_group_id>/',
@@ -269,7 +281,22 @@ urlpatterns = [
         'block-vouchers/<int:pk>/edit/', BlockVoucherUpdateView.as_view(),
         name='edit_block_voucher'
     ),
-        path(
+    path(
+        'membership-vouchers/', MembershipVoucherListView.as_view(), name='membership_vouchers'
+    ),
+    path(
+        'membership-vouchers/new/', MembershipVoucherCreateView.as_view(),
+        name='add_membership_voucher'
+    ),
+    path(
+        'membership-vouchers/<int:pk>/toggle/', membership_voucher_toggle_active,
+        name='membership_voucher_toggle_active'
+    ),
+    path(
+        'membership-vouchers/<str:code>/detail/', membership_voucher_detail,
+        name='membership_voucher_detail'
+    ),
+    path(
         'gift-vouchers/', GiftVoucherListView.as_view(), name='gift_vouchers'
     ),
     path('test-paypal-email/', test_paypal_view, name='test_paypal_email'),
@@ -300,14 +327,6 @@ urlpatterns = [
     path(
         'register/<int:booking_id>/toggle_attended/', ajax_toggle_attended,
         name='toggle_attended'
-    ),
-    path(
-        'register/<int:booking_id>/toggle_paid/', ajax_toggle_paid,
-        name='toggle_paid'
-    ),
-    path(
-        'register/<int:booking_id>/assign_block/', ajax_assign_block,
-        name='assign_block'
     ),
     path(
         'event-disclaimers/', NonRegisteredDisclaimersListView.as_view(),
@@ -346,9 +365,20 @@ urlpatterns = [
         name='popup_notification'
     ),
     path("payment/transactions/", InvoiceListView.as_view(), name="invoices"),
+    path("payment/membership-payments/", SubscriptionInvoiceListView.as_view(), name="subscription_invoices"),
     path("payment/stripe-test/", stripe_test, name="stripe_test"),
     path("setup/event-types/", EventTypeListView.as_view(), name="setup_event_types"),
     path("setup/allowed_groups/", AllowedGroupListView.as_view(), name="setup_allowed_groups"),
+    # memberships
+    path("memberships/<int:pk>/delete", membership_delete, name="membership_delete"),
+    path("memberships/<int:pk>/deactivate", membership_deactivate, name="membership_deactivate"),
+    path("memberships/<int:pk>/users", membership_users, name="membership_users"),
+    path('memberships/<int:pk>/email/', email_members, name='email_members'),
+    path("memberships/<int:pk>/", membership_edit, name="membership_edit"),
+    path('memberships/email-members/', email_all_members, name='email_all_members'),
+    path("memberships/new/", membership_add, name="membership_add"),
+    path("memberships/", memberships_list, name="memberships_list"),
+    
     path('jsi18n/', JavaScriptCatalog.as_view(), name='jsi18n'),
     path('', RedirectView.as_view(url='/studioadmin/class-registers/', permanent=True)),
     ]

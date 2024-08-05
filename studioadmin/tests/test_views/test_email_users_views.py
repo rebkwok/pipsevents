@@ -1,28 +1,28 @@
 from unittest.mock import patch
 from model_bakery import baker
+import pytest
 
 from django.urls import reverse
 from django.core import mail
 from django.test import TestCase
 from django.contrib.auth.models import Group, User
-from django.contrib.messages.storage.fallback import FallbackStorage
 
 from activitylog.models import ActivityLog
-from booking.models import Booking
+from booking.models import Booking, UserMembership
 from common.tests.helpers import _create_session
-from studioadmin.views import (
-    email_users_view,
-)
 from studioadmin.views.helpers import url_with_querystring
-
 from studioadmin.tests.test_views.helpers import TestPermissionMixin
+from stripe_payments.tests.mock_connector import MockConnector
+
+
+pytestmark = pytest.mark.django_db
 
 
 class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        super(ChooseUsersToEmailTests, cls).setUpTestData()
+        super().setUpTestData()
         cls.url = reverse('studioadmin:choose_email_users')
 
     def formset_data(self, extra_data={}):
@@ -452,46 +452,44 @@ class ChooseUsersToEmailTests(TestPermissionMixin, TestCase):
 
 class EmailUsersTests(TestPermissionMixin, TestCase):
 
+    def setUp(self):
+        self.client.force_login(self.staff_user)
+
     def _get_response(
-        self, user, users_to_email, event_ids=[], lesson_ids=[]
+        self, users_to_email, event_ids=[], lesson_ids=[]
     ):
         url = url_with_querystring(
             reverse('studioadmin:email_users_view'),
             events=event_ids, lessons=lesson_ids
         )
         session = _create_session()
-        request = self.factory.get(url)
-        request.session = session
-        request.session['users_to_email'] = users_to_email
-        request.session['events'] = event_ids
-        request.session['lessons'] = lesson_ids
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        return email_users_view(request)
+        session = self.client.session
+        session['users_to_email'] = users_to_email
+        session['events'] = event_ids
+        session['lessons'] = lesson_ids
+        session.save()
+        return self.client.get(url)
 
     def _post_response(
-        self, user, users_to_email, form_data, event_ids=[], lesson_ids=[]
+        self, users_to_email, form_data, event_ids=[], lesson_ids=[]
     ):
         url = url_with_querystring(
             reverse('studioadmin:email_users_view'),
             events=event_ids, lessons=lesson_ids
         )
         session = _create_session()
-        request = self.factory.post(url, form_data)
-        request.session = session
-        request.session['users_to_email'] = users_to_email
-        request.session['events'] = event_ids
-        request.session['lessons'] = lesson_ids
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        return email_users_view(request)
+        session = self.client.session
+        session['users_to_email'] = users_to_email
+        session['events'] = event_ids
+        session['lessons'] = lesson_ids
+        session.save()
+        return self.client.post(url, form_data)
 
     def test_cannot_access_if_not_logged_in(self):
         """
         test that the page redirects if user is not logged in
         """
+        self.client.logout()
         url = reverse('studioadmin:email_users_view')
         resp = self.client.get(url)
         redirected_url = reverse('account_login') + "?next={}".format(url)
@@ -502,7 +500,9 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         """
         test that the page redirects if user is not a staff user
         """
-        resp = self._get_response(self.user, [self.user.id])
+        self.client.logout()
+        self.client.force_login(self.user)
+        resp = self._get_response([self.user.id])
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
@@ -511,7 +511,10 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         test that the page redirects if user is in the instructor group but is
         not a staff user
         """
-        resp = self._get_response(self.instructor_user, [self.user.id])
+        self.client.logout()
+        self.client.force_login(self.instructor_user)
+        url = reverse('studioadmin:email_users_view')
+        resp = self.client.get(url)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
@@ -519,14 +522,14 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         """
         test that the page can be accessed by a staff user
         """
-        resp = self._get_response(self.staff_user, [self.user.id])
+        resp = self._get_response([self.user.id])
         self.assertEqual(resp.status_code, 200)
 
     def test_users_and_events_in_context(self):
         event = baker.make_recipe('booking.future_EV', name='Test Event')
         lesson = baker.make_recipe('booking.future_PC', name='Test Class')
         resp = self._get_response(
-            self.staff_user, [self.user.id],
+            [self.user.id],
             event_ids=[event.id], lesson_ids=[lesson.id]
         )
         self.assertEqual([ev for ev in resp.context_data['events']], [event])
@@ -541,7 +544,7 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         event = baker.make_recipe('booking.future_EV', name='Workshop')
         lesson = baker.make_recipe('booking.future_PC', name='Class')
         resp = self._get_response(
-            self.staff_user, [self.user.id],
+            [self.user.id],
             event_ids=[event.id], lesson_ids=[lesson.id]
         )
         form = resp.context_data['form']
@@ -557,7 +560,7 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         event = baker.make_recipe('booking.future_EV')
         user = baker.make_recipe('booking.user', email='other@test.com')
         self._post_response(
-            self.staff_user, [self.user.id, user.id],
+            [self.user.id, user.id],
             event_ids=[event.id], lesson_ids=[],
             form_data={
                 'subject': 'Test email',
@@ -569,7 +572,7 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         self.assertIn('Test message', email.body)
         self.assertEqual(email.to, [])
         self.assertEqual(email.reply_to, ['test@test.com'])
-        self.assertEqual(sorted(email.bcc), [self.user.email, user.email])
+        self.assertEqual(set(email.bcc), {self.user.email, user.email})
         self.assertEqual(
             email.subject, 'Test email'
         )
@@ -579,7 +582,7 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         mock_send.side_effect = Exception('Error sending email')
         event = baker.make_recipe('booking.future_EV')
         self._post_response(
-            self.staff_user, [self.user.id],
+            [self.user.id],
             event_ids=[event.id], lesson_ids=[],
             form_data={
                 'subject': 'Test email',
@@ -599,7 +602,7 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
 
     def test_cc_email_sent(self):
         self._post_response(
-            self.staff_user, [self.user.id],
+            [self.user.id],
             event_ids=[], lesson_ids=[],
             form_data={
                 'subject': 'Test email',
@@ -612,7 +615,7 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
 
     def test_reply_to_set_to_from_address(self):
         self._post_response(
-            self.staff_user, [self.user.id],
+            [self.user.id],
             event_ids=[], lesson_ids=[],
             form_data={
                 'subject': 'Test email',
@@ -625,7 +628,7 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
 
     def test_with_form_errors(self):
         resp = self._post_response(
-            self.staff_user, [self.user.id],
+            [self.user.id],
             event_ids=[], lesson_ids=[],
             form_data={
                 'subject': 'Test email',
@@ -698,7 +701,7 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
         self.assertEqual(len(mail.outbox[1].bcc), 51)
 
         self._post_response(
-            self.staff_user, [user.id for user in User.objects.all()],
+            [user.id for user in User.objects.all()],
             event_ids=[], lesson_ids=[],
             form_data=form_data
         )
@@ -738,7 +741,7 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
 
         # bulk email
         self._post_response(
-            self.staff_user, [self.user.id], event_ids=[], lesson_ids=[],
+            [self.user.id], event_ids=[], lesson_ids=[],
             form_data=form_data
         )
         self.assertEqual(len(mail.outbox), 2)  # mailing list email is first
@@ -798,3 +801,42 @@ class EmailUsersTests(TestPermissionMixin, TestCase):
             'Test email'.format(
             )
         )
+
+
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+def test_email_users_with_membership(client, seller, staff_user, purchasable_membership):
+    user_memberships = baker.make(UserMembership, membership=purchasable_membership, subscription_status="active", _quantity=3)
+    client.force_login(staff_user)
+
+    session = client.session
+    session['users_to_email'] = [um.user.id for um in user_memberships]
+    session.save()
+    
+    resp = client.get(
+        reverse('studioadmin:email_users_view') + f"?membership={purchasable_membership.id}"
+    )
+    form = resp.context_data["form"]
+    assert form.initial == {"subject": f"Membership: {purchasable_membership.name}"}
+
+
+def test_email_users_with_bad_membership(client, staff_user):
+    session = client.session
+    session['users_to_email'] = []
+    session.save()
+    client.force_login(staff_user)
+    resp = client.get(reverse('studioadmin:email_users_view')  + f"?membership=unk")
+    form = resp.context_data["form"]
+    assert form.initial == {"subject": ""}
+    resp = client.get(reverse('studioadmin:email_users_view')  + f"?membership=99999")
+    form = resp.context_data["form"]
+    assert form.initial == {"subject": ""}
+
+
+def test_email_users_with_no_subject_instance(client, staff_user):
+    session = client.session
+    session['users_to_email'] = []
+    session.save()
+    client.force_login(staff_user)
+    resp = client.get(reverse('studioadmin:email_users_view'))
+    form = resp.context_data["form"]
+    assert form.initial == {"subject": ""}

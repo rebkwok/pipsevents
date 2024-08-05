@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<div class="extra-top-margin container-fluid row">
+    <div class="col-sm-12">
+       <div class="card card-wm">
+            <div class="card-header">
+                <h2 class="card-title">Change Membership</h2>
+                </div>
+            <div class="card-body">
+
+                {% if not can_change %}
+                    <p>You cannot change this membership. View <a href="{% url 'membership_list' %}">your memberships</a> to update or cancel.</p>
+                {% else %}
+                    <p>
+                        Note: changes to memberships take effect from the NEXT calendar month. Your current membership will be 
+                        cancelled from the end of this month, and a new membership will start for your updated membership plan from
+                        next month.
+                    </p>
+
+                    <p>Select a new membership:</p>
+                    <p>View <a href="{% url 'membership_create' %}">details of memberships</a> here.</p>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label>Choose a membership:</label> {{ form.membership }}
+                        </div>
+                        <input class="btn btn-wm" type="submit" value="Change membership" />
+                        </div>
+                    </form>
+                </div>
+            {% endif %}
+       </div>
+
+</div>
+</div>
+
+{% endblock content %}

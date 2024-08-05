@@ -1,0 +1,14 @@
+{% include "account/email/do_not_reply.txt" %}
+
+
+Your membership is overdue
+--------------------------
+Your membership: {{ user_membership.membership.name }}
+
+We have been unable to take payment for your membership - this may be because the payment
+method you originally used has expired. Please visit your membership page to complete
+the payment as soon as possible. If payment is not made by the 28th of the month, your
+membership will be automatically cancelled, and any bookings made for next month will be
+marked as unpaid.
+{{ host }}/membership/{{ user_membership.subscription_id }}/
+

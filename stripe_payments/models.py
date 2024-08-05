@@ -1,4 +1,5 @@
-from importlib.metadata import metadata
+from datetime import datetime
+from datetime import timezone as dt_timezone
 from os import environ
 
 from django.contrib.auth.models import User
@@ -199,35 +200,38 @@ class StripePaymentIntent(models.Model):
         return f"{self.payment_intent_id} - invoice {self.invoice.invoice_id} - {self.invoice.username}"
 
 
-# class StripeRefund(models.Model):
-#     payment_intent = models.ForeignKey(
-#         StripePaymentIntent, on_delete=models.SET_NULL, null=True, blank=True,
-#         related_name="refunds"
-#     )
-#     refund_id = models.CharField(max_length=255)
-#     amount = models.PositiveIntegerField()
-#     status = models.CharField(max_length=255)
-#     invoice = models.ForeignKey(
-#         Invoice, on_delete=models.SET_NULL, null=True, blank=True,
-#         related_name="refunds"
-#     )
-#     seller = models.ForeignKey(Seller, on_delete=models.SET_NULL, null=True, blank=True)
-#     metadata = models.JSONField()
-#     currency = models.CharField(max_length=3)
-#     reason = models.CharField(max_length=255)
-#     booking_id = models.PositiveIntegerField()
+class StripeSubscriptionInvoice(models.Model):
+    """A model to store stripe info for a Subscription invoice"""
+    subscription_id = models.CharField()
+    invoice_id = models.CharField()
+    promo_code_id = models.CharField(null=True)
+    status = models.CharField()
+    total = models.DecimalField(max_digits=8, decimal_places=2)
+    invoice_date = models.DateTimeField()
 
-#     @classmethod
-#     def create_from_refund_obj(cls, refund, payment_intent_model_instance, booking_id):
-#         return cls.objects.create(
-#             refund_id=refund.id,
-#             payment_intent=payment_intent_model_instance,
-#             invoice=payment_intent_model_instance.invoice,
-#             amount=refund.amount,
-#             status=refund.status,
-#             seller=payment_intent_model_instance.seller,
-#             metadata=refund.metadata,
-#             currency=refund.currency,
-#             reason=refund.reason,
-#             booking_id=booking_id,
-#         )
+    class Meta:
+        ordering = ("-invoice_date",)
+
+    @classmethod
+    def from_stripe_event(cls, event_object):
+        obj, _ = cls.objects.update_or_create(
+            invoice_id=event_object.id,
+            promo_code_id=event_object.discount.promotion_code if event_object.discount else None,
+            defaults=dict(
+                subscription_id=event_object.subscription,
+                status=event_object.status,
+                total=event_object.total / 100,
+                invoice_date = datetime.fromtimestamp(event_object.effective_at).replace(tzinfo=dt_timezone.utc)            
+            )
+        )
+        return obj
+
+    def subscription(self):
+        from booking.models import UserMembership
+        return UserMembership.objects.filter(subscription_id=self.subscription_id).first()
+
+    def voucher_code(self):
+        from booking.models import StripeSubscriptionVoucher
+        if self.promo_code_id:
+            return StripeSubscriptionVoucher.objects.filter(promo_code_id=self.promo_code_id).first().code
+        return ""

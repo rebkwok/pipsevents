@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load static %}
+{% load bookingtags %}
+
+{% block content %}
+
+
+<div class="row">
+
+
+        <h1>My Memberships</h1>
+        <div class="col-12">
+            <div class="btn-group btn-group-sm float-right">
+                <a class="btn btn-info-link" href="{% url 'booking:bookings' %}">My bookings</a>
+                <a class="btn btn-info-link" href="{% url 'booking:block_list' %}">My blocks</a>
+                <a class="btn btn-info-link" href="{% url 'booking:lessons' %}">All Classes</a> 
+            </div>
+            <div><a href="{% url 'membership_create' %}">Setup new membership</a></div>
+        </div>
+
+    <div class="col-12">
+        {% if memberships %}
+            <div class="card card-wm">
+                <div class="table-responsive">
+                    <table class="table">
+                        <tr class="success">
+                            <th>Membership</th>
+                            <th>Status</th>
+                            <th>Start Date</th>
+                            <th>End Date (exclusive)</th>
+                        </tr>
+                        {% for user_membership in memberships %}
+                            <tr {% if user_membership.subscription_status in "incomplete,past_due,unpaid,setup_pending" %}class="not_paid_block"{% elif user_membership.is_active %}class="active_block"{% else %}class="expired_block"{% endif %}>
+                                <td>{{ user_membership.membership }}<br/><a class="studioadmin-help" href="{% url 'membership_status' user_membership.subscription_id %}">View details and update</a></td>
+                                <td>{{ user_membership.hr_status }}{% if user_membership.subscription_status == "active" and user_membership.end_date %} (ends on {{ user_membership.end_date|date:"d M Y"}}){% endif %}</td>
+                                <td>{{ user_membership.start_date|date:"d M Y"}}</td>
+                                <td>{% if user_membership.end_date %}{{ user_membership.end_date|date:"d M Y"}}{% endif %}</td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                    {% include 'booking/includes/pagination.html' %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+
+{% endblock content %}

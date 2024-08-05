@@ -64,6 +64,9 @@
                     <a class="btn btn-info-link" href="{% url 'booking:bookings' %}">My bookings</a>
                     <a class="btn btn-info-link" href="{% url 'booking:purchased_tutorials' %}">My tutorials</a>
                     <a class="btn btn-info-link" href="{% url 'booking:block_list' %}">My blocks</a>
+                    {% if show_memberships %}
+                    <a class="btn btn-info-link" href="{% url 'membership_list' %}">My memberships</a>
+                    {% endif %}
                 </div>
                 {% endif %}
             </div>

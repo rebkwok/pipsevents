@@ -5,22 +5,25 @@ from model_bakery import baker
 
 from django.urls import reverse
 from django.test import TestCase
-from django.contrib.messages.storage.fallback import FallbackStorage
 
 from activitylog.models import ActivityLog
-from common.tests.helpers import _create_session
-from studioadmin.views import ActivityLogListView
 
 from studioadmin.tests.test_views.helpers import TestPermissionMixin
 
 
 class ActivityLogListViewTests(TestPermissionMixin, TestCase):
 
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.url = reverse('studioadmin:activitylog')
+        
     def setUp(self):
         super(ActivityLogListViewTests, self).setUp()
-        # 10 logs
-        # 3 logs when self.user, self.instructor_user and self.staff_user
-        # are created in setUp
+        # 15 logs
+        # 1 for DP creation
+        # 6 logs when self.user, self.instructor_user and self.staff_user
+        # are created in setUp (create user and sign DP agreement)
         # 1 for disclaimer content creation
         # 2 for empty cron jobs
         # 3 with log messages to test search text
@@ -47,24 +50,13 @@ class ActivityLogListViewTests(TestPermissionMixin, TestCase):
             log='Log with test date for search'
         )
 
-    def _get_response(self, user, form_data={}):
-        url = reverse('studioadmin:activitylog')
-        session = _create_session()
-        request = self.factory.get(url, form_data)
-        request.session = session
-        request.user = user
-        messages = FallbackStorage(request)
-        request._messages = messages
-        view = ActivityLogListView.as_view()
-        return view(request)
-
     def test_cannot_access_if_not_logged_in(self):
         """
         test that the page redirects if user is not logged in
         """
-        url = reverse('studioadmin:activitylog')
-        resp = self.client.get(url)
-        redirected_url = reverse('account_login') + "?next={}".format(url)
+       
+        resp = self.client.get(self.url)
+        redirected_url = reverse('account_login') + "?next={}".format(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertIn(redirected_url, resp.url)
 
@@ -72,7 +64,8 @@ class ActivityLogListViewTests(TestPermissionMixin, TestCase):
         """
         test that the page redirects if user is not a staff user
         """
-        resp = self._get_response(self.user)
+        self.client.force_login(self.user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
@@ -81,7 +74,8 @@ class ActivityLogListViewTests(TestPermissionMixin, TestCase):
         test that the page redirects if user is in the instructor group but is
         not a staff user
         """
-        resp = self._get_response(self.instructor_user)
+        self.client.force_login(self.instructor_user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, reverse('booking:permission_denied'))
 
@@ -89,63 +83,50 @@ class ActivityLogListViewTests(TestPermissionMixin, TestCase):
         """
         test that the page can be accessed by a staff user
         """
-        resp = self._get_response(self.staff_user)
+        self.client.force_login(self.staff_user)
+        resp = self.client.get(self.url)
         self.assertEqual(resp.status_code, 200)
 
     def test_empty_cron_job_logs_filtered_by_default(self):
-        resp = self._get_response(self.staff_user)
-        self.assertEqual(len(resp.context_data['logs']), 9)
+        self.client.force_login(self.staff_user)
+        resp = self.client.get(self.url)
+        self.assertEqual(len(resp.context_data['logs']), 13)
 
     def test_filter_out_empty_cron_job_logs(self):
-        resp = self._get_response(
-            self.staff_user, {'hide_empty_cronjobs': True}
-        )
-        self.assertEqual(len(resp.context_data['logs']), 9)
+        self.client.force_login(self.staff_user)
+        resp = self.client.get(self.url + "?hide_empty_cronjobs=True")
+        self.assertEqual(len(resp.context_data['logs']), 13)
 
     def test_search_text(self):
-        resp = self._get_response(self.staff_user, {
-            'search_submitted': 'Search',
-            'search': 'message1'})
+        self.client.force_login(self.staff_user)
+        resp = self.client.get(self.url + "?search_submitted=Search&search=message1")
         self.assertEqual(len(resp.context_data['logs']), 1)
 
-        resp = self._get_response(self.staff_user, {
-            'search_submitted': 'Search',
-            'search': 'message'})
+        self.client.force_login(self.staff_user)
+        resp = self.client.get(self.url + "?search_submitted=Search&search=message")
         self.assertEqual(len(resp.context_data['logs']), 3)
 
     def test_search_is_case_insensitive(self):
-        resp = self._get_response(self.staff_user, {
-            'search_submitted': 'Search',
-            'search': 'Message'})
+        self.client.force_login(self.staff_user)
+        resp = self.client.get(self.url + "?search_submitted=Search&search=Message")
         self.assertEqual(len(resp.context_data['logs']), 3)
 
     def test_search_date(self):
-        resp = self._get_response(
-            self.staff_user, {
-                'search_submitted': 'Search',
-                'search_date': '01-Jan-2015'
-            }
-        )
+        self.client.force_login(self.staff_user)
+        resp = self.client.get(self.url + "?search_submitted=Search&search_date=01-Jan-2015")
         self.assertEqual(len(resp.context_data['logs']), 2)
 
     def test_invalid_search_date_format(self):
         """
         invalid search date returns all results and a message
         """
-        resp = self._get_response(
-            self.staff_user, {
-                'search_submitted': 'Search',
-                'search_date': '01-34-2015'}
-        )
-        self.assertEqual(len(resp.context_data['logs']), 11)
+        self.client.force_login(self.staff_user)
+        resp = self.client.get(self.url + "?search_submitted=Search&search_date=01-34-2015")
+        self.assertEqual(len(resp.context_data['logs']), 15)
 
     def test_search_date_and_text(self):
-        resp = self._get_response(
-            self.staff_user, {
-                'search_submitted': 'Search',
-                'search_date': '01-Jan-2015',
-                'search': 'test date for search'}
-        )
+        self.client.force_login(self.staff_user)
+        resp = self.client.get(self.url + "?search_submitted=Search&search_date=01-Jan-2015&search=test date for search")
         self.assertEqual(len(resp.context_data['logs']), 1)
     
     def test_search_date_and_text_with_pagination(self):
@@ -154,31 +135,26 @@ class ActivityLogListViewTests(TestPermissionMixin, TestCase):
             timestamp=datetime(2015, 1, 1, 15, 10, tzinfo=dt_timezone.utc),
             _quantity=25
         )
-        resp = self._get_response(
-            self.staff_user, {
-                'search_submitted': 'Search',
-                'search_date': '01-Jan-2015',
-            }
-        )
-        self.assertEqual(len(resp.context_data['logs']), 20)
+        self.client.force_login(self.staff_user)
+        url = reverse('studioadmin:activitylog') + f"?search_submitted=Search&search_date='01-Jan-2015"
+        resp = self.client.get(url)
+        assert len(resp.context_data['logs']) == 20
+
+        resp = self.client.get(url + "&page=2")
+        assert len(resp.context_data['logs']) == ActivityLog.objects.count() - 20
 
     def test_search_multiple_terms(self):
         """
         Search with multiple terms returns only logs that contain all terms
         """
-        resp = self._get_response(self.staff_user, {
-            'search_submitted': 'Search',
-            'search': 'Message'})
+        self.client.force_login(self.staff_user)
+        resp = self.client.get(self.url + "?search_submitted=Search&search=Message")
         self.assertEqual(len(resp.context_data['logs']), 3)
 
-        resp = self._get_response(self.staff_user, {
-            'search_submitted': 'Search',
-            'search': 'Message One'})
+        resp = self.client.get(self.url + "?search_submitted=Search&search=Message One")
         self.assertEqual(len(resp.context_data['logs']), 1)
 
-        resp = self._get_response(self.staff_user, {
-            'search_submitted': 'Search',
-            'search': 'test one'})
+        resp = self.client.get(self.url + "?search_submitted=Search&search=test one")
         self.assertEqual(len(resp.context_data['logs']), 1)
 
     def test_reset(self):
@@ -186,20 +162,8 @@ class ActivityLogListViewTests(TestPermissionMixin, TestCase):
         Test that reset button resets the search text and date and excludes
         empty cron job messages
         """
-        resp = self._get_response(
-            self.staff_user, {
-                'search_submitted': 'Search',
-                'search_date': '01-Jan-2015',
-                'search': 'test date for search'
-            }
-        )
+        self.client.force_login(self.staff_user)
+        resp = self.client.get(self.url + "?search_submitted=Search&search_date=01-Jan-2015&search=test date for search")
         self.assertEqual(len(resp.context_data['logs']), 1)
-
-        resp = self._get_response(
-            self.staff_user, {
-                'search_date': '01-Jan-2015',
-                'search': 'test date for search',
-                'reset': 'Reset'
-            }
-        )
-        self.assertEqual(len(resp.context_data['logs']), 9)
+        resp = self.client.get(self.url + "?search_date=01-Jan-2015&search=test date for search&reset=Reset")
+        self.assertEqual(len(resp.context_data['logs']), 13)

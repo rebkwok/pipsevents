@@ -80,7 +80,7 @@ def test_stripe_authorize_view_superuser_required(client, configured_user, super
 authorize_callback_url = reverse("stripe_payments:authorize_stripe_callback")
 
 
-@patch("stripe_payments.connection_views.requests")
+@patch("stripe_payments.views.connection_views.requests")
 def test_stripe_authorize_callback_view(mock_requests, client, superuser):
     client.force_login(superuser)
     assert not Seller.objects.exists()
@@ -100,7 +100,7 @@ def test_stripe_authorize_callback_view(mock_requests, client, superuser):
     assert "Your Stripe account id <strong>test-id</strong> is connected" in resp.content.decode()
 
 
-@patch("stripe_payments.connection_views.requests")
+@patch("stripe_payments.views.connection_views.requests")
 def test_stripe_authorize_callback_view_no_code(mock_requests, client, superuser):
     client.force_login(superuser)
     assert not Seller.objects.exists()

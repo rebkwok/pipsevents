@@ -16,8 +16,7 @@ from booking.views import ajax_create_booking, blocks_modal, \
     submit_zero_booking_payment, update_shopping_basket_count, \
     toggle_waiting_list, \
     OnlineTutorialListView, PurchasedTutorialsListView, OnlineTutorialDetailView, \
-    check_total, toggle_ticketed_event_waiting_list
-
+    check_total, toggle_ticketed_event_waiting_list, payment_plans
 app_name = 'booking'
 
 
@@ -145,6 +144,7 @@ urlpatterns = [
         'blocks_modal/',
         blocks_modal, name='blocks_modal'
     ),
+    path('payment-plans/', payment_plans, name='payment_plans'),
     path('gift-vouchers/', GiftVoucherPurchaseView.as_view(), name='buy_gift_voucher'),
     path('gift-voucher/<voucher_code>/', gift_voucher_details, name='gift_voucher_details'),
     path('gift-voucher/<voucher_code>/update/', GiftVoucherPurchaseView.as_view(), name='gift_voucher_update'),

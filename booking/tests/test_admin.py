@@ -10,7 +10,7 @@ from django.utils import timezone
 
 import booking.admin as admin
 from booking.models import Event, Booking, Block, BlockType, TicketBooking, \
-    Ticket, BlockVoucher, EventVoucher, UsedBlockVoucher, UsedEventVoucher
+    Ticket, BlockVoucher, EventVoucher, UsedBlockVoucher, UsedEventVoucher, GiftVoucherType
 from common.tests.helpers import format_content, PatchRequestMixin
 
 
@@ -463,21 +463,26 @@ class BlockAdminTests(PatchRequestMixin, TestCase):
         self.assertIn(event.id, ev_choices_ids)
         self.assertNotIn(event1.id, ev_choices_ids)
 
+
 class BlockTypeAdminTests(TestCase):
 
     def test_block_type_admin_display(self):
-        block = baker.make_recipe('booking.block_5')
+        block_type = baker.make_recipe('booking.blocktype')
+
         block_type_admin = admin.BlockTypeAdmin(BlockType, AdminSite())
         block_type_query = block_type_admin.get_queryset(None)[0]
 
-        self.assertEqual(
-            block_type_admin.formatted_cost(block_type_query),
-            u"\u00A3{}".format(block.block_type.cost)
-        )
-        self.assertEqual(
-            block_type_admin.formatted_duration(block_type_query),
-            '2 months'
-        )
+        assert block_type_admin.formatted_cost(block_type_query) == u"\u00A3{}".format(block_type.cost)
+        assert block_type_admin.formatted_duration(block_type_query) == '4 months'
+
+    def test_block_type_admin_display_weeks(self):
+        block_type = baker.make_recipe('booking.blocktype', duration_weeks=6, duration=None)
+
+        block_type_admin = admin.BlockTypeAdmin(BlockType, AdminSite())
+        block_type_query = block_type_admin.get_queryset(None)[0]
+
+        assert block_type_admin.formatted_cost(block_type_query) == u"\u00A3{}".format(block_type.cost)
+        assert block_type_admin.formatted_duration(block_type_query) == '6 weeks'
 
     def test_active_block_type_warnings(self):
         user = User.objects.create_superuser(
@@ -647,3 +652,21 @@ class TicketAdmin(TestCase):
             ticket_admin.user(ticket_query), 'Donald Duck (dd)'
         )
 
+
+class GiftVoucherTypeAdminTests(TestCase):
+
+    def test_voucher_type_admin_display_block_voucher(self):
+        block_type = baker.make_recipe('booking.blocktype')
+        baker.make(GiftVoucherType, block_type=block_type)
+
+        gift_voucher_type_admin = admin.GiftVoucherTypeAdmin(GiftVoucherType, AdminSite())
+        gift_voucher_type_query = gift_voucher_type_admin.get_queryset(None)[0]
+        assert gift_voucher_type_admin.voucher_type(gift_voucher_type_query) == block_type
+
+    def test_voucher_type_admin_display_event_voucher(self):
+        event_type = baker.make_recipe('booking.event_type_PC')
+        baker.make(GiftVoucherType, event_type=event_type)
+
+        gift_voucher_type_admin = admin.GiftVoucherTypeAdmin(GiftVoucherType, AdminSite())
+        gift_voucher_type_query = gift_voucher_type_admin.get_queryset(None)[0]
+        assert gift_voucher_type_admin.voucher_type(gift_voucher_type_query) == event_type

@@ -3,13 +3,27 @@
 <div class="modal-dialog modal-">
     <div class="modal-content">
 		<div class="modal-header">
-            <h5 id="blocksModalLabel">Blocks</h5>
+            <h4 id="blocksModalLabel">Available Payment Methods</h4>
 		<button type="button" class="close" data-dismiss="modal" aria-hidden="true">x</button>
 
 		</div>
 		<div class="modal-body mb-2">
+			{% if show_memberships %}
+			<h5>Memberships</h5>
 			<ul class="list-group">
-				<h5>Active</h5>
+			{% if active_memberships %}
+				{% for active_membership in active_memberships %}
+					<li class="list-group-item list-group-item-success">{{ active_membership.membership.name }}{% if active_membership.end_date %} (ends {{ active_membership.end_date|date:"d M Y" }}){% endif %}</li>
+				{% endfor %}
+				<li class="list-group-item"><a href="{% url 'membership_list' %}" class="btn btn-wm btn-new-block">View/edit membership</a></li>
+			{% else %}
+			   <li class="list-group-item">No active memberships</li>
+			   <li class="list-group-item"><a href="{% url 'membership_create' %}" class="btn btn-wm btn-new-block">Get a new membership!</a></li>
+			{% endif %}
+			</ul>
+			{% endif %}
+			<h5>Blocks</h5>
+			<ul class="list-group">
 			{% if active_blocks %}
 				{% for block in active_blocks %}
 					<li class="list-group-item list-group-item-success">{{ block.block_type.event_type.subtype }}
@@ -22,16 +36,7 @@
 			<li class="list-group-item"><a href="{% url 'booking:add_block' %}" class="btn btn-wm btn-new-block">Get a new block!</a></li>
 			{% endif %}
 			</ul>
-		{% if unpaid_blocks %}
 
-			<h5>Unpaid</h5>
-			<ul class="list-group">
-
-				{% for block in unpaid_blocks %}
-					<li class="list-group-item list-group-item-danger">{{ block.block_type.event_type.subtype }} expires {{ block.expiry_date | date:"d M Y" }}</li>
-				{% endfor %}
-			</ul>
-		{% endif %}
 		</div>
 
 

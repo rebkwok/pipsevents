@@ -14,7 +14,9 @@
     {% elif not event.can_cancel %}
         Please note that you have cancelled after the allowed cancellation period and therefore you are not eligible for any refund or transfer credit.
     {% else %}
-        {% if booking.block %}
+        {% if booking.membership %}
+            You used your membership to make this booking; your membership has been updated.
+        {% elif booking.block %}
             You used a block to make this booking; your block has been updated. Please note that your block 
             expires on <strong>{{ booking.block.expiry_date|date:"d M Y" }}</strong>.  Please ensure you use your returned
             credit by this date.

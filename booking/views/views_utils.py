@@ -33,6 +33,8 @@ def validate_voucher_code(voucher, user, event=None):
         return 'Voucher code is not valid for this event/class type'
     elif voucher.has_expired:
         return 'Voucher code has expired'
+    elif voucher.members_only and not user.has_membership():
+        return 'Voucher code is only redeemable by members'
     elif voucher.max_vouchers and \
         UsedEventVoucher.objects.filter(voucher=voucher).count() >= \
             voucher.max_vouchers:
@@ -55,6 +57,8 @@ def validate_voucher_code(voucher, user, event=None):
 def validate_block_voucher_code(voucher, user):
     if voucher.has_expired:
         return 'Voucher code has expired'
+    elif voucher.members_only and not user.has_membership():
+        return 'Voucher code is only redeemable by members'
     elif voucher.max_vouchers and \
         UsedBlockVoucher.objects.filter(voucher=voucher).count() >= \
             voucher.max_vouchers:
@@ -84,7 +88,7 @@ def validate_block_voucher_code(voucher, user):
                'blocks'
 
 
-def _get_block_status(booking, request):
+def get_block_status(booking, request):
     blocks_used = None
     total_blocks = None
     if booking.block:
@@ -101,12 +105,3 @@ def _get_block_status(booking, request):
     return blocks_used, total_blocks
 
 
-def _get_active_user_block(user, booking):
-    """
-    return the active block for this booking with the soonest expiry date
-    """
-    blocks = user.blocks.filter(expiry_date__gte=timezone.now()).order_by("expiry_date")
-    # already sorted by expiry date, so we can just get the next active one
-    next_active_block = next((block for block in blocks if block.active_block() and block.block_type.event_type == booking.event.event_type), None)
-    # use the block with the soonest expiry date
-    return next_active_block

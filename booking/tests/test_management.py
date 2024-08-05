@@ -4,10 +4,13 @@ from datetime import date, datetime, timedelta
 from datetime import timezone as dt_timezone
 
 from io import StringIO
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 from model_bakery import baker
 
-from django.contrib.auth.models import Permission
+import json
+import pytest
+
+
 from django.test import TestCase, override_settings
 from django.conf import settings
 from django.core import management
@@ -24,10 +27,12 @@ from paypal.standard.models import ST_PP_COMPLETED
 from accounts.models import OnlineDisclaimer
 from activitylog.models import ActivityLog
 from booking.models import AllowedGroup, Event, Block, Booking, EventType, BlockType, \
-    TicketBooking, Ticket
+    TicketBooking, Ticket, UserMembership
 from common.tests.helpers import _add_user_email_addresses, PatchRequestMixin
 from payments.models import PaypalBookingTransaction
 from timetable.models import Session
+from conftest import get_mock_subscription
+from stripe_payments.tests.mock_connector import MockConnector
 
 
 class ManagementCommandsTests(PatchRequestMixin, TestCase):
@@ -1421,13 +1426,13 @@ class TicketBookingWarningTests(TestCase):
             2015, 2, 11, 10, 0, tzinfo=dt_timezone.utc
             )
 
-        # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
+        # advance payment required - warnings sent
         ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
             date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             ticket_cost=10,
-            payment_due_date=datetime(2015, 2, 11, tzinfo=dt_timezone.utc),
+            advance_payment_required=True
         )
         # advance payment not required - warnings not sent
         ticketed_event1 = baker.make_recipe(
@@ -1470,13 +1475,13 @@ class TicketBookingWarningTests(TestCase):
         """
         test email warnings only sent between 7am and 10pm
         """
-        # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
+        # advance payment required - warnings sent
         ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
             date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             ticket_cost=10,
-            payment_due_date=datetime(2015, 2, 11, tzinfo=dt_timezone.utc),
+            advance_payment_required=True
         )
 
         baker.make(
@@ -1509,15 +1514,14 @@ class TicketBookingWarningTests(TestCase):
             2015, 2, 11, 10, 0, tzinfo=dt_timezone.utc
             )
 
-        # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
         # payment_time_allowed is set
+        # advance payment required - warnings sent
         ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
             date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             ticket_cost=10,
-            payment_due_date=datetime(2015, 2, 11, tzinfo=dt_timezone.utc),
-            payment_time_allowed=4,
+            advance_payment_required=True
         )
 
         baker.make(
@@ -1540,13 +1544,13 @@ class TicketBookingWarningTests(TestCase):
             2015, 2, 11, 10, 0, tzinfo=dt_timezone.utc
             )
 
-        # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
+        # advance payment required - warnings sent
         ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
             date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             ticket_cost=10,
-            payment_due_date=datetime(2015, 2, 11, tzinfo=dt_timezone.utc),
+            advance_payment_required=True
         )
 
         baker.make(
@@ -1578,13 +1582,13 @@ class TicketBookingWarningTests(TestCase):
             2015, 2, 11, 10, 0, tzinfo=dt_timezone.utc
             )
 
-        # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
+        # advance payment required - warnings sent
         ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
             date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             ticket_cost=10,
-            payment_due_date=datetime(2015, 2, 11, tzinfo=dt_timezone.utc),
+            advance_payment_required=True
         )
 
         baker.make(
@@ -1614,13 +1618,13 @@ class TicketBookingWarningTests(TestCase):
             2015, 2, 11, 10, 0, tzinfo=dt_timezone.utc
             )
 
-        # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
+        # advance payment required - warnings sent
         ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
             date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             ticket_cost=10,
-            payment_due_date=datetime(2015, 2, 11, tzinfo=dt_timezone.utc),
+            advance_payment_required=True
         )
 
         baker.make(
@@ -1651,13 +1655,13 @@ class TicketBookingWarningTests(TestCase):
             2015, 2, 11, 10, 0, tzinfo=dt_timezone.utc
             )
 
-        # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
+        # advance payment required - warnings sent
         ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
             date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             ticket_cost=10,
-            payment_due_date=datetime(2015, 2, 11, tzinfo=dt_timezone.utc),
+            advance_payment_required=True
         )
         ticketed_event_cancelled = baker.make_recipe(
             'booking.ticketed_event_max10',
@@ -1665,7 +1669,7 @@ class TicketBookingWarningTests(TestCase):
             payment_open=True,
             ticket_cost=10,
             cancelled=True,
-            payment_due_date=datetime(2015, 2, 11, tzinfo=dt_timezone.utc),
+            advance_payment_required=True,
         )
         baker.make(
             TicketBooking,  ticketed_event=ticketed_event, paid=False,
@@ -1699,13 +1703,13 @@ class TicketBookingWarningTests(TestCase):
             2015, 2, 11, 10, 0, tzinfo=dt_timezone.utc
             )
 
-        # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
+        # advance payment required - warnings sent
         ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
             date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             ticket_cost=10,
-            payment_due_date=datetime(2015, 2, 11, tzinfo=dt_timezone.utc),
+            advance_payment_required=True
         )
         baker.make(
             TicketBooking,  ticketed_event=ticketed_event, paid=False,
@@ -1733,13 +1737,13 @@ class TicketBookingWarningTests(TestCase):
             2015, 2, 11, 10, 0, tzinfo=dt_timezone.utc
             )
 
-        # payment_due_date 2015/2/11 23:59 (within 24hrs - warnings sent)
+        # advance payment required - warnings sent
         ticketed_event = baker.make_recipe(
             'booking.ticketed_event_max10',
             date=datetime(2015, 2, 14, 18, 0, tzinfo=dt_timezone.utc),
             payment_open=True,
             ticket_cost=10,
-            payment_due_date=datetime(2015, 2, 11, tzinfo=dt_timezone.utc),
+            advance_payment_required=True
         )
         booking1 = baker.make(
             TicketBooking,  ticketed_event=ticketed_event, paid=False,
@@ -3179,3 +3183,257 @@ class TestFindNoShows(TestCase):
         assert len(mail.outbox) == 2
         assert f"{3}: {user.first_name} {user.last_name} - (id {user.id})" in mail.outbox[1].body
         assert f"{user1.first_name} {user1.last_name} - (id {user1.id})" not in mail.outbox[1].body
+
+
+@pytest.mark.django_db
+def test_update_prices(tmp_path):
+    blocktype = baker.make_recipe("booking.blocktype5", size=3, identifier="standard", cost=20)
+    blocktype1 = baker.make_recipe("booking.blocktype5", size=3, identifier="not-standard", cost=20)
+    event_type = baker.make("booking.EventType", event_type="CL", subtype="Test class")
+    event_type1 = baker.make("booking.EventType", event_type="CL", subtype="Test class 1")
+    event = baker.make_recipe("booking.future_PC", event_type=event_type, cost=10)
+    event1 = baker.make_recipe("booking.future_PC", event_type=event_type1, cost=10)
+    tt_session = baker.make("timetable.Session", event_type=event_type, cost=10)
+    tt_session1 = baker.make("timetable.Session", event_type=event_type1, cost=10)
+
+    new_prices = {
+        "blocktype": [ 
+            { 
+                "identifier": "standard", 
+                "size": 3, 
+                "price": 36.00 
+            }, 
+        ], 
+        "event": [ 
+            { 
+                "event_type": "CL", 
+                "subtype": "Test class", 
+                "price": 13.00 
+            }, 
+        ], 
+        "session": [ 
+            { 
+                "event_type": "CL", 
+                "subtype": "Test class", 
+                "price": 12.00 
+            }, 
+        ] 
+    }
+    new_prices_filepath = tmp_path / "prices.json"
+    new_prices_filepath.write_text(json.dumps(new_prices))
+
+    # dry run
+    management.call_command("update_prices", new_prices_filepath)
+    for obj in [blocktype, blocktype1, event_type, event_type1, event, event1, tt_session, tt_session1]:
+        obj.refresh_from_db()
+    assert blocktype.cost == 20
+    assert blocktype1.cost == 20
+    assert event.cost == 10
+    assert event1.cost == 10
+    assert tt_session.cost == 10
+    assert tt_session1.cost == 10
+
+    # live run
+    management.call_command("update_prices", new_prices_filepath, live_run=True)
+    for obj in [blocktype, blocktype1, event_type, event_type1, event, event1, tt_session, tt_session1]:
+        obj.refresh_from_db()
+    assert blocktype.cost == 36
+    assert blocktype1.cost == 20
+    assert event.cost == 13
+    assert event1.cost == 10
+    assert tt_session.cost == 12
+    assert tt_session1.cost == 10
+
+
+@pytest.mark.django_db
+def test_cancel_past_due_subscriptions_nothing_to_do(seller):
+    management.call_command("cancel_past_due_subscriptions")
+
+
+@pytest.mark.django_db
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+@patch("booking.management.commands.cancel_past_due_subscriptions.StripeConnector.get_subscription")
+@patch("booking.management.commands.cancel_past_due_subscriptions.StripeConnector.cancel_subscription")
+def test_cancel_past_due_subscriptions(mock_cancel, mock_get, seller):
+    # only called for the first two past due subscriptions
+    mock_get.side_effect = [
+        get_mock_subscription(None, status="past_due", cancel_at=None, canceled_at=None),
+        get_mock_subscription(None, status="past_due", cancel_at=None, canceled_at=None)
+    ]
+    baker.make(UserMembership, membership__name="foo", subscription_status="past_due", user__email="t1@example.com")
+    baker.make(UserMembership, membership__name="foo", subscription_status="past_due", user__email="t2@example.com")
+    baker.make(UserMembership, membership__name="foo", subscription_status="active", user__email="t3@example.com")
+    baker.make(UserMembership, membership__name="foo", subscription_status="canceled", user__email="t4@example.com")
+    management.call_command("cancel_past_due_subscriptions")
+    assert mock_cancel.call_count == 2
+    assert len(mail.outbox) == 2
+    assert set(mail.to[0] for mail in mail.outbox) == {"t1@example.com", "t2@example.com"}
+
+
+@pytest.mark.django_db
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+@patch("booking.management.commands.cancel_past_due_subscriptions.StripeConnector.get_subscription")
+@patch("booking.management.commands.cancel_past_due_subscriptions.StripeConnector.cancel_subscription")
+def test_cancel_past_due_subscriptions_error(mock_cancel, mock_get, seller):
+    mock_get.side_effect = [
+        get_mock_subscription(None, status="past_due", cancel_at=None, canceled_at=None),
+        get_mock_subscription(None, status="past_due", cancel_at=None, canceled_at=None)
+    ]
+    # raise except from first attempt to cancel
+    mock_cancel.side_effect = [Exception, None]
+    # to be cancelled
+    baker.make(UserMembership, membership__name="foo", subscription_status="past_due", user__email="t1@example.com")
+    baker.make(UserMembership, membership__name="bar", subscription_status="past_due", user__email="t1@example.com")
+    # command succeeds but only one cancelled
+    management.call_command("cancel_past_due_subscriptions")
+    assert mock_cancel.call_count == 2
+    assert len(mail.outbox) == 1
+    assert mail.outbox[0].to == ["t1@example.com"]
+
+
+@pytest.mark.django_db
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+@patch("booking.management.commands.cancel_past_due_subscriptions.StripeConnector.get_subscription")
+@patch("booking.management.commands.cancel_past_due_subscriptions.StripeConnector.cancel_subscription")
+def test_cancel_past_due_subscriptions_mismatched_status(mock_cancel, mock_get, seller):
+    # only called for the first two past due subscriptions
+    mock_get.side_effect = [
+        get_mock_subscription(None, status="active", cancel_at=None, canceled_at=None),
+        get_mock_subscription(None, status="canceled", cancel_at=None, canceled_at=None)
+    ]
+    baker.make(UserMembership, membership__name="foo", subscription_status="past_due", user__email="t1@example.com")
+    baker.make(UserMembership, membership__name="foo", subscription_status="past_due", user__email="t2@example.com")
+    management.call_command("cancel_past_due_subscriptions")
+    assert mock_cancel.call_count == 0
+    assert len(mail.outbox) == 0
+
+
+@pytest.mark.django_db
+def test_cancel_setup_pending_subscriptions_nothing_to_do(seller):
+    management.call_command("cancel_setup_pending_subscriptions")
+
+
+@pytest.mark.django_db
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+@patch("booking.management.commands.cancel_setup_pending_subscriptions.StripeConnector.get_subscription")
+@patch("booking.management.commands.cancel_setup_pending_subscriptions.StripeConnector.cancel_subscription")
+def test_cancel_setup_pending_subscriptions(mock_cancel, mock_get, seller):
+    # only called for the setup_pending subscriptions
+    # Return start date and setup pending data that match the UserMemberships
+    start_1 = timezone.now() - timedelta(hours=22)
+    start_2 = timezone.now() - timedelta(hours=24)
+    mock_get.side_effect = [
+        get_mock_subscription(
+            None, status="active", cancel_at=None, canceled_at=None, start_date=start_1.timestamp(),
+            default_payment_method=None, pending_setup_intent=Mock(status="incomplete")    
+        ),
+        get_mock_subscription(
+            None, status="active", cancel_at=None, canceled_at=None, start_date=start_2.timestamp(),
+            default_payment_method=None, pending_setup_intent=Mock(status="incompleted")
+        )
+    ]
+    # started 22 hrs ago, not canceled
+    baker.make(UserMembership, membership__name="foo", subscription_status="setup_pending", user__email="t1@example.com", subscription_start_date=start_1)
+    # started 24 hrs ago, canceled
+    baker.make(UserMembership, membership__name="foo", subscription_status="setup_pending", user__email="t2@example.com", subscription_start_date=start_2)
+    # invalid statuses
+    baker.make(UserMembership, membership__name="foo", subscription_status="active", user__email="t3@example.com")
+    baker.make(UserMembership, membership__name="foo", subscription_status="canceled", user__email="t4@example.com")
+    management.call_command("cancel_setup_pending_subscriptions")
+    assert mock_cancel.call_count == 1
+    assert UserMembership.objects.count() == 3
+
+
+@pytest.mark.django_db
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+@patch("booking.management.commands.cancel_setup_pending_subscriptions.StripeConnector.get_subscription")
+@patch("booking.management.commands.cancel_setup_pending_subscriptions.StripeConnector.cancel_subscription")
+def test_cancel_setup_pending_subscriptions_error(mock_cancel, mock_get, seller):
+    # Return start date and setup pending data that match the UserMemberships
+    start = timezone.now() - timedelta(hours=24)
+    mock_get.side_effect = [
+        get_mock_subscription(
+            None, status="active", cancel_at=None, canceled_at=None, start_date=start.timestamp(),
+            default_payment_method=None, pending_setup_intent=Mock(status="incomplete")    
+        ),
+        get_mock_subscription(
+            None, status="active", cancel_at=None, canceled_at=None, start_date=start.timestamp(),
+            default_payment_method=None, pending_setup_intent=Mock(status="incompleted")
+        )
+    ]
+    # raise except from first attempt to cancel
+    mock_cancel.side_effect = [Exception, None]
+    # to be cancelled
+    baker.make(UserMembership, membership__name="foo", subscription_status="setup_pending", user__email="t1@example.com", subscription_start_date=start)
+    baker.make(UserMembership, membership__name="foo", subscription_status="setup_pending", user__email="t2@example.com", subscription_start_date=start)
+    # command succeeds but only one cancelled
+    management.call_command("cancel_setup_pending_subscriptions")
+    assert mock_cancel.call_count == 2
+    assert UserMembership.objects.count() == 1
+
+
+@pytest.mark.django_db
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+@patch("booking.management.commands.cancel_setup_pending_subscriptions.StripeConnector.get_subscription")
+@patch("booking.management.commands.cancel_setup_pending_subscriptions.StripeConnector.cancel_subscription")
+def test_cancel_setup_pending_subscriptions_active(mock_cancel, mock_get, seller):
+    start = timezone.now() - timedelta(hours=24)
+    mock_get.side_effect = [
+        # pending setup intent is actually complete, UserMembership is updated and not canceled
+        get_mock_subscription(
+            None, status="active", cancel_at=None, canceled_at=None, start_date=start.timestamp(),
+            default_payment_method=None, pending_setup_intent=Mock(status="succeeded")    
+        ),
+    ]
+    # started 24 hrs ago
+    um = baker.make(UserMembership, membership__name="foo", subscription_status="setup_pending", user__email="t1@example.com", subscription_start_date=start)
+
+    management.call_command("cancel_setup_pending_subscriptions")
+    assert mock_cancel.call_count == 0
+    assert UserMembership.objects.count() == 1
+    um.refresh_from_db()
+    assert um.subscription_status == "active"
+
+
+@pytest.mark.django_db
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+@patch("booking.management.commands.cancel_setup_pending_subscriptions.StripeConnector.get_subscription")
+@patch("booking.management.commands.cancel_setup_pending_subscriptions.StripeConnector.cancel_subscription")
+def test_cancel_setup_pending_subscriptions_other_status(mock_cancel, mock_get, seller):
+    start = timezone.now() - timedelta(hours=24)
+    mock_get.side_effect = [
+        # pending setup intent is actually complete, UserMembership is updated and not canceled
+        get_mock_subscription(
+            None, status="incomplete", cancel_at=None, canceled_at=None, start_date=start.timestamp(),
+        ),
+    ]
+    # started 24 hrs ago
+    um = baker.make(UserMembership, membership__name="foo", subscription_status="setup_pending", user__email="t1@example.com", subscription_start_date=start)
+
+    management.call_command("cancel_setup_pending_subscriptions")
+    assert mock_cancel.call_count == 0
+    assert UserMembership.objects.count() == 1
+    um.refresh_from_db()
+    assert um.subscription_status == "incomplete"
+
+
+@pytest.mark.django_db
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+@patch("booking.management.commands.cancel_setup_pending_subscriptions.StripeConnector.get_subscription")
+@patch("booking.management.commands.cancel_setup_pending_subscriptions.StripeConnector.cancel_subscription")
+def test_cancel_setup_pending_subscriptions_mismatched_start_date(mock_cancel, mock_get, seller):
+    mock_get.side_effect = [
+        # start date is actually < 23 hrs, UserMembership is still setup_pending and not canceled
+        get_mock_subscription(
+            None, status="active", cancel_at=None, canceled_at=None, start_date=timezone.now().timestamp(),
+            default_payment_method=None, pending_setup_intent=Mock(status="incomplete")
+        )
+    ]
+    # started 24 hrs ago
+    um = baker.make(UserMembership, membership__name="foo", subscription_status="setup_pending", user__email="t1@example.com", subscription_start_date=timezone.now() - timedelta(hours=24))
+
+    management.call_command("cancel_setup_pending_subscriptions")
+    assert mock_cancel.call_count == 0
+    assert UserMembership.objects.count() == 1
+    um.refresh_from_db()
+    assert um.subscription_status == "setup_pending"

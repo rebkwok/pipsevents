@@ -8,6 +8,7 @@ from django.conf import settings
 from django.contrib.auth.models import User, Group
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.core import mail
+from django import forms
 from django.urls import reverse
 from django.test import TestCase, override_settings
 
@@ -39,13 +40,20 @@ class ProfileUpdateViewTests(TestSetupMixin, TestCase):
         """
         Test custom view to allow users to update their details
         """
+        assert self.user.userprofile.booking_preference == "membership"
         self.client.login(username=self.user.username, password='test')
         self.client.post(
-            self.url, {'username': self.user.username,
-                  'first_name': 'Fred', 'last_name': self.user.last_name}
+            self.url, 
+            {
+                'username': self.user.username,
+                'first_name': 'Fred', 
+                'last_name': self.user.last_name,
+                "booking_preference": "block",
+            }
         )
         self.user.refresh_from_db()
-        self.assertEqual(self.user.first_name, "Fred")
+        assert self.user.first_name == "Fred"
+        assert self.user.userprofile.booking_preference == "block"
 
     def test_updating_pronouns(self):
         """
@@ -59,17 +67,43 @@ class ProfileUpdateViewTests(TestSetupMixin, TestCase):
                 'username': self.user.username,
                 'first_name': self.user.first_name, 
                 'last_name': self.user.last_name,
-                'pronouns': 'they/them'
+                'pronouns': 'they/them',
+                "booking_preference": "membership",
             }
         )
         self.user.refresh_from_db()
         assert self.user.userprofile.pronouns == "they/them"
 
+    @override_settings(SHOW_MEMBERSHIPS=True)
+    def test_updating_booking_preference_memberships_on(self):
+        """
+        Memberships not shown, booking preference is hidden
+        """
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.get(self.url)
+        assert resp.context_data["form"].fields["booking_preference"].initial == "membership"
+        assert isinstance(resp.context_data["form"].fields["booking_preference"].widget, forms.RadioSelect)
+
+    @override_settings(SHOW_MEMBERSHIPS=False)
+    def test_updating_booking_preference_memberships_off(self):
+        """
+        Memberships not shown, booking preference is hidden
+        """
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.get(self.url)
+        assert resp.context_data["form"].fields["booking_preference"].initial == "membership"
+        assert isinstance(resp.context_data["form"].fields["booking_preference"].widget, forms.HiddenInput)
+
     def test_updates_mailchimp_with_first_name(self):
         self.client.login(username=self.user.username, password='test')
         self.client.post(
-            self.url, {'username': self.user.username,
-                  'first_name': 'Fred', 'last_name': self.user.last_name}
+            self.url, 
+            {
+                'username': self.user.username,
+                'first_name': 'Fred', 
+                'last_name': self.user.last_name,
+                "booking_preference": "membership",
+            }
         )
         self.user.refresh_from_db()
         assert not self.user.subscribed()
@@ -79,7 +113,10 @@ class ProfileUpdateViewTests(TestSetupMixin, TestCase):
         self.client.post(
             self.url, {
                 'username': self.user.username,
-                'first_name': 'George', 'last_name': self.user.last_name}
+                'first_name': 'George', 
+                'last_name': self.user.last_name,
+                "booking_preference": "membership",
+            }
         )
         self.user.refresh_from_db()
         assert self.user.subscribed()
@@ -92,8 +129,13 @@ class ProfileUpdateViewTests(TestSetupMixin, TestCase):
         self.user.groups.add(self.group)
         self.client.login(username=self.user.username, password='test')
         self.client.post(
-            self.url, {'username': self.user.username,
-                  'first_name': self.user.first_name, 'last_name': 'New'}
+            self.url, 
+            {
+                'username': self.user.username,
+                'first_name': self.user.first_name, 
+                'last_name': 'New',
+                "booking_preference": "membership",
+            }
         )
         self.user.refresh_from_db()
         assert_mailchimp_post_data(
@@ -110,7 +152,8 @@ class ProfileUpdateViewTests(TestSetupMixin, TestCase):
             {
                 'username': self.user.username,
                 'first_name': 'Fred1',
-                'last_name': self.user.last_name
+                'last_name': self.user.last_name,
+                "booking_preference": "membership",
             }
         )
         request.user = self.user
@@ -129,7 +172,8 @@ class ProfileUpdateViewTests(TestSetupMixin, TestCase):
             {
                 'username': 'foo',
                 'first_name': self.user.first_name,
-                'last_name': self.user.last_name
+                'last_name': self.user.last_name,
+                "booking_preference": "membership",
             }
         )
         self.user.refresh_from_db()
@@ -150,7 +194,8 @@ class ProfileUpdateViewTests(TestSetupMixin, TestCase):
             {
                 'username': self.user.username,
                 'first_name': 'Foo',
-                'last_name': self.user.last_name
+                'last_name': self.user.last_name,
+                "booking_preference": "membership",
             })
 
         self.assertEqual(len(cm.output), 1)
@@ -413,21 +458,16 @@ class CustomLoginViewTests(TestSetupMixin, TestCase):
         # url is weirdly formatted one way if we run only this test and the
         # other if we run all. Not sure why yet, but it would behave correctly
         # either way
+        # href="/accounts/facebook/login/?process=login&amp;next=%2Faccounts%2Fprofile">Facebook</a>
         self.assertTrue(
-            'href="/accounts/facebook/login/?process=login'
-            '&next=%2Faccounts%2Fprofile"' in resp.rendered_content or
-            'href="/accounts/facebook/login/?next=%2Faccounts%2Fprofile'
-            '&process=login"' in resp.rendered_content
+            '/accounts/facebook/login/?process=login&amp;next=%2Faccounts%2Fprofile' in resp.rendered_content
         )
 
         resp = self.client.get(
             reverse('login') + '?next=/accounts/password/set/'
         )
         self.assertTrue(
-            'href="/accounts/facebook/login/?process=login'
-            '&next=%2Faccounts%2Fprofile"' in resp.rendered_content or
-            'href="/accounts/facebook/login/?next=%2Faccounts%2Fprofile'
-            '&process=login"' in resp.rendered_content
+            '/accounts/facebook/login/?process=login&amp;next=%2Faccounts%2Fprofile' in resp.rendered_content
         )
 
         # post with login username and password overrides next in request
@@ -778,6 +818,16 @@ class SignedDataPrivacyCreateViewTests(TestSetupMixin, TestCase):
         self.assertTrue(has_active_data_privacy_agreement(self.user))
         self.assertFalse(self.user.subscribed())
 
+    def test_create_new_agreement_with_next_url(self):
+        # make new policy
+        baker.make(DataPrivacyPolicy, version=None)
+        assert not has_active_data_privacy_agreement(self.user)
+        resp = self.client.post(
+            self.url, data={'confirm': True, 'mailing_list': 'no', "next_url": "/events/"}
+        )
+        assert has_active_data_privacy_agreement(self.user)
+        assert resp.url == "/events/"        
+
     def test_create_new_agreement_with_subscribe(self):
         # make new policy
         baker.make(DataPrivacyPolicy, version=None)
@@ -806,3 +856,13 @@ class SignedDataPrivacyCreateViewTests(TestSetupMixin, TestCase):
         assert_mailchimp_post_data(
             self.mock_request, self.user, 'unsubscribed'
         )
+
+
+@pytest.mark.django_db
+def test_user_disclaimer_view(client, configured_user):
+    client.force_login(configured_user)
+    content = baker.make(DisclaimerContent)
+    baker.make(OnlineDisclaimer, user=configured_user, version=content.version)
+    resp = client.get(reverse("profile:view_latest_disclaimer"))
+    assert resp.status_code == 200
+    assert "Expire" not in resp.rendered_content

@@ -1,0 +1,5 @@
+{% include "account/email/do_not_reply.txt" %}
+
+Your membership for {{ user_membership.membership.name }} has been cancelled as this membership type is no longer active.
+
+You can update to a new membership here: {{ host }}{% url 'membership_list' %}

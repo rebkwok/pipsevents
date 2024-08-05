@@ -462,6 +462,11 @@ class AccountBan(models.Model):
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     pronouns = models.CharField(max_length=100, blank=True, null=True)
+    stripe_customer_id = models.CharField(max_length=50, blank=True, null=True)
+    booking_preference = models.CharField(
+        choices=(("membership", "membership"), ("block", "block")), default="membership",
+        help_text="Use membership or block first for booking (if you have both available)"    
+    )
 
     def __str__(self):
         return self.user.username
@@ -586,10 +591,4 @@ def has_active_data_privacy_agreement(user):
     #     cache.set(key, has_active_agreement, timeout=600)
     # else:
     #     has_active_agreement = bool(cache.get(key))
-    has_active_agreement = bool(
-        [
-            True for dp in user.data_privacy_agreement.all()
-            if dp.is_active
-        ]
-    )
-    return has_active_agreement
+    return user.data_privacy_agreement.filter(version=DataPrivacyPolicy.current_version()).exists()

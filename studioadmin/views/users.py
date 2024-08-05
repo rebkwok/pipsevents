@@ -8,7 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group, User
 from django.contrib import messages
 from django.core.cache import cache
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.core.paginator import Paginator
 from django.urls import reverse
 from django.db.models import Count, Q
 from django.template.loader import get_template
@@ -29,11 +29,10 @@ from common.mailchimp_utils import update_mailchimp
 from common.views import _set_pagination_context
 
 from studioadmin.forms import AddBookingForm, EditPastBookingForm, \
-    EditBookingForm, UserBookingFormSet,  \
-    UserBlockFormSet,  UserListSearchForm, AttendanceSearchForm
+    EditBookingForm, UserBlockFormSet,  UserListSearchForm, AttendanceSearchForm
 
 from studioadmin.views.helpers import InstructorOrStaffUserMixin,  \
-    staff_required, StaffUserMixin
+    staff_required, StaffUserMixin, get_page
 from activitylog.models import ActivityLog
 
 
@@ -104,15 +103,8 @@ class UserListView(LoginRequiredMixin,  InstructorOrStaffUserMixin,  ListView):
         context = super(UserListView,  self).get_context_data()
         queryset = self.get_queryset()
         paginator = Paginator(queryset, 30)
-        page = self.request.GET.get('page', 1)
-        try:
-            page = paginator.page(page)
-        except PageNotAnInteger:
-            # If page is not an integer, deliver first page.
-            page = paginator.page(1)
-        except EmptyPage:
-            # If page is out of range (e.g. 9999), deliver last page of results.
-            page = paginator.page(paginator.num_pages)
+
+        page = get_page(self.request, paginator)
         context["page_obj"] = page
         context["users"] = page.object_list
         _set_pagination_context(context)
@@ -208,15 +200,7 @@ def users_status(request):
     )
 
     paginator = Paginator(list(sorted_counts.items()), 100)
-    page = request.GET.get('page', 1)
-    try:
-        page = paginator.page(page)
-    except PageNotAnInteger:
-        # If page is not an integer, deliver first page.
-        page = paginator.page(1)
-    except EmptyPage:
-        # If page is out of range (e.g. 9999), deliver last page of results.
-        page = paginator.page(paginator.num_pages)
+    page = get_page(request, paginator)
 
     context = {
         "user_counts": dict(page.object_list),
@@ -285,67 +269,6 @@ def toggle_subscribed(request,  user_id):
 
 @login_required
 @staff_required
-def user_bookings_view_old(request,  user_id):
-    user = get_object_or_404(User,  id=user_id)
-
-    if request.method == 'POST':
-        userbookingformset = UserBookingFormSet(
-            request.POST.copy(),  instance=user,  user=user, 
-        )
-        if userbookingformset.is_valid():
-            if not userbookingformset.has_changed() and \
-                    request.POST.get('formset_submitted'):
-                messages.info(request,  "No changes were made")
-            else:
-                for form in userbookingformset:
-                    process_user_booking_updates(form, request)
-
-                    userbookingformset.save(commit=False)
-
-            return HttpResponseRedirect(
-                reverse(
-                    'studioadmin:user_bookings_list', 
-                    kwargs={'user_id': user.id}
-                )
-            )
-        else:
-            messages.error(
-                request, 
-                mark_safe(
-                    "Please correct the following errors:\n{}".format(
-                        '\n'.join(
-                            [
-                                "{}".format(error)
-                                for error in userbookingformset.errors
-                            ]
-                        )
-                    )
-                )
-            )
-    else:
-        all_bookings = Booking.objects.select_related('event', 'user')\
-            .filter(
-                user=user, event__date__gte=timezone.now()
-            ).order_by('event__date')
-
-        userbookingformset = UserBookingFormSet(
-            instance=user, 
-            queryset=all_bookings,
-            user=user
-        )
-
-    template = 'studioadmin/user_booking_list_old.html'
-    return TemplateResponse(
-        request,  template,  {
-            'userbookingformset': userbookingformset,  'user': user, 
-            'sidenav_selection': 'users', 
-            'booking_status': 'future'
-        }
-    )
-
-
-@login_required
-@staff_required
 def user_modal_bookings_view(request, user_id, past=False):
     user = get_object_or_404(User,  id=user_id)
 
@@ -361,15 +284,7 @@ def user_modal_bookings_view(request, user_id, past=False):
         ).order_by('event__date')
 
     paginator = Paginator(all_bookings, 20)
-    page = request.GET.get('page')
-    try:
-        page = paginator.page(page)
-    except PageNotAnInteger:
-        # If page is not an integer, deliver first page.
-        page = paginator.page(1)
-    except EmptyPage:
-        # If page is out of range (e.g. 9999), deliver last page of results.
-        page = paginator.page(paginator.num_pages)
+    page = get_page(request, paginator)
     bookings = page.object_list
 
     template = 'studioadmin/user_booking_list.html'
@@ -386,9 +301,9 @@ def user_modal_bookings_view(request, user_id, past=False):
 
 @login_required
 @staff_required
-def user_blocks_view(request,  user_id):
+def user_blocks_view(request, user_id):
 
-    user = get_object_or_404(User,  id=user_id)
+    user = get_object_or_404(User, id=user_id)
 
     if request.method == 'POST':
         userblockformset = UserBlockFormSet(
@@ -467,15 +382,7 @@ def user_blocks_view(request,  user_id):
         user=user).order_by('-start_date')
 
     paginator = Paginator(queryset, 10)
-    page = request.GET.get('page', 1)
-    try:
-        page = paginator.page(page)
-    except PageNotAnInteger:
-        # If page is not an integer, deliver first page.
-        page = paginator.page(1)
-    except EmptyPage:
-        # If page is out of range (e.g. 9999), deliver last page of results.
-        page = paginator.page(paginator.num_pages)
+    page = get_page(request, paginator)
     userblockformset = UserBlockFormSet(
         instance=user,
         queryset=queryset.filter(id__in=page.object_list.values_list("id", flat=True)),
@@ -590,6 +497,11 @@ class BookingAddView(CreateView):
 
 
 def process_user_booking_updates(form, request):
+    # The form clean removes block/membership if status is cancelled
+    pre_save_booking = Booking.objects.get(id=form.instance.id) if form.instance.id else None
+    had_membership_or_block = pre_save_booking is not None and (
+        pre_save_booking.block is not None or pre_save_booking.membership is not None
+    )
     booking = form.save(commit=False)
     if form.has_changed():
         if form.changed_data == ['send_confirmation']:
@@ -599,18 +511,16 @@ def process_user_booking_updates(form, request):
                 "sent to user.".format(form.instance.event))
         else:
             extra_msgs = []  # these will be displayed as a list in the email to the user
-            action = 'updated' if form.instance.id else 'created'
+            action = 'updated' if pre_save_booking else 'created'
             transfer_block_created = False
-            block_removed = False
 
             if 'status' in form.changed_data and action == 'updated':
                 if booking.status == 'CANCELLED':
-                    if booking.block:
-                        booking.block = None
-                        block_removed = True
-                    elif booking.paid \
+                    # create transfer block for paid, non-block, non-membership bookings
+                    if pre_save_booking.paid \
+                            and not had_membership_or_block \
                             and booking.event.event_type.event_type != 'EV':
-                        block_type = BlockType.get_transfer_block_type(booking.event.event_type )
+                        block_type = BlockType.get_transfer_block_type(booking.event.event_type)
                         Block.objects.create(
                             block_type=block_type, user=booking.user,
                             transferred_booking_id=booking.id
@@ -626,22 +536,9 @@ def process_user_booking_updates(form, request):
 
                 extra_msgs.append("Booking status changed to {}".format(action))
 
-            elif 'no_show' in form.changed_data and action == 'updated' and booking.status == 'OPEN':
+            elif 'no_show' in form.changed_data and action == 'updated' and pre_save_booking.status == 'OPEN':
                 action = 'cancelled' if booking.no_show else 'reopened'
                 extra_msgs.append("Booking {} as 'no-show'".format(action))
-
-            if booking.block:
-                booking.paid = True
-                booking.payment_confirmed = True
-            elif 'block' in form.changed_data:
-                booking.block = None
-                booking.paid = False
-                booking.payment_confirmed = False
-
-            # check for existence of free child block on pre-saved booking
-            has_free_block_pre_save = False
-            if booking.block and booking.block.children.exists():
-                has_free_block_pre_save = True
 
             if 'deposit_paid' in form.changed_data:
                 if booking.deposit_paid:
@@ -657,45 +554,63 @@ def process_user_booking_updates(form, request):
                     )
                 else:
                     booking.payment_confirmed = False
+            
+            if not booking.block and 'block' in form.changed_data:
+                if booking.membership:
+                    messages.info(
+                        request,
+                        f'Payment method changed from block to membership for {booking.event}',
+                    )
+                else:
+                    booking.paid = False
+                    booking.payment_confirmed = False
+                    messages.info(
+                    request,
+                    f'Block removed for {booking.event}; booking is now marked as unpaid'
+                )
+            
+            if not booking.membership and 'membership' in form.changed_data:
+                if booking.block:
+                    messages.info(
+                        request,
+                        f'Payment method changed from membership to block for {booking.event}',
+                    )
+                else:
+                    booking.paid = False
+                    booking.payment_confirmed = False
+                    messages.info(
+                        request,
+                        f'Membership removed for {booking.event}; booking is now marked as unpaid'
+                    )
 
             booking.save()
 
             set_as_free = 'free_class' in form.changed_data and booking.free_class
 
+            send_confirmation_msg = ""
             if 'send_confirmation' in form.changed_data:
-                try:
-                    # send confirmation email
-                    host = 'http://{}'.format(request.META.get('HTTP_HOST'))
-                    # send email to studio
-                    ctx = {
-                        'host': host,
-                        'event': booking.event,
-                        'user': booking.user,
-                        'action': action,
-                        'set_as_free': set_as_free,
-                        'extra_msgs': extra_msgs
-                    }
-                    send_mail('{} Your booking for {} has been {}'.format(
-                        settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event, action
-                        ),
-                        get_template('studioadmin/email/booking_change_confirmation.txt').render(ctx),
-                        settings.DEFAULT_FROM_EMAIL,
-                        [booking.user.email],
-                        html_message=get_template(
-                            'studioadmin/email/booking_change_confirmation.html'
-                            ).render(ctx),
-                        fail_silently=False)
-                    send_confirmation_msg = "and confirmation " \
-                    "email sent to user"
-                except Exception as e:
-                    # send mail to tech support with Exception
-                    send_support_email(
-                        e,  __name__,  "user_booking_list - send confirmation email"
-                    )
-                    send_confirmation_msg = ". There was a problem sending the confirmation email to the " \
-                    "user.  Tech support has been notified."
-            else:
-                send_confirmation_msg = ""
+                # send confirmation email
+                host = 'http://{}'.format(request.META.get('HTTP_HOST'))
+                # send email to studio
+                ctx = {
+                    'host': host,
+                    'event': booking.event,
+                    'user': booking.user,
+                    'action': action,
+                    'set_as_free': set_as_free,
+                    'extra_msgs': extra_msgs
+                }
+                send_mail('{} Your booking for {} has been {}'.format(
+                    settings.ACCOUNT_EMAIL_SUBJECT_PREFIX, booking.event, action
+                    ),
+                    get_template('studioadmin/email/booking_change_confirmation.txt').render(ctx),
+                    settings.DEFAULT_FROM_EMAIL,
+                    [booking.user.email],
+                    html_message=get_template(
+                        'studioadmin/email/booking_change_confirmation.html'
+                        ).render(ctx),
+                    fail_silently=False)
+                send_confirmation_msg = "and confirmation email sent to user"
 
             messages.success(
                 request,
@@ -717,20 +632,13 @@ def process_user_booking_updates(form, request):
                 )
             )
 
-            if not booking.block and 'block' in form.changed_data:
-                 messages.info(
-                     request,
-                     'Block removed for {}; booking is now marked as '
-                     'unpaid'.format(booking.event),
-                 )
-
             if action == 'reopened':
                 messages.info(
                     request,
                     mark_safe(
                         'Note: this booking was previously cancelled and has now been reopened. '
                         '<span class="cancel-warning">Payment status has not been automatically '
-                        'updated. Please review the booking and update if paid and/or block used.</span>'
+                        'updated. Please review the booking and update if paid.</span>'
                     )
                 )
             elif action == 'cancelled':
@@ -746,11 +654,11 @@ def process_user_booking_updates(form, request):
                             )
                         )
                     )
-                elif block_removed:
+                elif had_membership_or_block:
                     messages.info(
                         request,
                         'Note: this booking has been cancelled. The booking has automatically been marked as '
-                        'unpaid and the block used has been updated.'
+                        'unpaid and the block/membership used has been updated.'
                     )
                 else:
                     messages.info(
@@ -761,32 +669,25 @@ def process_user_booking_updates(form, request):
                     event=booking.event
                 )
                 if waiting_list_users:
-                        try:
-                            send_waiting_list_email(
-                                booking.event,
-                                [wluser.user for \
-                                    wluser in waiting_list_users],
-                                host='http://{}'.format(
-                                    request.META.get('HTTP_HOST')
-                                )
-                            )
-                            ActivityLog.objects.create(
-                                log='Waiting list email sent to '
-                                'user(s) {} for event {}'.format(
-                                    ',  '.join(
-                                        [wluser.user.username \
-                                            for wluser in \
-                                            waiting_list_users]
-                                    ),
-                                    booking.event
-                                )
-                            )
-                        except Exception as e:
-                            # send mail to tech support with Exception
-                            send_support_email(
-                                e,  __name__,
-                                "Studioadmin user booking list - waiting list email"
-                            )
+                    send_waiting_list_email(
+                        booking.event,
+                        [wluser.user for \
+                            wluser in waiting_list_users],
+                        host='http://{}'.format(
+                            request.META.get('HTTP_HOST')
+                        )
+                    )
+                    ActivityLog.objects.create(
+                        log='Waiting list email sent to '
+                        'user(s) {} for event {}'.format(
+                            ',  '.join(
+                                [wluser.user.username \
+                                    for wluser in \
+                                    waiting_list_users]
+                            ),
+                            booking.event
+                        )
+                    )
 
             if action == 'created' or action == 'reopened':
                 try:
@@ -802,14 +703,6 @@ def process_user_booking_updates(form, request):
                 except WaitingListUser.DoesNotExist:
                     pass
 
-            if booking.block and not booking.block.active_block():
-                if booking.block.children.exists() \
-                        and not has_free_block_pre_save:
-                     messages.info(
-                         request,
-                        'You have added the last booking to a block that assigns a free class on completion; free class '
-                        'block has been created.'
-                     )
     else:
         messages.info(request, 'No changes made')
 
@@ -851,4 +744,15 @@ def toggle_permission(request,  user_id, allowed_group_id):
         request,
         "studioadmin/includes/toggle_permission_button.html",
         {"user": user_to_change, "allowed_group": allowed_group}
+    )
+
+
+def user_memberships_list(request, user_id):
+    user = get_object_or_404(User,  id=user_id)
+    template = 'studioadmin/user_memberships_list.html'
+    return TemplateResponse(
+        request,  template,  {
+            'user': user, 
+            'sidenav_selection': 'users',
+        }
     )

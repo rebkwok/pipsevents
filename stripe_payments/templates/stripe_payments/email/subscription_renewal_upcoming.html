@@ -1,0 +1,11 @@
+{% extends 'email_base.html' %}
+
+{% block messagecontent %}
+<h2>Your membership will renew soon</h2>
+<p><strong>Your membership:</strong> {{ user_membership.membership.name }}</p>
+<p>This is a reminder that your membership will automatically renew on the 25th of this
+    month. You do not need to take any action (but you may want to review your payment
+    method and check it is up to date.)    
+</p>
+<p>View your memberships <a href="{{ host }}/memberships/">here</a></p>
+{% endblock %}

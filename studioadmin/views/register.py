@@ -21,7 +21,6 @@ from braces.views import LoginRequiredMixin
 
 from booking.email_helpers import send_waiting_list_email
 from booking.models import Event, Booking, Block, BlockType, WaitingListUser
-from booking.views.views_utils import _get_active_user_block
 from studioadmin.forms import StatusFilter,  RegisterDayForm, AddRegisterBookingForm
 from studioadmin.views.helpers import is_instructor_or_staff, \
     InstructorOrStaffUserMixin
@@ -325,15 +324,24 @@ def process_event_booking_updates(form, event, request):
             booking.instructor_confirmed_no_show = False
             action = 'reopened'
 
-        if not booking.block:  # reopened no-show could already have block
-            active_block = _get_active_user_block(booking.user, booking)
-            if booking.has_available_block:
-                booking.block = active_block
+        # reopened no-show could already have block or membership
+        if not (booking.block or booking.membership):
+            active_membership = booking.get_next_active_user_membership()
+            if active_membership is not None:
+                booking.membership = active_membership
                 booking.paid = True
                 booking.payment_confirmed = True
+            else:
+                active_block = booking.get_next_active_block()
+                if active_block is not None:
+                    booking.block = active_block
+                    booking.paid = True
+                    booking.payment_confirmed = True
 
         if booking.block:  # check after assignment
             extra_msg = "Available block assigned."
+        if booking.membership:  # check after assignment
+            extra_msg = "Available membership used."
 
         booking.save()
 
@@ -361,88 +369,6 @@ def process_event_booking_updates(form, event, request):
             )
         except WaitingListUser.DoesNotExist:
             pass
-
-
-@login_required
-@is_instructor_or_staff
-@require_http_methods(['GET', 'POST'])
-def ajax_assign_block(request, booking_id):
-    booking = get_object_or_404(Booking, pk=booking_id)
-    # Allow get for post-success call after updating paid status
-    alert_msg = {}
-
-    if request.method == 'POST':
-        if booking.paid:
-            if not booking.block:
-                alert_msg = {
-                    'status': 'error', 'msg': 'Booking is already marked as paid; uncheck "Paid" checkbox and try again.'
-                }
-            else:
-                alert_msg = {
-                    'status': 'warning', 'msg': 'Block already assigned.'
-                }
-        else:
-            available_block = _get_active_user_block(booking.user, booking)
-            if available_block:
-                booking.block = available_block
-                booking.paid = True
-                booking.payment_confirmed = True
-                booking.save()
-                alert_msg = {
-                        'status': 'success', 'msg': 'Block assigned.'
-                    }
-            else:
-                alert_msg = {
-                    'status': 'error',
-                    'msg': 'No available block to assign.'
-                }
-
-    context = {
-        'booking': booking, 'alert_msg': alert_msg,
-        'available_block_type': True  # always True if we're calling this view
-    }
-
-    return render(request, 'studioadmin/includes/register_block.html', context)
-
-
-@login_required
-@is_instructor_or_staff
-@require_http_methods(['GET', 'POST'])
-def ajax_toggle_paid(request, booking_id):
-    booking = get_object_or_404(Booking, pk=booking_id)
-    # Allow get for post-success call after updating block status
-    alert_msg = {}
-
-    if request.method == 'POST':
-        initial_state = booking.paid
-        booking.paid = not initial_state
-        booking.payment_confirmed = not initial_state
-
-        if initial_state is True:
-
-            if booking.free_class:
-                booking.free_class = False
-
-            if booking.block:
-                booking.block = None
-                alert_msg = {'status': 'warning', 'msg': 'Booking set to unpaid and block unassigned.'}
-            else:
-                alert_msg = {'status': 'success', 'msg': 'Booking set to unpaid.'}
-        else:
-            if booking.has_available_block:
-                alert_msg = {'status': 'warning', 'msg': 'Booking set to paid. Available block NOT assigned.'}
-            else:
-                alert_msg = {'status': 'success', 'msg': 'Booking set to paid.'}
-
-        booking.save()
-
-    return JsonResponse(
-        {
-            'paid': booking.paid,
-            'has_available_block': not booking.paid and booking.has_available_block,
-            'alert_msg': alert_msg
-        }
-    )
 
 
 @login_required

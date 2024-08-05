@@ -1,17 +1,20 @@
 # -*- coding: utf-8 -*-
-
 from datetime import timedelta
+from unittest.mock import patch
+
 from model_bakery import baker
 
 from django.conf import settings
+from django.contrib.sites.models import Site
 from django.test import TestCase
 from django.utils import timezone
 
 from booking.models import Event, BlockType
 from common.tests.helpers import PatchRequestMixin
+from stripe_payments.tests.mock_connector import MockConnector
 from studioadmin.forms import AddBookingForm, ChooseUsersFormSet, \
     EditBookingForm, EditPastBookingForm, \
-    EmailUsersForm, UserFilterForm, UserBookingFormSet, UserBlockFormSet
+    EmailUsersForm, UserFilterForm, UserBlockFormSet
 
 
 class ChooseUsersFormSetTests(TestCase):
@@ -117,295 +120,6 @@ class UserFilterFormTests(TestCase):
             for event in Event.objects.filter(id__in=lesson_ids)
             ])
         self.assertEqual(event_type, set(['CL']))
-
-
-class UserBookingFormSetTests(PatchRequestMixin, TestCase):
-
-    def setUp(self):
-        super(UserBookingFormSetTests, self).setUp()
-        self.event = baker.make_recipe('booking.future_EV')
-        self.user = baker.make_recipe('booking.user')
-        self.block_type = baker.make_recipe('booking.blocktype',
-                                       event_type=self.event.event_type)
-        # 5 active blocks for other users
-        baker.make_recipe(
-                    'booking.block',
-                    block_type=self.block_type,
-                    paid=True,
-                    _quantity=5
-                    )
-        self.booking = baker.make_recipe(
-            'booking.booking', event=self.event, user=self.user
-        )
-
-    def formset_data(self, extra_data={}):
-
-        data = {
-            'bookings-TOTAL_FORMS': 1,
-            'bookings-INITIAL_FORMS': 1,
-            'bookings-0-id': self.booking.id,
-            'bookings-0-event': self.event.id,
-            'bookings-0-status': self.booking.status,
-            }
-
-        for key, value in extra_data.items():
-            data[key] = value
-
-        return data
-
-    def test_form_valid(self):
-        formset = UserBookingFormSet(data=self.formset_data(),
-                                     instance=self.user,
-                                     user=self.user)
-        self.assertTrue(formset.is_valid(), formset.errors)
-
-    def test_additional_data_in_form(self):
-        baker.make_recipe('booking.block',
-                                        block_type=self.block_type,
-                                        user=self.user,
-                                        paid=True)
-
-        formset = UserBookingFormSet(data=self.formset_data(),
-                                     instance=self.user,
-                                     user=self.user)
-        form = formset.forms[0]
-        self.assertTrue(form.has_available_block)
-        self.assertEqual(form.paid_id, 'paid_0')
-
-    def test_block_queryset_with_new_form(self):
-        """
-        New form should show all active user blocks
-        """
-        baker.make_recipe(
-            'booking.block', block_type=self.block_type, user=self.user,
-            paid=True
-        )
-        baker.make_recipe( 'booking.block', user=self.user, paid=True)
-
-        formset = UserBookingFormSet(instance=self.user,
-                                     user=self.user)
-        # get the last form, which will be the new empty one
-        form = formset.forms[-1]
-        block = form.fields['block']
-        # queryset shows only the two active blocks for this user
-        self.assertEqual(2, block.queryset.count())
-
-    def test_block_queryset_with_existing_booking_with_active_user_block(self):
-        """
-        Existing booking should show only user's active blocks for the
-        same event type.
-        """
-        active_user_block = baker.make_recipe('booking.block',
-                                        block_type=self.block_type,
-                                        user=self.user,
-                                        paid=True)
-        active_user_block_diff_type = baker.make_recipe('booking.block',
-                                         user=self.user,
-                                         paid=True)
-
-        formset = UserBookingFormSet(data=self.formset_data(),
-                                     instance=self.user,
-                                     user=self.user)
-        # get the first form
-        form = formset.forms[0]
-        block = form.fields['block']
-        # queryset shows only the active blocks for this user and event type
-        self.assertEqual(1, block.queryset.count())
-
-        # empty_label shows the "None"
-        self.assertEqual(
-            block.empty_label,
-            "--------None--------",
-        )
-
-        # assign this block to the user's booking
-        self.booking.block = active_user_block
-        self.booking.save()
-
-        formset = UserBookingFormSet(data=self.formset_data(),
-                                     instance=self.user,
-                                     user=self.user)
-        # get the first form
-        form = formset.forms[0]
-        block = form.fields['block']
-        # queryset still only shows active blocks for this user and event type
-        self.assertEqual(1, block.queryset.count())
-
-        # empty_label shows the "Remove block" instruction
-        self.assertEqual(
-            block.empty_label,
-            "---REMOVE BLOCK (TO CHANGE BLOCK, REMOVE AND SAVE FIRST)---",
-        )
-
-    def test_block_queryset_with_existing_booking_no_active_user_block(self):
-
-        active_user_block_diff_type = baker.make_recipe('booking.block',
-                                         user=self.user,
-                                         paid=True)
-        formset = UserBookingFormSet(data=self.formset_data(),
-                                     instance=self.user,
-                                     user=self.user)
-        # get the first form
-        form = formset.forms[0]
-        block = form.fields['block']
-        # no active blocks for this user and event type
-        self.assertEqual(0, block.queryset.count())
-
-    def test_block_choice_label_format(self):
-        active_user_block = baker.make_recipe('booking.block',
-                                        block_type=self.block_type,
-                                        user=self.user,
-                                        paid=True)
-
-        formset = UserBookingFormSet(data=self.formset_data(),
-                                     instance=self.user,
-                                     user=self.user)
-        # get the first form
-        form = formset.forms[0]
-        block = form.fields['block']
-        # queryset shows only the active blocks for this user and event type
-        self.assertEqual(1, block.queryset.count())
-        self.assertEqual(
-                    "{}; exp {}; {} left".format(
-                        active_user_block.block_type.event_type.subtype,
-                        active_user_block.expiry_date.strftime('%d/%m'),
-                        active_user_block.block_type.size - active_user_block.bookings_made()),
-                    block.label_from_instance(active_user_block)
-                    )
-
-    def test_event_choices_with_new_form(self):
-        """
-        New form should show all events the user is not booked for
-        """
-
-        events = baker.make_recipe('booking.future_PC', _quantity=5)
-        formset = UserBookingFormSet(instance=self.user,
-                                     user=self.user)
-        # get the last form, which will be the new empty one
-        form = formset.forms[-1]
-        event = form.fields['event']
-        # queryset shows only the two active blocks for this user
-        self.assertEqual(6, Event.objects.count())
-        self.assertEqual(5, event.queryset.count())
-        self.assertFalse(self.event in event.queryset)
-
-    def test_event_choices_with_existing_booking(self):
-        """
-        Existing booking should show all events in event choices
-        ).
-        """
-        events = baker.make_recipe('booking.future_PC', _quantity=5)
-        formset = UserBookingFormSet(data=self.formset_data(),
-                                     instance=self.user,
-                                     user=self.user)
-        # get the first form
-        form = formset.forms[0]
-        event = form.fields['event']
-        # queryset shows all events (will be hidden in the template)
-        self.assertEqual(6, event.queryset.count())
-
-    def test_widgets_disabled(self):
-        """
-        Cancelled: no_show widget, paid, deposit_paid, free_class disabled
-        Block: paid, deposit_paid, free_class disabled
-        No-show: no_show widget, paid, deposit_paid, free_class enabled but
-            greyed
-        No-show with block: no_show widget enabled but greyed, paid,
-            deposit_paid, free_class disabled
-        """
-        events = baker.make_recipe('booking.future_PC', _quantity=4)
-        user = baker.make_recipe('booking.user')
-        block = baker.make_recipe(
-            'booking.block', user=user,
-            block_type__event_type=events[1].event_type
-        )
-        cancelled_booking = baker.make_recipe(
-            'booking.booking', user=user, event=events[0], paid=True,
-            payment_confirmed=True, status='CANCELLED'
-        )
-        block_booking = baker.make_recipe(
-            'booking.booking', user=user, event=events[1], paid=True,
-            payment_confirmed=True, status='OPEN', block=block
-        )
-        no_show_booking = baker.make_recipe(
-            'booking.booking', user=user, event=events[2], paid=True,
-            payment_confirmed=True, status='OPEN', no_show=True
-        )
-        no_show_block_booking = baker.make_recipe(
-            'booking.booking', user=user, event=events[3], paid=True,
-            payment_confirmed=True, status='OPEN', block=block, no_show=True
-        )
-        data = {
-            'bookings-TOTAL_FORMS': 4,
-            'bookings-INITIAL_FORMS': 4,
-            'bookings-0-id': cancelled_booking.id,
-            'bookings-0-event': cancelled_booking.event.id,
-            'bookings-0-status': cancelled_booking.status,
-            'bookings-1-id': block_booking.id,
-            'bookings-1-event': block_booking.event.id,
-            'bookings-1-status': block_booking.status,
-            'bookings-2-id': no_show_booking.id,
-            'bookings-2-event': no_show_booking.event.id,
-            'bookings-2-status': no_show_booking.status,
-            'bookings-3-id': no_show_block_booking.id,
-            'bookings-3-event': no_show_block_booking.event.id,
-            'bookings-3-status': no_show_block_booking.status,
-            }
-
-        formset = UserBookingFormSet(
-            data=data, instance=user, user=self.user
-        )
-        cancelled_form = formset.forms[0]
-        for field in ['no_show', 'paid', 'deposit_paid', 'free_class']:
-            self.assertEqual(
-                cancelled_form.fields[field].widget.attrs['class'],
-                'regular-checkbox regular-checkbox-disabled'
-            )
-            self.assertEqual(
-                cancelled_form.fields[field].widget.attrs['OnClick'],
-                'javascript:return ReadOnlyCheckBox()'
-            )
-
-        block_form = formset.forms[1]
-        for field in ['paid', 'deposit_paid', 'free_class']:
-            self.assertEqual(
-                block_form.fields[field].widget.attrs['class'],
-                'regular-checkbox regular-checkbox-disabled'
-            )
-            self.assertEqual(
-                block_form.fields[field].widget.attrs['OnClick'],
-                'javascript:return ReadOnlyCheckBox()'
-            )
-        self.assertEqual(
-            block_form.fields['no_show'].widget.attrs['class'], 'form-check-input'
-        )
-
-        no_show_form = formset.forms[2]
-        for field in ['no_show', 'paid', 'deposit_paid', 'free_class']:
-            self.assertEqual(
-                no_show_form.fields[field].widget.attrs['class'],
-                'regular-checkbox regular-checkbox-disabled'
-            )
-            self.assertIsNone(
-                no_show_form.fields[field].widget.attrs.get('OnClick', None)
-            )
-
-        no_show_block_form = formset.forms[3]
-        for field in ['paid', 'deposit_paid', 'free_class']:
-            self.assertEqual(
-                no_show_block_form.fields[field].widget.attrs['class'],
-                'regular-checkbox regular-checkbox-disabled'
-            )
-            self.assertEqual(
-                no_show_block_form.fields[field].widget.attrs['OnClick'],
-                'javascript:return ReadOnlyCheckBox()'
-            )
-        self.assertEqual(
-            block_form.fields['no_show'].widget.attrs['class'], 'form-check-input'
-        )
-        self.assertIsNone(
-                no_show_form.fields['no_show'].widget.attrs.get('OnClick', None)
-            )
 
 
 class UserBlockFormSetTests(PatchRequestMixin, TestCase):
@@ -537,6 +251,7 @@ class EditPastBookingFormTests(PatchRequestMixin, TestCase):
 
     def setUp(self):
         super(EditPastBookingFormTests, self).setUp()
+        baker.make("stripe_payments.Seller", site=Site.objects.get_current())
         self.event = baker.make_recipe('booking.past_event')
         self.cancelled_event = baker.make_recipe(
             'booking.past_event', cancelled=True
@@ -743,7 +458,7 @@ class EditPastBookingFormTests(PatchRequestMixin, TestCase):
         self.assertFalse(form.is_valid())
         self.assertEqual(
             form.errors,
-            {'free_class': ['Free class cannot be assigned to a block.']}
+            {'free_class': ['Free class cannot be assigned to a block/membership.']}
         )
 
     def test_cannot_assign_cancelled_class_to_block(self):
@@ -766,8 +481,7 @@ class EditPastBookingFormTests(PatchRequestMixin, TestCase):
             form.errors,
             {
                 'block': [
-                    'Cannot assign cancelled booking to a block. To assign '
-                    'to block, please also change booking status to OPEN.'
+                    'Cannot assign cancelled booking to a block/membership.'
                 ]
             }
         )
@@ -787,6 +501,7 @@ class EditPastBookingFormTests(PatchRequestMixin, TestCase):
             'block': self.booking.block.id
         }
         form = EditBookingForm(instance=self.booking, data=data)
+        assert form.fields["paid"].disabled
         assert form.is_valid()
         # paid field in posted data is ignored
         assert form.cleaned_data["paid"]
@@ -809,11 +524,38 @@ class EditPastBookingFormTests(PatchRequestMixin, TestCase):
             }
         )
 
+    @patch("booking.models.membership_models.StripeConnector", MockConnector)
+    def test_membership_choices(self):
+        user_membership = baker.make(
+            "booking.UserMembership", membership__name="mem", user=self.user, subscription_status="active",
+            start_date=self.booking.event.date - timedelta(3)
+        )
+        baker.make(
+            "booking.MembershipItem", 
+            membership=user_membership.membership, 
+            event_type=self.booking.event.event_type, quantity=3
+        )
+        cancelled_user_membership = baker.make(
+            "booking.UserMembership", membership__name="mem2", user=self.user, subscription_status="cancelled",
+            start_date=self.booking.event.date - timedelta(3),
+        )
+        baker.make("booking.MembershipItem", membership=cancelled_user_membership.membership, event_type=self.event.event_type, quantity=3)
+        user_membership1 = baker.make("booking.UserMembership", membership__name="mem1", user=self.user, subscription_status="active")
+        self.booking.membership = cancelled_user_membership
+        self.booking.save()
+
+        form = EditPastBookingForm(instance=self.booking)
+        assert not form.is_valid()
+        assert {
+            ch[1] for ch in form.fields["membership"].choices
+         } == {'--------None--------', str(user_membership), str(cancelled_user_membership)}
+        
 
 class EditBookingFormTests(PatchRequestMixin, TestCase):
 
     def setUp(self):
         super(EditBookingFormTests, self).setUp()
+        baker.make("stripe_payments.Seller", site=Site.objects.get_current())
         self.event = baker.make_recipe('booking.future_PC')
         self.cancelled_event = baker.make_recipe(
             'booking.future_PC', cancelled=True
@@ -821,6 +563,9 @@ class EditBookingFormTests(PatchRequestMixin, TestCase):
         self.user = baker.make_recipe('booking.user')
         self.block_type = baker.make_recipe(
             'booking.blocktype5', event_type=self.event.event_type
+        )
+        self.cancelled_event_block_type = baker.make_recipe(
+            'booking.blocktype5', event_type=self.cancelled_event.event_type
         )
         # 5 active blocks for other users
         baker.make_recipe(
@@ -903,11 +648,88 @@ class EditBookingFormTests(PatchRequestMixin, TestCase):
             form.fields['block'].queryset, []
         )
 
+    @patch("booking.models.membership_models.StripeConnector", MockConnector)
+    def test_membership_choices(self):
+        user_membership = baker.make("booking.UserMembership", membership__name="mem", user=self.user, subscription_status="active")
+        baker.make("booking.MembershipItem", membership=user_membership.membership, event_type=self.event.event_type, quantity=3)
+        user_membership1 = baker.make("booking.UserMembership", membership__name="mem1", user=self.user, subscription_status="active")
+        user_membership2 = baker.make("booking.UserMembership", membership__name="mem2", user=self.user, subscription_status="cancelled")
+        
+        form = EditBookingForm(instance=self.booking)
+        assert not form.is_valid()
+        assert {
+            ch[1] for ch in form.fields["membership"].choices
+         } == {'--------None--------', str(user_membership)}
+
+
+    @patch("booking.models.membership_models.StripeConnector", MockConnector)
+    def test_membership_and_block(self):
+        user_membership = baker.make("booking.UserMembership", membership__name="mem", user=self.user, subscription_status="active")
+        baker.make("booking.MembershipItem", membership=user_membership.membership, event_type=self.event.event_type, quantity=3)
+        block = baker.make_recipe(
+            'booking.block', block_type=self.block_type, paid=True, user=self.user
+        )
+
+        data = {
+            "id": self.booking.id,
+            'paid': self.booking.paid,
+            'status': self.booking.status,
+            'attended': self.booking.attended,
+            'no_show': self.booking.no_show,
+            "block": block.id,
+            "membership": user_membership.id,
+        }
+
+        form = EditBookingForm(instance=self.booking, data=data)
+        assert not form.is_valid()
+        assert form.errors == {'__all__': ['Select a membership OR block to use (not both)']}
+
+    @patch("booking.models.membership_models.StripeConnector", MockConnector)
+    def test_membership_block_for_cancelled_event_booking(self):
+        user_membership = baker.make("booking.UserMembership", membership__name="mem", user=self.user, subscription_status="active")
+        baker.make("booking.MembershipItem", membership=user_membership.membership, event_type=self.cancelled_event.event_type, quantity=3)
+        block = baker.make_recipe(
+            'booking.block', block_type=self.cancelled_event_block_type, paid=True, user=self.user
+        )
+
+        data = {
+            "id": self.booking_for_cancelled.id,
+            'paid': self.booking_for_cancelled.paid,
+            'status': self.booking_for_cancelled.status,
+            'attended': self.booking_for_cancelled.attended,
+            'no_show': self.booking_for_cancelled.no_show,
+            "membership": user_membership.id,
+        }
+
+        form = EditBookingForm(instance=self.booking_for_cancelled, data=data)
+        assert not form.is_valid()
+        assert list(form.errors.keys()) == ["membership"]
+        error = form.errors["membership"][0]
+        assert "is cancelled" in error
+        assert "Cannot assign booking to a membership." in error
+
+        data = {
+            "id": self.booking_for_cancelled.id,
+            'paid': self.booking_for_cancelled.paid,
+            'status': self.booking_for_cancelled.status,
+            'attended': self.booking_for_cancelled.attended,
+            'no_show': self.booking_for_cancelled.no_show,
+            "block": block.id,
+        }
+
+        form = EditBookingForm(instance=self.booking_for_cancelled, data=data)
+        assert not form.is_valid()
+        assert list(form.errors.keys()) == ["block"]
+        error = form.errors["block"][0]
+        assert "is cancelled" in error
+        assert "Cannot assign booking to a block." in error
+
 
 class AddBookingFormTests(PatchRequestMixin, TestCase):
 
     def setUp(self):
         super(AddBookingFormTests, self).setUp()
+        baker.make("stripe_payments.Seller", site=Site.objects.get_current())
         self.event = baker.make_recipe('booking.future_EV', cost=10)
         self.poleclass = baker.make_recipe('booking.future_PC', cost=10)
         self.poleclass1 = baker.make_recipe('booking.future_PC', cost=10)
@@ -1023,7 +845,7 @@ class AddBookingFormTests(PatchRequestMixin, TestCase):
             form.errors,
             {
                 '__all__': [
-                    'A cancelled booking cannot be assigned to a block.'
+                    'A cancelled booking cannot be assigned to a block/membership.'
                 ]
             }
         )
@@ -1106,3 +928,79 @@ class AddBookingFormTests(PatchRequestMixin, TestCase):
                 ],
             },
         )
+
+    @patch("booking.models.membership_models.StripeConnector", MockConnector)
+    def test_cannot_assign_free_class_to_membership(self):
+        user_membership = baker.make("booking.UserMembership", membership__name="mem", user=self.user, subscription_status="active")
+        baker.make("booking.MembershipItem", membership=user_membership.membership, event_type=self.event.event_type, quantity=3)
+
+        data = {
+            'user': self.user.id,
+            'event': self.event.id,
+            'paid': '',
+            'status': 'OPEN',
+            'free_class': True,
+            'membership': user_membership.id
+        }
+        form = AddBookingForm(data=data, user=self.user)
+        assert not form.is_valid()
+        assert form.errors == {'free_class': ['"Free class" cannot be assigned to a membership.']}
+
+    @patch("booking.models.membership_models.StripeConnector", MockConnector)
+    def test_invalid_membership(self):
+        user_membership = baker.make("booking.UserMembership", membership__name="mem", user=self.user)
+
+        data = {
+            'user': self.user.id,
+            'event': self.event.id,
+            'paid': '',
+            'status': 'OPEN',
+            'membership': user_membership.id
+        }
+        form = AddBookingForm(data=data, user=self.user)
+        assert not form.is_valid()
+        assert form.errors == {'membership': ["User's membership is not valid for this event"]}
+
+    @patch("booking.models.membership_models.StripeConnector", MockConnector)
+    def test_cannot_assign_cancelled_class_to_membership(self):
+        user_membership = baker.make("booking.UserMembership", membership__name="mem", user=self.user, subscription_status="active")
+        baker.make("booking.MembershipItem", membership=user_membership.membership, event_type=self.event.event_type, quantity=3)
+
+        data = {
+            'user': self.user.id,
+            'event': self.event.id,
+            'paid': True,
+            'status': 'CANCELLED',
+            'membership': user_membership.id
+        }
+        form = AddBookingForm(data=data, user=self.user)
+        assert not form.is_valid()
+        assert form.errors == {
+                '__all__': [
+                    'A cancelled booking cannot be assigned to a block/membership.'
+                ]
+            }
+
+    @patch("booking.models.membership_models.StripeConnector", MockConnector)
+    def test_cannot_select_block_and_membership(self):
+        block = baker.make_recipe(
+            'booking.block', block_type=self.block_type_ev, paid=True, user=self.user
+        )
+        user_membership = baker.make("booking.UserMembership", membership__name="mem", user=self.user, subscription_status="active")
+        baker.make("booking.MembershipItem", membership=user_membership.membership, event_type=self.event.event_type, quantity=3)
+
+        data = {
+            'user': self.user.id,
+            'event': self.event.id,
+            'paid': '',
+            'status': 'OPEN',
+            'membership': user_membership.id,
+            "block": block.id
+        }
+        form = AddBookingForm(data=data, user=self.user)
+        assert not form.is_valid()
+        assert form.errors == {
+                '__all__': [
+                    'Select a membership OR block to use (not both)'
+                ]
+            }

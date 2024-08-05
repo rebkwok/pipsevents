@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from collections.abc import Iterable
 import logging
-from django.db.models.query import QuerySet
 import pytz
-import shortuuid
 
 from decimal import Decimal
 
@@ -31,10 +28,6 @@ logger = logging.getLogger(__name__)
 
 
 class BlockTypeError(Exception):
-    pass
-
-
-class TicketBookingError(Exception):
     pass
 
 
@@ -245,6 +238,8 @@ class Event(models.Model):
         help_text="Override group allowed to book this event (defaults to same group as the event type)"
     )
 
+    members_only = models.BooleanField(default=False, help_text="Can only be booked by members")
+
     class Meta:
         ordering = ['-date']
         indexes = [
@@ -307,6 +302,8 @@ class Event(models.Model):
         return self.event_type.allowed_group
 
     def has_permission_to_book(self, user):
+        if self.members_only:
+            return user.has_membership()
         return self.allowed_group.has_permission(user)
     
     @property
@@ -388,7 +385,6 @@ class BlockType(models.Model):
     duration_weeks = models.PositiveIntegerField(
         help_text="Number of weeks until block expires", blank=True, null=True)    
     active = models.BooleanField(default=False)
-    assign_free_class_on_completion = models.BooleanField(default=False)
     paypal_email = models.EmailField(
         default="thewatermelonstudio@hotmail.com",
         help_text='Email for the paypal account to be used for payment.  '
@@ -471,7 +467,7 @@ class Block(models.Model):
     )
     parent = models.ForeignKey(
         'self', blank=True, null=True, related_name='children',
-        on_delete=models.CASCADE, help_text="Used for auto-assigned free classes"
+        on_delete=models.CASCADE, help_text="Previously used for auto-assigned free classes; kept for historic reasons"
     )
     transferred_booking_id = models.PositiveIntegerField(blank=True, null=True)
     extended_expiry_date = models.DateTimeField(blank=True, null=True)
@@ -527,13 +523,8 @@ class Block(models.Model):
         # replace block expiry date with very end of day in local time
         # move forwards 1 day and set hrs/min/sec/microsec to 0, then move
         # back 1 sec
-        # For a with a parent block with a parent (free class block),
-        # override blocktype duration to be same as parent's blocktype
         duration = self.block_type.duration
         duration_weeks = self.block_type.duration_weeks
-        if self.parent:
-            duration = self.parent.block_type.duration
-            duration_weeks = self.block_type.duration_weeks
 
         if duration_weeks:
             expiry_datetime = self.start_date + timedelta(weeks=duration_weeks)
@@ -621,15 +612,12 @@ class Block(models.Model):
         # (in case a user leaves a block sitting in basket for a while)
         if self.id:
             pre_save_block = Block.objects.get(id=self.id)
-            if not pre_save_block.paid and self.paid and not self.parent:
+            if not pre_save_block.paid and self.paid:
                 self.start_date = timezone.now()
             # also update expiry date based on revised start date if changed
             if pre_save_block.start_date != self.start_date:
                 self.expiry_date = self.get_expiry_date()
 
-        # if block has parent, make start date same as parent
-        if self.parent:
-            self.start_date = self.parent.start_date
         if self.block_type.cost == 0:
             self.paid = True
 
@@ -677,6 +665,10 @@ class Booking(models.Model):
         Block, related_name='bookings', null=True, blank=True,
         on_delete=models.SET_NULL
         )
+    membership = models.ForeignKey(
+        "booking.UserMembership", related_name='bookings', null=True, blank=True,
+        on_delete=models.SET_NULL
+    )
     status = models.CharField(
         max_length=255, choices=STATUS_CHOICES, default='OPEN'
     )
@@ -761,25 +753,47 @@ class Booking(models.Model):
             return False
         return self.event.can_cancel
 
+    def get_next_active_block(self):
+        """
+        return the active block for this booking with the soonest expiry date
+        """
+        blocks = self.user.blocks.filter(
+            expiry_date__gte=timezone.now(),
+            block_type__event_type=self.event.event_type
+        ).order_by("expiry_date")
+        # already sorted by expiry date, so we can just get the next active one
+        return next(
+            (block for block in blocks if block.active_block()), None
+        )
+
+    def get_next_active_user_membership(self):
+        """
+        return the active block for this booking with the soonest expiry date
+        """
+        memberships = self.user.memberships.filter(
+            subscription_status="active",
+        )
+        # already sorted by expiry date, so we can just get the next active one
+        return next(
+            (membership for membership in memberships if membership.valid_for_event(self.event)), None
+        )
+
     @property
     def has_available_block(self):
-        available_blocks = [
-            block for block in
-            Block.objects.select_related("user", "block_type").filter(
-                user=self.user, block_type__event_type=self.event.event_type
-            )
-            if block.active_block()
-        ]
-        return bool(available_blocks)
+        return any(
+            [
+                block for block in
+                self.user.blocks.filter(block_type__event_type=self.event.event_type, expiry_date__gte=timezone.now())
+                if block.active_block()
+            ]
+        )
 
     @cached_property
     def has_unpaid_block(self):
         available_blocks = [
             block for block in
-            Block.objects.select_related("user", "block_type").filter(
-                user=self.user, block_type__event_type=self.event.event_type
-            )
-            if not block.full and not block.expired and not block.paid
+            self.user.blocks.filter(block_type__event_type=self.event.event_type, paid=False)
+            if not block.full and not block.expired
         ]
         return bool(available_blocks)
 
@@ -787,6 +801,8 @@ class Booking(models.Model):
     def payment_method(self):
         if not self.paid:
             return ""
+        if self.membership:
+            return "Membership"
         if self.block:
             return "Block"
 
@@ -897,31 +913,6 @@ class Booking(models.Model):
         if (cancellation and orig.block) or \
                 (orig and orig.block and not self.block):
             # cancelling a booking from a block or removing booking from block
-            # if block has a used free class, move the booking from the
-            #  free
-            # class to this block, otherwise delete the free class block
-            free_class_block = orig.block.children.first()
-            if free_class_block:
-                if free_class_block.bookings.exists():
-                    free_booking = free_class_block.bookings.first()
-                    free_booking.block = orig.block
-                    free_booking.free_class = False
-                    free_booking.save()
-                    ActivityLog.objects.create(
-                        log="Booking {} cancelled from block {} (user {}); "
-                            "free booking {} moved to parent block".format(
-                            self.id, orig.block.id, self.user.username,
-                            free_booking.id
-                        )
-                    )
-                else:
-                    free_class_block.delete()
-                    ActivityLog.objects.create(
-                        log="Booking {} cancelled from block {} (user {}); unused "
-                            "free class block deleted".format(
-                            self.id, orig.block.id, self.user.username
-                        )
-                    )
             self.block = None
             self.paid = False
             self.payment_confirmed = False
@@ -932,10 +923,7 @@ class Booking(models.Model):
             self.warning_sent = False
             self.date_warning_sent = None
 
-        if self.block and self.block.block_type.identifier == 'free class':
-            self.free_class = True
-
-        if self.free_class or self.block:
+        if self.free_class or self.block or self.membership:
             self.paid = True
             self.payment_confirmed = True
 
@@ -958,41 +946,6 @@ class Booking(models.Model):
         super(Booking, self).save(*args, **kwargs)
 
 
-@receiver(post_save, sender=Booking)
-def update_free_blocks(sender, instance, **kwargs):
-    # saving open booking block booking where block is no longer active (i.e. just
-    # used last in block) and block allows creation of free class on completetion,
-    if instance.status == 'OPEN' \
-        and instance.block \
-            and instance.block.block_type.assign_free_class_on_completion \
-                and instance.block.paid \
-                    and not instance.block.active_block():
-
-        free_blocktype, _ = BlockType.objects.get_or_create(
-            identifier='free class', event_type=instance.block.block_type.event_type,
-            defaults={
-                'size': 1, 'cost': 0, 'duration': 1, 'active': False,
-                'assign_free_class_on_completion': False
-            }
-        )
-
-        # User just used last block in block that credits free classes on completion;
-        # check for free class block, add one if doesn't exist already (unless block has already expired)
-        if not instance.block.children.exists() and not instance.block.expired:
-            free_block = Block.objects.create(
-                user=instance.user, parent=instance.block,
-                block_type=free_blocktype
-            )
-            ActivityLog.objects.create(
-                log='Free class block created with booking {}. '
-                    'Block id {}, parent block id {}, user {}'.format(
-                        instance.id,
-                        free_block.id, instance.block.id,
-                        instance.user.username
-                    )
-            )
-
-
 class WaitingListUser(models.Model):
     """
     A model to represent a single user on a waiting list for an event
@@ -1012,209 +965,6 @@ class WaitingListUser(models.Model):
         ]
 
 
-class TicketedEvent(models.Model):
-    name = models.CharField(max_length=255)
-    description = models.TextField(blank=True, default="")
-    date = models.DateTimeField()
-    location = models.CharField(max_length=255, default="Watermelon Studio")
-    max_tickets = models.PositiveIntegerField(
-        null=True, blank=True,
-        help_text="Leave blank if no max number"
-    )
-    contact_person = models.CharField(max_length=255, default="Gwen Holbrey")
-    contact_email = models.EmailField(default=settings.DEFAULT_STUDIO_EMAIL)
-    ticket_cost = models.DecimalField(default=0, max_digits=8, decimal_places=2)
-    advance_payment_required = models.BooleanField(default=True)
-    show_on_site = models.BooleanField(
-        default=True, help_text="Tick to show on the site and allow ticket bookings")
-    payment_open = models.BooleanField(default=True)
-    payment_info = models.TextField(blank=True)
-    payment_due_date = models.DateTimeField(
-        null=True, blank=True,
-        help_text='Tickets that are not paid by the payment due date '
-                  'will be automatically cancelled (a warning email will be '
-                  'sent to users first).')
-    payment_time_allowed = models.PositiveIntegerField(
-        null=True, blank=True,
-        help_text="Number of hours allowed for payment after booking (after "
-                  "this ticket purchases will be cancelled.  Note that the "
-                  "automatic cancel job allows 6 hours after booking, so "
-                  "6 hours is the minimum time that will be applied."
-    )
-    email_studio_when_purchased = models.BooleanField(default=False)
-    max_ticket_purchase = models.PositiveIntegerField(
-        null=True, blank=True,
-        help_text="Limit the number of tickets that can be "
-                             "purchased at one time"
-    )
-    extra_ticket_info_label = models.CharField(
-        max_length=255, blank=True, default=''
-    )
-    extra_ticket_info_help = models.CharField(
-        max_length=255, blank=True, default='',
-        help_text="Description/details/help text to display under the extra "
-                  "info field"
-    )
-    extra_ticket_info_required = models.BooleanField(
-        default=False,
-        help_text="Tick if this information is mandatory when booking tickets"
-    )
-    extra_ticket_info1_label = models.CharField(
-        max_length=255, blank=True, default=''
-    )
-    extra_ticket_info1_help = models.CharField(
-        max_length=255, blank=True, default='',
-        help_text="Description/details/help text to display under the extra "
-                  "info field"
-    )
-    extra_ticket_info1_required = models.BooleanField(
-        default=False,
-        help_text="Tick if this information is mandatory when booking tickets"
-    )
-    cancelled = models.BooleanField(default=False)
-    slug = AutoSlugField(populate_from='name', max_length=40, unique=True)
-    paypal_email = models.EmailField(
-        default="thewatermelonstudio@hotmail.com",
-        help_text='Email for the paypal account to be used for payment.  '
-                  'Check this carefully!'
-    )
-
-    class Meta:
-        ordering = ['-date']
-
-    def tickets_left(self):
-        if self.max_tickets:
-            ticket_bookings = TicketBooking.objects.filter(
-                ticketed_event__id=self.id, cancelled=False,
-                purchase_confirmed=True
-            )
-            booked_number = Ticket.objects.filter(
-                ticket_booking__in=ticket_bookings
-            ).count()
-            return self.max_tickets - booked_number
-        else:
-            # if there is no max_tickets, return an unfeasibly high number
-            return 10000
-
-    def bookable(self):
-        return self.tickets_left() > 0
-
-    def __str__(self):
-        return '{} - {}'.format(
-            str(self.name),
-            self.date.astimezone(
-                pytz.timezone('Europe/London')
-            ).strftime('%d %b %Y, %H:%M')
-        )
-
-    def save(self, *args, **kwargs):
-        if not self.ticket_cost:
-            self.advance_payment_required = False
-            self.payment_open = False
-            self.payment_due_date = None
-            self.payment_time_allowed = None
-        if self.payment_due_date:
-            # replace time with very end of day
-            # move forwards 1 day and set hrs/min/sec/microsec to 0, then move
-            # back 1 sec
-            next_day = (self.payment_due_date + timedelta(
-                days=1)).replace(
-                hour=0, minute=0, second=0, microsecond=0
-            )
-            self.payment_due_date = next_day - timedelta(seconds=1)
-            # if a payment due date is set, make sure advance_payment_required is
-            # set to True
-            self.advance_payment_required = True
-        if self.payment_time_allowed:
-            self.advance_payment_required = True
-        super(TicketedEvent, self).save(*args, **kwargs)
-
-
-class TicketedEventWaitingListUser(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="ticketed_event_waiting_lists")
-    ticketed_event = models.ForeignKey(
-        TicketedEvent, related_name="waiting_list_users", on_delete=models.CASCADE
-    )
-    date_joined = models.DateTimeField(default=timezone.now)
-
-    def __str__(self):
-        return f"{self.user.username} - {self.ticketed_event}"
-
-
-class TicketBooking(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="ticket_bookings")
-    ticketed_event = models.ForeignKey(
-        TicketedEvent, related_name="ticket_bookings", on_delete=models.CASCADE
-    )
-    date_booked = models.DateTimeField(default=timezone.now)
-    paid = models.BooleanField(default=False)
-
-    # cancelled flag so we can cancel unpaid ticket purchases
-    # do not allow reopening of cancelled ticket bookings
-    cancelled = models.BooleanField(default=False)
-
-    # Flags for email reminders and warnings
-    reminder_sent = models.BooleanField(default=False)
-    warning_sent = models.BooleanField(default=False)
-    date_warning_sent = models.DateTimeField(null=True, blank=True)
-
-    booking_reference = models.CharField(max_length=255)
-    purchase_confirmed = models.BooleanField(default=False)
-
-    # stripe payments
-    invoice = models.ForeignKey("stripe_payments.Invoice", on_delete=models.SET_NULL, null=True, blank=True, related_name="ticket_bookings")
-    checkout_time = models.DateTimeField(null=True, blank=True)
-
-    def set_booking_reference(self):
-        self.booking_reference = shortuuid.ShortUUID().random(length=22)
-
-    def mark_checked(self):
-        self.checkout_time = timezone.now()
-        self.save()
-
-    @property
-    def cost(self):
-        return Decimal(
-            self.ticketed_event.ticket_cost * self.tickets.count()
-        ).quantize(Decimal(".01"))
-
-    def __str__(self):
-        return 'Booking ref {} - {} - {}'.format(
-            self.booking_reference, self.ticketed_event.name, self.user.username
-        )
-
-    def save(self, *args, **kwargs):
-        if self.pk is None:
-            if self.ticketed_event.tickets_left() <= 0:
-                raise TicketBookingError(
-                    'No tickets left for {}'.format(self.ticketed_event)
-                )
-            self.set_booking_reference()
-        if self.warning_sent and not self.date_warning_sent:
-            self.date_warning_sent = timezone.now()
-        super(TicketBooking, self).save(*args, **kwargs)
-
-
-class Ticket(models.Model):
-    extra_ticket_info = models.TextField(blank=True, default='')
-    extra_ticket_info1 = models.TextField(blank=True, default='')
-    ticket_booking = models.ForeignKey(
-        TicketBooking, related_name="tickets", on_delete=models.CASCADE
-    )
-
-    def save(self, *args, **kwargs):
-        # raise error for each ticket creation also if we try to book for a
-        #  full event
-        if self.pk is None:
-            if self.ticket_booking.ticketed_event.tickets_left() <= 0:
-                raise TicketBookingError(
-                    'No tickets left for {}'.format(
-                        self.ticket_booking.ticketed_event
-                    )
-                )
-        super(Ticket, self).save(*args, **kwargs)
-
-
 class BaseVoucher(models.Model):
     discount = models.PositiveIntegerField(
         help_text="Enter a number between 1 and 100"
@@ -1229,6 +979,7 @@ class BaseVoucher(models.Model):
         verbose_name="Maximum uses per user",
         help_text="Maximum times this voucher can be used by a single user"
     )
+    members_only = models.BooleanField(default=False, help_text="Can only be redeemed by members")
     # for gift vouchers
     is_gift_voucher = models.BooleanField(default=False)
     activated = models.BooleanField(default=True)
@@ -1374,30 +1125,3 @@ class GiftVoucherType(models.Model):
             return f"Gift voucher: {self.block_type.event_type.subtype} - {self.block_type.size} classes"
         else:
             return f"Gift voucher: {self.event_type}"
-
-
-class Banner(models.Model):
-    banner_type = models.CharField(
-        max_length=10, 
-        choices=(("banner_all", "all users banner"), ("banner_new", "new users banner")),
-        default="banner_all"
-    )
-    content = models.TextField()
-    start_datetime = models.DateTimeField(default=timezone.now)
-    end_datetime = models.DateTimeField(null=True, blank=True)
-    colour = models.CharField(
-        max_length=10, 
-        choices=(
-            ("info", "light blue"),
-            ("primary", "blue"), 
-            ("success", "green"), 
-            ("warning", "yellow"), 
-            ("danger", "red"),
-            ("secondary", "light grey"),
-            ("dark", "dark grey")
-        ),
-        default="info"
-    )
-
-    def __str__(self) -> str:
-        return f"{self.banner_type}"

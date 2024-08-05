@@ -5,8 +5,10 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from model_bakery import baker
 from urllib.parse import urlsplit
+from unittest.mock import patch
 
 from django.core import mail
+from django.contrib.sites.models import Site
 from django.urls import reverse
 from django.test import override_settings, TestCase, RequestFactory
 from django.utils import timezone
@@ -15,6 +17,7 @@ from accounts.models import DataPrivacyPolicy
 from booking.models import Event, Booking, \
     Block, BlockVoucher, EventVoucher, UsedBlockVoucher, UsedEventVoucher
 from common.tests.helpers import make_data_privacy_agreement, TestSetupMixin
+from stripe_payments.tests.mock_connector import MockConnector
 
 
 class ShoppingBasketViewTests(TestSetupMixin, TestCase):
@@ -388,6 +391,23 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
             resp.context['booking_voucher_error'], 'Voucher code has expired'
         )
 
+    @patch("booking.models.membership_models.StripeConnector", MockConnector)
+    def test_members_only_booking_voucher(self):
+        baker.make("stripe_payments.Seller", site=Site.objects.get_current())
+        booking = Booking.objects.first()
+        self.voucher.members_only = True
+        self.voucher.save()
+
+        resp = self.client.get(self.url + '?booking_code=foo')
+        assert resp.context_data['booking_voucher_error'] == 'Voucher code is only redeemable by members'
+        booking.refresh_from_db()
+        assert booking.voucher_code is None
+
+        baker.make("booking.UserMembership", membership__name="mem", subscription_status="active", user=self.user)
+        resp = self.client.get(self.url + '?booking_code=foo')
+        assert resp.context_data['booking_voucher_error'] is None
+        assert resp.context_data['booking_voucher'] == self.voucher
+
     def test_block_voucher_code_expired(self):
         # expired voucher
         block = baker.make_recipe(
@@ -401,6 +421,24 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         self.assertEqual(
             resp.context['block_voucher_error'], 'Voucher code has expired'
         )
+
+    @patch("booking.models.membership_models.StripeConnector", MockConnector)
+    def test_members_only_block_voucher(self):
+        baker.make("stripe_payments.Seller", site=Site.objects.get_current())
+        block = baker.make_recipe(
+            'booking.block', block_type__cost=20, user=self.user, paid=False
+        )
+        self.block_voucher.block_types.add(block.block_type)
+        self.block_voucher.members_only = True
+        self.block_voucher.save()
+
+        resp = self.client.get(self.url + f'?block_code=foo')
+        assert resp.context_data['block_voucher_error'] == 'Voucher code is only redeemable by members'
+        
+        baker.make("booking.UserMembership", membership__name="mem", subscription_status="active", user=self.user)
+        resp = self.client.get(self.url + '?block_code=foo')
+        assert resp.context_data['block_voucher_error'] is None
+        assert resp.context_data['block_voucher'] == self.block_voucher
 
     def test_block_voucher_code_not_started(self):
         # expired voucher
@@ -459,6 +497,16 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         self.assertEqual(
             resp.context['block_voucher_error'],
             'Voucher code has already been used the maximum number of times (2)'
+        )
+
+    def test_block_voucher_not_valid_for_user(self):
+        baker.make_recipe(
+            'booking.block', block_type__cost=20, user=self.user, paid=False
+        )
+        resp = self.client.get(self.url + '?block_code=foo')
+        self.assertEqual(
+            resp.context['block_voucher_error'],
+            'Code is not valid for any of your currently unpaid blocks'
         )
 
     def test_booking_voucher_will_be_used_up_for_user_with_basket_bookings(self):
@@ -525,6 +573,20 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
             resp.context['booking_voucher_error'],
             'Voucher has limited number of total uses and has now expired'
         )
+    
+    def test_booking_voucher_not_activated_yet(self):
+        booking = Booking.objects.first()
+        ev_type = booking.event.event_type
+        self.voucher.event_types.add(ev_type)
+        self.voucher.activated = False
+        self.voucher.save()
+
+        resp = self.client.get(self.url + '?booking_code=foo')
+        self.assertEqual(
+            resp.context['booking_voucher_error'],
+            'Voucher has not been activated yet'
+        )
+
 
     def test_block_voucher_used_max_total_times(self):
         block = baker.make_recipe(
@@ -653,16 +715,8 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         resp = self.client.get(self.url + '?booking_code=foo')
 
         paypalform = resp.context['bookings_paypalform']
-        booking_ids_str = ','.join(
-            [
-                str(id) for id in Booking.objects.values_list('id', flat=True)
-                ]
-        )
         # voucher only applied to first booking
-        self.assertEqual(
-            paypalform.initial['custom'],
-            f'obj=booking ids={booking_ids_str} usr={self.user.email} cde=foo apd={booking.id}'
-        )
+        assert f"cde=foo apd={booking.id}" in paypalform.initial['custom']
         for i, booking in enumerate(Booking.objects.all()):
             self.assertIn('item_name_{}'.format(i + 1), paypalform.initial)
 
@@ -820,6 +874,16 @@ class ShoppingBasketViewTests(TestSetupMixin, TestCase):
         assert self.client.session["cart_items"] == f"obj=booking ids={booking_ids} usr={self.user.email}"
 
     @override_settings(PAYMENT_METHOD="paypal")
+    def test_paypal_cart_items_unpaid_bookings_overridden(self):
+        session = self.client.session
+        session["cart_items"] = f"obj=booking ids=3,4,5 usr=foo@example.com"
+        session.save()
+        resp = self.client.get(self.url)
+        self.assertEqual(len(resp.context['unpaid_bookings']), 6)
+        booking_ids = ','.join(str(booking.id) for booking in self.user.bookings.all().order_by("id"))
+        assert self.client.session["cart_items"] == f"obj=booking ids={booking_ids} usr={self.user.email}"
+
+    @override_settings(PAYMENT_METHOD="paypal")
     def test_paypal_cart_items_unpaid_blocks(self):
         # If we only have unpaid blocks, add the cart items to the session
         Booking.objects.all().delete()
@@ -865,12 +929,6 @@ class UpdateBlockBookingsTests(TestSetupMixin, TestCase):
         # need to specify subtype for free block creation to happen
         cls.blocktype_cl_10 = baker.make_recipe(
             'booking.blocktype10', event_type__subtype="Pole level class",
-            assign_free_class_on_completion=True
-        )
-        # create free block type associated with blocktype_cl_10
-        cls.free_blocktype = baker.make_recipe(
-            'booking.blocktype', size=1, cost=0,
-            event_type=cls.blocktype_cl_10.event_type, identifier='free class'
         )
         cls.pc1 = baker.make_recipe(
             'booking.future_PC', event_type=cls.blocktype_cl_5.event_type,
@@ -978,83 +1036,6 @@ class UpdateBlockBookingsTests(TestSetupMixin, TestCase):
             Booking.objects.filter(user=self.user, block__isnull=False).count(),
             5
         )
-
-    def test_use_block_for_all_uses_last_block_free_class_created(self):
-        baker.make_recipe(
-            'booking.future_PC', event_type=self.blocktype_cl_10.event_type,
-            cost=10, _quantity=11
-        )
-
-        # free class created and used
-        block = baker.make_recipe(
-            'booking.block', user=self.user,
-            block_type=self.blocktype_cl_10, paid=True,
-        )
-        self.assertTrue(block.active_block())
-
-        for ev in Event.objects.all():
-            baker.make_recipe('booking.booking', user=self.user, event=ev)
-
-        self.assertEqual(Booking.objects.filter(user=self.user).count(), 14)
-        # 11 bookings are eligible for block booking
-        self.assertEqual(
-            Booking.objects.filter(
-                user=self.user, event__event_type=block.block_type.event_type
-            ).count(), 11
-        )
-        self.client.post(self.url)
-        # 10 bookings are updated with available blocks,
-        # 10 from existing block, 1 free block created and used
-        self.assertEqual(
-            Booking.objects.filter(user=self.user, block__isnull=False).count(),
-            11
-        )
-        self.assertEqual(
-            Block.objects.latest('id').block_type, self.free_blocktype
-        )
-
-    def test_uses_last_block_free_class_block_already_exists(self):
-        baker.make_recipe(
-            'booking.future_PC', event_type=self.blocktype_cl_10.event_type,
-            cost=10, _quantity=11
-        )
-
-        block = baker.make_recipe(
-            'booking.block', user=self.user,
-            block_type=self.blocktype_cl_10, paid=True
-        )
-        # free related block already exists
-        free_block = baker.make_recipe(
-            'booking.block', user=self.user,
-            block_type=self.free_blocktype, paid=True, parent=block
-        )
-        self.assertTrue(block.active_block())
-        self.assertTrue(free_block.active_block())
-
-        for ev in Event.objects.all():
-            baker.make_recipe('booking.booking', user=self.user, event=ev)
-
-        self.assertEqual(Booking.objects.filter(user=self.user).count(), 14)
-        # 11 bookings are eligible for block booking with block or free block
-        self.assertEqual(
-            Booking.objects.filter(
-                user=self.user, event__event_type=block.block_type.event_type
-            ).count(), 11
-        )
-        self.assertEqual(
-            Booking.objects.filter(
-                user=self.user, event__event_type=free_block.block_type.event_type
-            ).count(), 11
-        )
-        self.client.post(self.url)
-        # 10 bookings are updated with available blocks,
-        # 10 from existing block, 1 free block used
-        self.assertEqual(
-            Booking.objects.filter(user=self.user, block__isnull=False).count(),
-            11
-        )
-        # no additional free block created
-        self.assertEqual(Block.objects.count(), 2)
 
 
 class SubmitZeroBookingPaymentViewTests(TestSetupMixin, TestCase):

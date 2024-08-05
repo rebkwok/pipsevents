@@ -1,4 +1,4 @@
-{% load bookingtags %}
+{% load bookingtags static %}
 {% include 'booking/includes/alerts.html' %}
 
 <div 
@@ -9,7 +9,19 @@
         {% endif %}
     ">
     <div class="col-12 col-md-4">
-        <span {% if booking and booking.status == 'OPEN' and booking.paid %}class="fas fa-check-circle text-success"{% endif %}></span>
+        <span 
+            {% if booking and booking.status == 'OPEN' and booking.paid %}
+                {% if booking.block or booking.membership %}
+                    data-toggle="tooltip" data-placement="top" title="Booked with {% if booking.block %}block{% else %}membership{% endif %}"
+                {% else %}
+                    class="fas fa-check-circle text-success"
+                {% endif %}>
+                {% if booking.block %}
+                <a href={% url 'booking:block_list' %}><img src={% static 'booking/images/circle-b.svg' %} /></a>
+                {% elif booking.membership %}
+                <a href={% url 'membership_status' booking.membership.subscription_id %}><img src={% static 'booking/images/circle-m.svg' %}/></a>
+                {% endif %}
+            {% endif %}</span>
         {{ event.date|date:"H:i" }} 
         {% if ev_type_for_url == 'events' %}
             <a href="{% url 'booking:event_detail' event.slug %}">{{ event.name }}</a>
@@ -18,6 +30,7 @@
         {% elif ev_type_for_url == 'room_hires' %}
             <a href="{% url 'booking:room_hire_detail' event.slug %}">{{ event.name }}</a>
         {% endif %}
+        {% if event.members_only %}<span class="badge badge-pill badge-dark">Members only</span>{% endif %}
         {% if booking and booking.status == 'OPEN' and not booking.no_show and booking.paid %}
             {% if event.show_video_link %}
                 <a id="video_link_id_{{ event.id }}" class="btn btn-info table-btn" href="{{ event.video_link }}">Join online class</a>

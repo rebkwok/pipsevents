@@ -1,10 +1,15 @@
 ACTION REQUIRED: CHECK STATUS OF REFUNDED ITEMS
 Payment refunded
 -----------------------------
-Invoice number: {{ invoice.invoice_id }}</p>
+Invoice number: {{ invoice.invoice_id }}
+Stripe refund if: {{ refund_id }}
 User: {{ user.first_name}} {{ user.last_name}}
+{% if user_membership %}
+Membership: {{ user_membership.membership.name }}
+{% elif invoice %}
 Purchased:
-{% for item_type, items in invoice.items_summary.items %}
-{% if items %}{{ item_type|title }}{% endif %}
-{% for item in items %}-{{ item }}{% endfor %}
-{% endfor %}
+    {% for item_type, items in invoice.items_summary.items %}
+    {% if items %}{{ item_type|title }}{% endif %}
+    {% for item in items %}-{{ item }}{% endfor %}
+    {% endfor %}
+{% endif %}

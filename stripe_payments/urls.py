@@ -1,8 +1,8 @@
 from django.urls import path
 from .views import (
-    stripe_payment_complete, stripe_webhook, stripe_payment_status
+    stripe_payment_complete, stripe_webhook, stripe_subscribe_complete, stripe_portal
 )
-from .connection_views import connect_stripe_view, StripeAuthorizeView, StripeAuthorizeCallbackView
+from .views.connection_views import connect_stripe_view, StripeAuthorizeView, StripeAuthorizeCallbackView
 
 
 app_name = 'stripe_payments'
@@ -14,6 +14,7 @@ urlpatterns = [
     path("oauth/callback/", StripeAuthorizeCallbackView.as_view(), name="authorize_stripe_callback"),
     # transactions
     path('payment-complete/', stripe_payment_complete, name="stripe_payment_complete"),
-    path('payment-status/<str:payment_intent_id>/', stripe_payment_status, name="stripe_payment_status"),
+    path('subscribe-complete/', stripe_subscribe_complete, name="stripe_subscribe_complete"),
     path('webhook/', stripe_webhook, name="stripe_webhook"),
+    path('stripe-portal/<str:customer_id>/', stripe_portal, name="stripe_portal"),
 ]

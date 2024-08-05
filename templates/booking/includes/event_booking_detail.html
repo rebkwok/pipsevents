@@ -3,7 +3,6 @@
 <p>{{ booking_info_text_cancelled }}<br/>{{ booking_info_text | safe }}
 
 {% if ev_type_code != "OT" %}
-    <p>See <a href="{% url 'booking:bookings' %}">your bookings</a> for details.</p>
     {% if bookable or booked %}
         {% if booked and not booking.paid %}
             <a href="{% url 'booking:shopping_basket' %}">

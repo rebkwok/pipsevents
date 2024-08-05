@@ -154,6 +154,15 @@ class EventListViewTests(TestSetupMixin, TestCase):
         self.assertEqual(len(booked_events), 1)
         self.assertTrue(event.id in booked_events)
 
+    def test_event_list_members_only(self):
+        resp = self.client.get(self.url)
+        assert "Members only" not in resp.rendered_content
+        event = self.events[0]
+        event.members_only = True
+        event.save()
+        resp = self.client.get(self.url)
+        assert "Members only" in resp.rendered_content
+
     def test_event_list_booked_paid_events(self):
         """
         test that booked events are shown on listing
@@ -225,10 +234,24 @@ class EventListViewTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.context['events'].count(), 0)
 
     def test_filter_events_by_spaces(self):
+        # full envent
         event = baker.make_recipe('booking.future_EV', max_participants=1)
-        baker.make_recipe('booking.future_EV', max_participants=1)
         baker.make_recipe('booking.booking', event=event)
+        # non-full event
+        baker.make_recipe('booking.future_EV', max_participants=1)
+        
+        # full event for this user
 
+        self.client.force_login(self.user)
+        user_event = baker.make_recipe('booking.future_EV', max_participants=1)
+        baker.make_recipe('booking.booking', event=user_event, user=self.user)
+
+        resp = self.client.get(self.url, {'spaces_only': 'true'})
+        # 3 from setup plus one non-full in this test and one full but booked by user
+        self.assertEqual(resp.context['events'].count(), 5)
+
+        self.client.logout()
+        # anonymous user doesn't see the full booking for self.user
         resp = self.client.get(self.url, {'spaces_only': 'true'})
         # 3 from setup plus one in this test
         self.assertEqual(resp.context['events'].count(), 4)
@@ -656,6 +679,18 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
         resp = self._get_response(self.user, self.event, 'event')
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.context_data['ev_type_for_url'], 'events')
+
+    def test_event_members_only(self):
+        self.client.force_login(self.user)
+        url = reverse('booking:event_detail', kwargs={'slug': self.event.slug})
+
+        resp = self.client.get(url)
+        assert "open to members only" not in resp.rendered_content
+        
+        self.event.members_only = True
+        self.event.save()
+        resp = self.client.get(url)
+        assert "open to members only" in resp.rendered_content
 
     def test_with_booked_event(self):
         """
@@ -1146,6 +1181,29 @@ class RoomHireListViewTests(TestSetupMixin, TestCase):
         self.assertEqual(Booking.objects.all().count(), 2)
         self.assertEqual(len(booked_events), 1)
         self.assertTrue(event1.id in booked_events)
+
+
+class OnlineTutorialListViewTests(TestSetupMixin, TestCase):
+    """
+    Test EventListView with room hires; reuses the event templates and context
+    data helpers
+    """
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        baker.make_recipe('booking.future_OT', name="Bar", _quantity=3)
+        baker.make_recipe('booking.future_OT', name="Foo")
+
+    def test_online_tutorials(self):
+        resp = self.client.get(reverse('booking:online_tutorials'))
+        assert resp.context_data["events"].count() == 4
+
+    def test_online_tutorials_with_name(self):
+        resp = self.client.get(reverse('booking:online_tutorials') + "?name=Foo")
+        assert resp.context_data["events"].count() == 1
+
+        resp = self.client.get(reverse('booking:online_tutorials') + "?name=all")
+        assert resp.context_data["events"].count() == 4
 
 
 class LessonDetailViewTests(TestSetupMixin, TestCase):

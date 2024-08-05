@@ -5,22 +5,26 @@ from datetime import timezone as dt_timezone
 from unittest.mock import patch
 from model_bakery import baker
 
+import pytest
+
 from django.conf import settings
 from django.core import mail
 from django.urls import reverse
 from django.test import override_settings, TestCase
 from django.contrib.auth.models import Group, User
+from django.contrib.sites.models import Site
 from django.contrib.sessions.middleware import SessionMiddleware
 from django.utils import timezone
 
 from accounts.models import DisclaimerContent, OnlineDisclaimer, AccountBan
 
-from booking.models import Event, EventType, Booking, Block, WaitingListUser
+from booking.models import Event, EventType, Booking, Block, WaitingListUser, MembershipItem, Membership, UserMembership
 from booking.views.shopping_basket_views import shopping_basket_bookings_total_context, \
     shopping_basket_blocks_total_context
 from common.tests.helpers import TestSetupMixin, make_data_privacy_agreement
 
-from payments.helpers import create_booking_paypal_transaction
+from stripe_payments.models import Seller
+from stripe_payments.tests.mock_connector import MockConnector
 
 
 class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
@@ -40,7 +44,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         cls.group, _ = Group.objects.get_or_create(name='subscribed')
         cls.tutorial = baker.make_recipe('booking.future_OT', cost=5, max_participants=3)
         cls.tutorial_url = reverse('booking:ajax_create_booking', args=[cls.tutorial.id]) + "?ref=events"
-        
+        baker.make(Seller, site=Site.objects.get_current())
 
     def _mock_new_user_email_sent(self):
         session = self.client.session
@@ -428,6 +432,32 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(mail_to_user.to, [self.user.email])
         self.assertEqual(mail_to_studio.to, [settings.DEFAULT_STUDIO_EMAIL])
 
+    def test_rebook_from_bookings(self):
+
+        """
+        Test rebooking a cancelled booking still marked as paid reopens booking
+        and emails studio
+        """
+        booking = baker.make_recipe(
+            'booking.booking', event=self.event, user=self.user, paid=True,
+            payment_confirmed=True, status='CANCELLED'
+        )
+
+        # try to book again
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.post(reverse('booking:ajax_create_booking', args=[self.event.id]) + "?ref=bookings")
+        booking.refresh_from_db()
+        self.assertEqual('OPEN', booking.status)
+        self.assertTrue(booking.paid)
+        self.assertTrue(booking.payment_confirmed)
+
+        self.assertEqual(
+            resp.context['alert_message']['message'],
+            'You previously paid for this booking; your booking will remain as '
+            'pending until the organiser has reviewed your payment status.'
+
+        )
+
     def test_creating_booking_with_active_user_block(self):
         """
         Test that an active block is automatically used when booking
@@ -455,6 +485,99 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(bookings.count(), 1)
         self.assertEqual(bookings[0].block, block)
         self.assertTrue(bookings[0].paid)
+
+    @patch("booking.models.membership_models.StripeConnector", MockConnector)
+    @pytest.mark.freeze_time("2024, 2, 20")
+    def test_creating_booking_with_active_user_block_and_membership(self):
+        """
+        Test that by default an active membership is automatically used before a block when booking
+        Unless prefernces are set to block
+        """
+        self.user.userprofile.stripe_customer_id = "cus1"
+        self.user.userprofile.save()
+
+        event_type = baker.make_recipe('booking.event_type_PC')
+        event1 = baker.make_recipe('booking.future_PC', event_type=event_type, cost=5)
+        event2 = baker.make_recipe('booking.future_PC', event_type=event_type, cost=5)
+        event1_url = reverse('booking:ajax_create_booking', args=[event1.id]) + "?ref=events"
+        event2_url = reverse('booking:ajax_create_booking', args=[event2.id]) + "?ref=events"
+
+        blocktype = baker.make_recipe(
+            'booking.blocktype5', event_type=event_type
+        )
+        block = baker.make_recipe(
+            'booking.block', block_type=blocktype, user=self.user, paid=True
+        )
+        assert block.active_block()
+
+        m1 = baker.make(Membership, name="m1", active=True)
+        baker.make(MembershipItem, membership=m1, event_type=event_type, quantity=2)
+        user_membership = baker.make(
+            UserMembership, 
+            user=self.user, 
+            membership=m1, 
+            subscription_id="sub-1",
+            subscription_status="active",
+            start_date=datetime(2024, 2, 1, tzinfo=dt_timezone.utc)
+        )
+
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.post(event1_url)
+        assert resp.context['alert_message']['message'] == "Booked with membership."
+
+        booking = Booking.objects.get(user=self.user, event=event1)
+        assert booking.block is None
+        assert booking.membership == user_membership
+        assert booking.paid
+
+        # change preferences
+        self.user.userprofile.booking_preference = "block"
+        self.user.userprofile.save()
+        # membership still valid for both events
+        for event in [event1, event2]:
+            assert user_membership.valid_for_event(event)
+
+        resp = self.client.post(event2_url)
+        assert resp.context['alert_message']['message'].strip() == "Booked with block."
+
+        booking = Booking.objects.get(user=self.user, event=event2)
+        assert booking.block == block
+        assert booking.membership is None
+        assert booking.paid
+
+    @patch("booking.models.membership_models.StripeConnector", MockConnector)
+    @pytest.mark.freeze_time("2024, 2, 20")
+    def test_creating_booking_with_active_membership_block_preference(self):
+        """
+        Test that by default an active membership is used when prefernces are set to block
+        """
+        self.user.userprofile.stripe_customer_id = "cus1"
+        self.user.userprofile.booking_preference = "block"
+        self.user.userprofile.save()
+
+        event_type = baker.make_recipe('booking.event_type_PC')
+        event1 = baker.make_recipe('booking.future_PC', event_type=event_type, cost=5)
+        event1_url = reverse('booking:ajax_create_booking', args=[event1.id]) + "?ref=events"
+
+        m1 = baker.make(Membership, name="m1", active=True)
+        baker.make(MembershipItem, membership=m1, event_type=event_type, quantity=2)
+        user_membership = baker.make(
+            UserMembership, 
+            user=self.user, 
+            membership=m1, 
+            subscription_id="sub-1",
+            subscription_status="active",
+            start_date=datetime(2024, 2, 1, tzinfo=dt_timezone.utc)
+        )
+
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.post(event1_url)
+        assert resp.context['alert_message']['message'] == "Booked with membership."
+
+        booking = Booking.objects.get(user=self.user, event=event1)
+        assert booking.block is None
+        assert booking.membership == user_membership
+        assert booking.paid
 
     def test_creating_booking_with_unpaid_user_block(self):
         """
@@ -484,6 +607,18 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         self.assertIsNone(bookings[0].block)
         self.assertFalse(bookings[0].paid)
 
+    def test_cannot_book_for_members_only_class(self):
+        event = baker.make_recipe(
+            'booking.future_PC', members_only=True, cost=5
+        )
+        url = reverse('booking:ajax_create_booking', args=[event.id]) + "?ref=events"
+        self.client.login(username=self.user.username, password='test')
+        resp = self.client.post(url)
+        assert resp.status_code == 400
+        assert resp.content.decode('utf-8') == (
+            "Only members are allowed to book this class; please contact the studio for further information."
+        )
+
     def test_cannot_book_for_pole_practice_without_permission(self):
         """
         Test trying to create a booking for pole practice without permission returns 400
@@ -501,7 +636,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
              "contact the studio for further information."
         )
 
-    @patch('booking.models.timezone')
+    @patch('booking.models.booking_models.timezone')
     @patch('booking.views.views_utils.timezone')
     def test_booking_with_transfer_block(self, mock_tz, mock_tz1):
         """
@@ -533,7 +668,7 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
             "Booked with credit block."
         )
 
-    @patch('booking.models.timezone')
+    @patch('booking.models.booking_models.timezone')
     @patch('booking.views.views_utils.timezone')
     def test_booking_with_block_if_multiple_blocks_available(self, mock_views_tz, mock_tz):
         """
@@ -584,154 +719,26 @@ class BookingAjaxCreateViewTests(TestSetupMixin, TestCase):
         self.assertEqual(bookings.count(), 1)
         self.assertEqual(bookings[0].block, block1)
 
-    @patch('booking.models.timezone')
-    def test_booking_with_block_if_original_and_free_available(self, mock_tz):
-        """
-        Usually there will only be an open free block attached to another block
-        if the original is full, but in case an admin has changed this, ensure
-        that the original block is used first (free block with parent block
-        should always be created after the original block)
-        """
-        mock_tz.now.return_value = datetime(2015, 1, 10, tzinfo=dt_timezone.utc)
+    def test_booking_with_block_completes_block(self):
+        event_type = baker.make_recipe('booking.event_type_PC')
 
-        event = baker.make_recipe(
-            'booking.future_PC', event_type=self.pole_class_event_type, cost=5
-        )
+        event = baker.make_recipe('booking.future_PC', event_type=event_type, cost=5)
         url = reverse('booking:ajax_create_booking', args=[event.id]) + "?ref=events"
-
         blocktype = baker.make_recipe(
-            'booking.blocktype', size=10, cost=60, duration=4,
-            event_type=self.pole_class_event_type, identifier='standard'
+            'booking.blocktype5', event_type=event_type, duration=2
         )
-
-        block = baker.make_recipe(
-            'booking.block', user=self.user, block_type=blocktype, paid=True
+        block1 = baker.make_recipe(
+            'booking.block', block_type=blocktype, user=self.user, paid=True,
         )
-        free_block = baker.make_recipe(
-            'booking.block', user=self.user, block_type=self.free_blocktype,
-            paid=True, parent=block
-        )
-
-        self.assertTrue(block.active_block())
-        self.assertTrue(free_block.active_block())
-        self.assertEqual(block.expiry_date, free_block.expiry_date)
-
-        blocks = self.user.blocks.all()
-        active_blocks = [
-            block for block in blocks if block.active_block()
-            and block.block_type.event_type == event.event_type
-        ]
-        # the original and free block are both available blocks for this event
-        self.assertEqual(set(active_blocks), set([block, free_block]))
+        baker.make("booking.booking", user=self.user, block=block1, paid=True, _quantity=4)
 
         self.client.login(username=self.user.username, password='test')
         resp = self.client.post(url)
-        self.assertEqual(
-            resp.context['alert_message']['message'],
-            "Booked with block. "
-        )
 
-        # booking created using the original block
         bookings = Booking.objects.filter(user=self.user)
-        self.assertEqual(bookings.count(), 1)
-        self.assertEqual(bookings[0].block, block)
-
-    def test_create_booking_uses_last_of_free_class_allowed_block(self):
-        block = baker.make_recipe(
-            'booking.block_10', user=self.user,
-            block_type__event_type=self.pole_class_event_type,
-            block_type__assign_free_class_on_completion=True,
-            paid=True, start_date=timezone.now()
-        )
-        event = baker.make_recipe(
-            'booking.future_CL', cost=10, event_type=self.pole_class_event_type
-        )
-        url = reverse('booking:ajax_create_booking', args=[event.id]) + "?ref=events"
-
-        baker.make_recipe(
-            'booking.booking', block=block, user=self.user, _quantity=9
-        )
-
-        self.assertEqual(Block.objects.count(), 1)
-        self.client.login(username=self.user.username, password='test')
-        resp = self.client.post(url)
-        self.assertEqual(
-            resp.context['alert_message']['message'],
-            "Booked with block. "
-            "You have just used the last space in your block. "
-            "You have qualified for a extra free class which has been added to your blocks"
-        )
-
-        self.assertEqual(block.bookings.count(), 10)
-        self.assertEqual(Block.objects.count(), 2)
-        self.assertEqual(Block.objects.latest('id').block_type, self.free_blocktype)
-
-    def test_booking_uses_last_of_free_class_allowed_block_free_block_already_exists(self):
-        block = baker.make_recipe(
-            'booking.block_10', user=self.user,
-            block_type__event_type=self.pole_class_event_type,
-            block_type__assign_free_class_on_completion=True,
-            paid=True, start_date=timezone.now()
-        )
-        event = baker.make_recipe(
-            'booking.future_EV', cost=10, event_type=self.pole_class_event_type
-        )
-        url = reverse('booking:ajax_create_booking', args=[event.id]) + "?ref=events"
-
-        baker.make_recipe(
-            'booking.block', user=self.user, block_type=self.free_blocktype,
-            paid=True, parent=block
-        )
-
-        baker.make_recipe(
-            'booking.booking', block=block, user=self.user, _quantity=9
-        )
-        self.assertEqual(Block.objects.count(), 2)
-
-        self.client.login(username=self.user.username, password='test')
-        resp = self.client.post(url)
-        self.assertEqual(
-            resp.context['alert_message']['message'],
-            "Booked with block. "
-            "You have just used the last space in your block. "
-            "Go to My Blocks buy a new one."
-        )
-
-        self.assertEqual(block.bookings.count(), 10)
-        self.assertEqual(Block.objects.count(), 2)
-
-    def test_create_booking_uses_last_of_block_but_doesnt_qualify_for_free(self):
-        block = baker.make_recipe(
-            'booking.block_10', user=self.user,
-            block_type__event_type=self.pole_class_event_type,
-            block_type__assign_free_class_on_completion=False,
-            paid=True, start_date=timezone.now()
-        )
-        event = baker.make_recipe(
-            'booking.future_CL', cost=10, event_type=self.pole_class_event_type
-        )
-        url = reverse('booking:ajax_create_booking', args=[event.id]) + "?ref=events"
-
-        baker.make_recipe(
-            'booking.booking', block=block, user=self.user, _quantity=9
-        )
-
-        self.assertEqual(Block.objects.count(), 1)
-
-        self.client.login(username=self.user.username, password='test')
-        resp = self.client.post(url)
-        self.assertEqual(
-            resp.context['alert_message']['message'],
-            "Booked with block. "
-            "You have just used the last space in your block. "
-            "Go to My Blocks buy a new one."
-        )
-
-        self.assertEqual(block.bookings.count(), 10)
-        self.assertTrue(block.full)
-        # 5 class blocks do not qualify for free classes, no free class block
-        # created
-        self.assertEqual(Block.objects.count(), 1)
+        assert bookings.count() == 5
+        assert block1.bookings.count() == 5
+        assert "You have just used the last space" in resp.content.decode()
 
     def test_create_booking_user_on_waiting_list(self):
         """

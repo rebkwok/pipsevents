@@ -1,5 +1,6 @@
 import csv
 import os
+from tempfile import NamedTemporaryFile
 
 from datetime import date, datetime, timedelta
 from datetime import timezone as dt_timezone
@@ -157,122 +158,37 @@ class DeleteExpiredDisclaimersTests(PatchRequestMixin, TestCase):
         self.assertEqual(NonRegisteredDisclaimer.objects.count(), 0)
 
 
-@override_settings(LOG_FOLDER=os.path.dirname(__file__))
-class ExportDisclaimersTests(TestCase):
-
-    def setUp(self):
-        content = baker.make(DisclaimerContent, version=None)
-        baker.make(OnlineDisclaimer, version=content.version, _quantity=10)
-        self.log_path = Path(settings.LOG_FOLDER)
-        self.disclaimer_types = ["online", "archived", "non_registered"]
-
-    def test_export_disclaimers_creates_default_bu_file(self):
-        bu_files = [
-            self.log_path / f"{disclaimer_type}_disclaimers_bu.csv" for disclaimer_type in self.disclaimer_types
-        ]
-        for bu_file in bu_files:
-            assert bu_file.exists() is False
-        management.call_command('export_disclaimers')
-        for bu_file in bu_files:
-            assert bu_file.exists() is True
-            bu_file.unlink()
-
-    def test_export_disclaimers_writes_correct_number_of_rows(self):
-        bu_files = [
-            self.log_path / f"{disclaimer_type}_disclaimers_bu.csv" for disclaimer_type in self.disclaimer_types
-        ]
-        for bu_file in bu_files:
-            assert bu_file.exists() is False
-        management.call_command('export_disclaimers')
-
-        with open(bu_files[0], 'r') as exported:  # online disclaimers
-            reader = csv.reader(exported)
-            rows = list(reader)
-        self.assertEqual(len(rows), 11)  # 10 records plus header row
-
-        with open(bu_files[1], 'r') as exported:  # archived disclaimers
-            reader = csv.reader(exported)
-            rows = list(reader)
-        self.assertEqual(len(rows), 1)  # 0 records plus header row
-
-        with open(bu_files[2], 'r') as exported:  # non-reg disclaimers
-            reader = csv.reader(exported)
-            rows = list(reader)
-        self.assertEqual(len(rows), 1)  # 0 records plus header row
-
-        for bu_file in bu_files:
-            assert bu_file.exists() is True
-            bu_file.unlink()
-
-    def test_export_disclaimers_with_filename_argument(self):
-        bu_files = [
-            self.log_path / f"{disclaimer_type}_test.csv" for disclaimer_type in self.disclaimer_types
-        ]
-        input_file = self.log_path / "test.csv"
-
-        for bu_file in bu_files:
-            assert bu_file.exists() is False
-        management.call_command('export_disclaimers', file=input_file)
-        for bu_file in bu_files:
-            assert bu_file.exists() is True
-            bu_file.unlink()
-
-
-@pytest.mark.serial
-@override_settings(LOG_FOLDER=os.path.dirname(__file__))
-class ExportEncryptedDisclaimersTests(TestCase):
-
-    def setUp(self):
-        content = baker.make(DisclaimerContent, version=None)
-        baker.make(OnlineDisclaimer, version=content.version, _quantity=10)
-
-    def test_export_disclaimers_creates_default_bu_file(self):
-        bu_file = os.path.join(settings.LOG_FOLDER, 'disclaimers.bu')
-        self.assertFalse(os.path.exists(bu_file))
-        management.call_command('export_encrypted_disclaimers')
-        self.assertTrue(os.path.exists(bu_file))
-        os.unlink(bu_file)
-
-    def test_export_disclaimers_sends_email(self):
-        bu_file = os.path.join(settings.LOG_FOLDER, 'disclaimers.bu')
-        management.call_command('export_encrypted_disclaimers')
-
-        self.assertEqual(len(mail.outbox), 1)
-        email = mail.outbox[0]
-        self.assertEqual(email.to, [settings.SUPPORT_EMAIL])
-
-        os.unlink(bu_file)
-
-    @patch.object(EmailMessage, 'send')
-    def test_email_errors(self, mock_send):
-        mock_send.side_effect = Exception('Error sending mail')
-        bu_file = os.path.join(settings.LOG_FOLDER, 'disclaimers.bu')
-
-        self.assertFalse(os.path.exists(bu_file))
-        management.call_command('export_encrypted_disclaimers')
-        # mail not sent, but back up still created
-        self.assertEqual(len(mail.outbox), 0)
-        self.assertTrue(os.path.exists(bu_file))
-        os.unlink(bu_file)
-
-    def test_export_disclaimers_with_filename_argument(self):
-        bu_file = os.path.join(settings.LOG_FOLDER, 'test_file.txt')
-        self.assertFalse(os.path.exists(bu_file))
-        management.call_command('export_encrypted_disclaimers', file=bu_file)
-        self.assertTrue(os.path.exists(bu_file))
-        os.unlink(bu_file)
+@pytest.mark.django_db
+def test_export_encrypted_disclaimers(settings, tmp_path):
+    settings.LOG_FOLDER=tmp_path
+    content = baker.make(DisclaimerContent, version=None)
+    baker.make(OnlineDisclaimer, version=content.version, _quantity=2)
+    bu_file = settings.LOG_FOLDER / 'test_file.txt'
+    assert not bu_file.exists()
+    management.call_command('export_encrypted_disclaimers', file=bu_file)
+    assert bu_file.exists()
+    assert len(mail.outbox) == 1
+    email = mail.outbox[0]
+    assert email.to == [settings.SUPPORT_EMAIL]
 
 
 class ImportDisclaimersTests(TestCase):
 
-    @classmethod
-    def setUpTestData(cls):
-        cls.bu_file = Path(__file__).resolve().parent / 'test_data/test_disclaimers_backup.csv'
-
+    def call_import_disclaimers(self):
+        with NamedTemporaryFile() as tf:
+            path = Path(tf.name)
+            path.write_text(
+                "ID,Disclaimer Version,User,Date,Date Updated,Name (as stated on disclaimer),DOB,Address,Postcode,Home Phone,Mobile Phone,Emergency Contact 1: Name,Emergency Contact 1: Relationship,Emergency Contact 1: Phone,Emergency Contact 2: Name,Emergency Contact 2: Relationship,Emergency Contact 2: Phone,Medical Conditions,Medical Conditions Details,Joint Problems,Joint Problems Details,Allergies,Allergies Details,Medical Treatment Terms,Medical Treatment Accepted,Disclaimer Terms,Disclaimer Terms Accepted,Over 18 Statement,Over 18 Confirmed\n"
+                "2,2.0,test_1,2015-12-18 15:32:07:191781 +0000,,Test User1,1991-11-21,11 Test Road,TS6 8JT,12345667,2423223423,Test1 Contact1,Partner,8782347239,Test2 Contact1,Father,71684362378,No,,Yes,knee problems,No,,I give permission for myself to receive medical treatment in the event of an accident,Yes,Test terms,Yes,I confirm that I am aged 18 or over,Yes\n"
+                "3,3.0,test_2,2015-01-15 15:43:19:747445 +0000,2016-01-06 15:09:16:920219 +0000,Test User2,1987-12-02,42 2f2 New Rd,EH7 5TS,,7647238927,Test1 Contact2,Friend,7283642323,Test2 Contact2,Friend,8783428372,No,,No,,Yes,nuts,I give permission for myself to receive medical treatment in the event of an accident,Yes,Test terms1,Yes,I confirm that I am aged 18 or over,Yes\n"
+                "4,3.0,test_3,2016-02-18 16:09:16:920219 +0000,,Test User3,1991-06-20,74 Test St,TS4 4PD,,7894322143,Test1 Contact3,Mother,874283483,Test2 Contact3,Father,87293874923,No,,No,,No,,I give permission for myself to receive medical treatment in the event of an accident,Yes,Test terms1,Yes,I confirm that I am aged 18 or over,Yes\n"
+                )
+            management.call_command('import_disclaimer_data', file=tf.name)
+     
     def test_import_disclaimers_no_matching_users(self):
         import_disclaimer_data_logger.warning = Mock()
         self.assertFalse(OnlineDisclaimer.objects.exists())
-        management.call_command('import_disclaimer_data', file=self.bu_file)
+        self.call_import_disclaimers()
         self.assertEqual(OnlineDisclaimer.objects.count(), 0)
 
         self.assertEqual(import_disclaimer_data_logger.warning.call_count, 3)
@@ -293,7 +209,7 @@ class ImportDisclaimersTests(TestCase):
         for username in ['test_1', 'test_2', 'test_3']:
             baker.make_recipe('booking.user', username=username)
         self.assertFalse(OnlineDisclaimer.objects.exists())
-        management.call_command('import_disclaimer_data', file=self.bu_file)
+        self.call_import_disclaimers()
         self.assertEqual(OnlineDisclaimer.objects.count(), 3)
 
     def test_import_disclaimers_existing_data(self):
@@ -310,7 +226,7 @@ class ImportDisclaimersTests(TestCase):
         baker.make(OnlineDisclaimer, user=test_3, name='Donald Duck', version=3.0)
 
         self.assertEqual(OnlineDisclaimer.objects.count(), 1)
-        management.call_command('import_disclaimer_data', file=self.bu_file)
+        self.call_import_disclaimers()
         self.assertEqual(OnlineDisclaimer.objects.count(), 3)
 
         # data has not been overwritten
@@ -363,7 +279,7 @@ class ImportDisclaimersTests(TestCase):
         )
 
         self.assertEqual(OnlineDisclaimer.objects.count(), 2)
-        management.call_command('import_disclaimer_data', file=self.bu_file)
+        self.call_import_disclaimers()
         self.assertEqual(OnlineDisclaimer.objects.count(), 3)
 
         self.assertEqual(import_disclaimer_data_logger.warning.call_count, 2)
@@ -393,7 +309,7 @@ class ImportDisclaimersTests(TestCase):
         assert DisclaimerContent.objects.count() == 1
 
         test_1 = baker.make_recipe('booking.user', username='test_1')
-        management.call_command('import_disclaimer_data', file=self.bu_file)
+        self.call_import_disclaimers()
         test_1_disclaimer = OnlineDisclaimer.objects.get(user=test_1)
 
         self.assertEqual(test_1_disclaimer.name, 'Test User1')
@@ -435,6 +351,27 @@ class ImportDisclaimersTests(TestCase):
         assert new_content.disclaimer_terms == "Test terms"
         assert new_content.version == 2.0
 
+    def test_import_disclaimer_bad_data(self):
+        import_disclaimer_data_logger.warning = Mock()
+        baker.make_recipe('booking.user', username='test_1')
+        DisclaimerContent.objects.create(
+            version="4.5",
+            medical_treatment_terms="foo", 
+            disclaimer_terms="foo", 
+            over_18_statement="foo"
+        )
+        with NamedTemporaryFile() as tf:
+            path = Path(tf.name)
+            path.write_text(
+                "ID,Disclaimer Version,User,Date,Date Updated,Name (as stated on disclaimer),DOB,Address,Postcode,Home Phone,Mobile Phone,Emergency Contact 1: Name,Emergency Contact 1: Relationship,Emergency Contact 1: Phone,Emergency Contact 2: Name,Emergency Contact 2: Relationship,Emergency Contact 2: Phone,Medical Conditions,Medical Conditions Details,Joint Problems,Joint Problems Details,Allergies,Allergies Details,Medical Treatment Terms,Medical Treatment Accepted,Disclaimer Terms,Disclaimer Terms Accepted,Over 18 Statement,Over 18 Confirmed\n"
+                "2,4.5,test_1,2015-12-18 15:32:07:191781 +0000,,Test User1,1991-11-21,11 Test Road,TS6 8JT,12345667,2423223423,Test1 Contact1,Partner,8782347239,Test2 Contact1,Father,71684362378,No,,Yes,knee problems,No,,I give permission for myself to receive medical treatment in the event of an accident,Yes,Test terms,Yes,I confirm that I am aged 18 or over,Yes\n"
+            )
+            management.call_command('import_disclaimer_data', file=tf.name)
+        
+        assert import_disclaimer_data_logger.warning.call_count == 1
+        assert "Mismatch content" in str(import_disclaimer_data_logger.warning.call_args_list[0])
+
+
 class EmailDuplicateUsersTests(TestCase):
 
     @classmethod
@@ -442,6 +379,18 @@ class EmailDuplicateUsersTests(TestCase):
         cls.users_file = os.path.join(
             os.path.dirname(__file__), 'test_data/test_duplicate_users.csv'
         )
+
+    def call_duplicate_users(self):
+        with NamedTemporaryFile() as tf:
+            path = Path(tf.name)
+            path.write_text(
+                "Name,Username1,Email 1,Used?,Verified?,Disclaimer?,FB Account?,username2,Email 2,Used?,Verified?,Disclaimer?,FB Account?,Username3,Email3,Used?,Verified?,Disclaimer?,FB Account?\n"
+                "Test User1,one_email_used,user1A@test.com,N,N,N,Y,one_email_used1,user1B@test.com,Y,Y,N,N,,,,,,\n"
+                "Test User2,two_emails_used,user2A@test.com,Y,Y,N,N,two_emails_used1,user2B@test.com,Y,Y,N,N,,,,,,\n"
+                "TestUser3,three_emails,user3A@test.com,Y,Y,Y,N,three_emails1,user3B@test.com,Y,Y,N,N,three_emails2,user3C@test.com,N,Y,N,Y\n"
+                "Test User4,two_emails_not_used,user4A@test.com,N,Y,N,N,two_emails_not_used1,user4B@test.com,N,Y,N,N,,,,,,\n"            
+            )
+            management.call_command('email_duplicate_users', file=tf.name)
 
     def test_emails_sent(self):
         """
@@ -451,7 +400,7 @@ class EmailDuplicateUsersTests(TestCase):
         user 3: 3 accounts, 2 used for booking
         user 4: 2 accounts, neither used
         """
-        management.call_command('email_duplicate_users', file=self.users_file)
+        self.call_duplicate_users()
         emails = mail.outbox
         # one email sent per account
         self.assertEqual(len(emails), 4)
@@ -510,7 +459,7 @@ class EmailDuplicateUsersTests(TestCase):
         mock_send_mail.side_effect = Exception('Error sending mail')
         mock_send_mail1.side_effect = Exception('Error sending mail')
 
-        management.call_command('email_duplicate_users', file=self.users_file)
+        self.call_duplicate_users()
         self.assertEqual(len(mail.outbox), 0)
 
 

@@ -27,7 +27,7 @@ env = environ.Env(DEBUG=(bool, False),
                   LOCAL=(bool, False),
                   SHOW_VAT=(bool, True),
                   TESTING=(bool, False),
-                  PAYMENT_METHOD=(str, "paypal")  ,
+                  PAYMENT_METHOD=(str, "stripe"),
                   ENFORCE_AUTO_CANCELLATION=(bool, False)       
                   )
 
@@ -56,12 +56,11 @@ if str(DEBUG).lower() in ['true', 'on']:  # pragma: no cover
 else:  # pragma: no cover
     DEBUG = False
 
-ALLOWED_HOSTS = [
-    'booking.thewatermelonstudio.co.uk', 'test.pipsevents.co.uk',
-    'vagrant.pipsevents.co.uk', 'vagrant.booking.thewatermelonstudio.co.uk'
-]
+DOMAIN = "booking.thewatermelonstudio.co.uk"
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=[DOMAIN])
+
 # https://docs.djangoproject.com/en/4.0/ref/settings/#std:setting-CSRF_TRUSTED_ORIGINS
-CSRF_TRUSTED_ORIGINS = ['https://booking.thewatermelonstudio.co.uk']
+CSRF_TRUSTED_ORIGINS = [f"https://{host}" for host in ALLOWED_HOSTS]
 
 
 CSRF_FAILURE_VIEW = "common.views.csrf_failure"
@@ -88,6 +87,7 @@ INSTALLED_APPS = (
     'rest_framework',
     'django_extensions',
     'crispy_forms',
+    'crispy_bootstrap4',
     'debug_toolbar',
     'accounts',
     'booking',
@@ -113,6 +113,7 @@ MIDDLEWARE = (
     'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
 )
 
 #  use local cache for tests
@@ -154,7 +155,7 @@ ACCOUNT_AUTHENTICATION_METHOD = "username_email"
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = False
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"
-ACCOUNT_EMAIL_CONFIRMATION_COOLDOWN = 900  # increase cooldown to 15 mins
+ACCOUNT_EMAIL_CONFIRMATION_COOLDOWN = 900
 ACCOUNT_EMAIL_SUBJECT_PREFIX = "The Watermelon Studio:"
 ACCOUNT_PASSWORD_MIN_LENGTH = 6
 ACCOUNT_SIGNUP_FORM_CLASS = 'accounts.forms.SignupForm'
@@ -227,7 +228,7 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = root('media')
 if env("CONSOLE_EMAIL"):   # pragma: no cover
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-else:
+else:  # pragma: no cover
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_USE_TLS = True
 EMAIL_HOST = 'smtp.gmail.com'
@@ -242,9 +243,9 @@ SUPPORT_EMAIL = 'rebkwok@gmail.com'
 SEND_ALL_STUDIO_EMAILS = env('SEND_ALL_STUDIO_EMAILS')
 
 # #####LOGGING######
+
 if not TESTING and not LOCAL:  # pragma: no cover
     LOG_FOLDER = env('LOG_FOLDER')
-
     LOGGING = {
         'version': 1,
         'disable_existing_loggers': False,
@@ -317,6 +318,45 @@ if not TESTING and not LOCAL:  # pragma: no cover
             },
         },
     }
+else:
+    LOGGING = {
+        'version': 1,
+        'disable_existing_loggers': False,
+        'handlers': {
+            'console': {
+                'level': 'DEBUG',
+                'class': 'logging.StreamHandler',
+            }
+        },
+        'loggers': {
+            'django.request': {
+                'handlers': ['console'],
+                'level': 'INFO',
+                'propagate': True,
+            },
+            'booking': {
+                'handlers': ['console'],
+                'level': 'INFO',
+                'propogate': True,
+            },
+            'payments': {
+                'handlers': ['console'],
+                'level': 'INFO',
+                'propogate': True,
+            },
+            'studioadmin': {
+                'handlers': ['console'],
+                'level': 'INFO',
+                'propogate': True,
+            },
+            'timetable': {
+                'handlers': ['console'],
+                'level': 'INFO',
+                'propogate': True,
+            },
+        },
+    }
+
 
 ADMINS = [("Becky Smith", SUPPORT_EMAIL)]
 
@@ -379,47 +419,6 @@ if env('USE_MAILCATCHER'):  # pragma: no cover
 # DJANGO-PAYPAL
 DEFAULT_PAYPAL_EMAIL = env('DEFAULT_PAYPAL_EMAIL')
 PAYPAL_TEST = env('PAYPAL_TEST')
-
-
-# TESTING logging
-if TESTING:  # pragma: no cover
-    LOGGING = {
-        'version': 1,
-        'disable_existing_loggers': False,
-        'handlers': {
-            'console': {
-                'level': 'DEBUG',
-                'class': 'logging.StreamHandler',
-            }
-        },
-        'loggers': {
-            'django.request': {
-                'handlers': ['console'],
-                'level': 'INFO',
-                'propagate': True,
-            },
-            'booking': {
-                'handlers': ['console'],
-                'level': 'INFO',
-                'propogate': True,
-            },
-            'payments': {
-                'handlers': ['console'],
-                'level': 'INFO',
-                'propogate': True,
-            },
-            'studioadmin': {
-                'handlers': ['console'],
-                'level': 'INFO',
-                'propogate': True,
-            },
-            'timetable': {
-                'handlers': ['console'],
-                'level': 'INFO',
-                'propogate': True,
-            },
-        },
-    }
 
 
 # Session cookies
@@ -503,17 +502,14 @@ SHOW_VAT = env("SHOW_VAT")
 VAT_NUMBER = env("VAT_NUMBER")
 
 # for crispy forms
-# CRISPY_TEMPLATE_PACK = 'bootstrap4'
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap4"
+CRISPY_TEMPLATE_PACK = "bootstrap4"
 USE_CRISPY = True
 
 
 # notices
 NOTICES_COLOUR="rgb(240, 139, 165)"
 NOTICES_SAFE = True
-
-
-DOMAIN = "booking.thewatermelonstudio.co.uk"
-
 
 # STRIPE
 PAYMENT_METHOD = env("PAYMENT_METHOD")
@@ -525,3 +521,5 @@ STRIPE_ENDPOINT_SECRET = env("STRIPE_ENDPOINT_SECRET")
 INVOICE_KEY=env("INVOICE_KEY")
 
 CART_TIMEOUT_MINUTES = env("CART_TIMEOUT_MINUTES", default=15)
+
+SHOW_MEMBERSHIPS = env.bool("SHOW_MEMBERSHIPS", False)

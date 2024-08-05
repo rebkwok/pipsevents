@@ -5,6 +5,7 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
 from django import forms
+from django.conf import settings
 from django.contrib.auth.models import Group, User
 from django.utils import timezone
 
@@ -89,15 +90,25 @@ class SignupForm(forms.Form):
 
 class UserProfileForm(forms.ModelForm):
 
-    pronouns = forms.CharField(max_length=100, label='Preferred pronouns (optional)', required=False)
+    booking_preference = forms.CharField(
+        max_length=10,
+        widget=forms.RadioSelect(choices=(("membership", "Membership"), ("block", "Block"))), 
+        required=True,
+        help_text="If you have both membership and block available, which should be used first for bookings?"
+    )
+    pronouns = forms.CharField(
+        max_length=100, label='Preferred pronouns (optional)', required=False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["pronouns"].initial = self.instance.userprofile.pronouns
+        self.fields["booking_preference"].initial = self.instance.userprofile.booking_preference
+        if not settings.SHOW_MEMBERSHIPS:
+            self.fields["booking_preference"].widget = forms.HiddenInput()
 
     class Meta:
         model = User
-        fields = ('username', 'first_name', 'last_name', 'pronouns')
+        fields = ('username', 'first_name', 'last_name', 'pronouns', 'booking_preference')
 
 
 BASE_DISCLAIMER_FORM_WIDGETS = {
