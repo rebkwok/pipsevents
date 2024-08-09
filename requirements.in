@@ -1,4 +1,4 @@
-Django
+Django<5
 coverage
 coveralls
 dj-database-url
