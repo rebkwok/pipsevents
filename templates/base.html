@@ -134,7 +134,7 @@
     </header>
 <div class="wrapper">
   <main role="main" class="container-fluid">
-        {% CookielawBanner %}
+        {% cookielaw_banner %}
         
         {% block banner %}
             <div class="mb-4">
@@ -142,7 +142,7 @@
             </div>
         {% endblock banner %}
 
-        {% block notices %}{% NoticesModal %}{% endblock notices %}
+        {% block notices %}{% notices_modal %}{% endblock notices %}
 
     {% block new_banner %}
         {% if user.is_anonymous and 'event-disclaimer' not in request.path %}

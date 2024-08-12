@@ -329,7 +329,7 @@ class PaymentsAdminFiltersTests(PatchRequestMixin, TestCase):
         )
 
         userfilter = admin.PaypalBookingUserFilter(
-            None, {'user': self.user.id}, PaypalBookingTransaction,
+            None, {'user': [self.user.id]}, PaypalBookingTransaction,
             admin.PaypalBookingTransactionAdmin
         )
         result = userfilter.queryset(
@@ -363,7 +363,7 @@ class PaymentsAdminFiltersTests(PatchRequestMixin, TestCase):
         )
 
         userfilter = admin.PaypalTicketBookingUserFilter(
-            None, {'user': self.user.id}, PaypalTicketBookingTransaction,
+            None, {'user': [self.user.id]}, PaypalTicketBookingTransaction,
             admin.PaypalTicketBookingTransactionAdmin
         )
         result = userfilter.queryset(
@@ -399,7 +399,7 @@ class PaymentsAdminFiltersTests(PatchRequestMixin, TestCase):
         )
 
         userfilter = admin.PaypalBlockUserFilter(
-            None, {'user': self.user.id}, PaypalBlockTransaction,
+            None, {'user': [self.user.id]}, PaypalBlockTransaction,
             admin.PaypalBlockTransactionAdmin
         )
         result = userfilter.queryset(
@@ -444,7 +444,7 @@ class PaymentsAdminFiltersTests(PatchRequestMixin, TestCase):
         self.assertEqual(result.count(), 10)
 
         bk_check_filter = admin.PaypalBookingCheckFilter(
-            None, {'unpaid_with_txn': 'all'}, PaypalBookingTransaction,
+            None, {'unpaid_with_txn': ['all']}, PaypalBookingTransaction,
             admin.PaypalBookingTransactionAdmin
         )
         result = bk_check_filter.queryset(
@@ -498,7 +498,7 @@ class PaymentsAdminFiltersTests(PatchRequestMixin, TestCase):
             unpaid_autocancelled_with_txn, unpaid_no_show_with_txn
         ]
         bk_check_filter = admin.PaypalBookingCheckFilter(
-            None, {'unpaid_with_txn': 'all'}, PaypalBookingTransaction,
+            None, {'unpaid_with_txn': ['all']}, PaypalBookingTransaction,
             admin.PaypalBookingTransactionAdmin
         )
         result = bk_check_filter.queryset(
@@ -511,7 +511,7 @@ class PaymentsAdminFiltersTests(PatchRequestMixin, TestCase):
         )
 
         bk_check_filter = admin.PaypalBookingCheckFilter(
-            None, {'unpaid_with_txn': 'open'}, PaypalBookingTransaction,
+            None, {'unpaid_with_txn': ['open']}, PaypalBookingTransaction,
             admin.PaypalBookingTransactionAdmin
         )
         result = bk_check_filter.queryset(
@@ -526,7 +526,7 @@ class PaymentsAdminFiltersTests(PatchRequestMixin, TestCase):
         ]
 
         bk_check_filter = admin.PaypalBookingCheckFilter(
-            None, {'unpaid_with_txn': 'cancelled'}, PaypalBookingTransaction,
+            None, {'unpaid_with_txn': ['cancelled']}, PaypalBookingTransaction,
             admin.PaypalBookingTransactionAdmin
         )
         result = bk_check_filter.queryset(
@@ -539,7 +539,7 @@ class PaymentsAdminFiltersTests(PatchRequestMixin, TestCase):
         )
 
         bk_check_filter = admin.PaypalBookingCheckFilter(
-            None, {'unpaid_with_txn': 'autocancelled'}, PaypalBookingTransaction,
+            None, {'unpaid_with_txn': ['autocancelled']}, PaypalBookingTransaction,
             admin.PaypalBookingTransactionAdmin
         )
         result = bk_check_filter.queryset(
@@ -569,7 +569,7 @@ class PaymentsAdminFiltersTests(PatchRequestMixin, TestCase):
         self.assertEqual(result.count(), 10)
 
         block_check_filter = admin.PaypalBlockCheckFilter(
-            None, {'unpaid_with_txn': 'yes'}, PaypalBlockTransaction,
+            None, {'unpaid_with_txn': ['yes']}, PaypalBlockTransaction,
             admin.PaypalBlockTransactionAdmin
         )
         result = block_check_filter.queryset(

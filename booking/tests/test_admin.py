@@ -21,13 +21,13 @@ class EventAdminTests(TestCase):
         future_event = baker.make_recipe('booking.future_EV', name='future')
 
         filter = admin.EventDateListFilter(
-            None, {'date': 'past'}, Event, admin.EventAdmin
+            None, {'date': ['past']}, Event, admin.EventAdmin
         )
         event = filter.queryset(None, Event.objects.all())[0]
         self.assertEqual(event.name, 'past')
 
         filter = admin.EventDateListFilter(
-            None, {'date': 'upcoming'}, Event, admin.EventAdmin
+            None, {'date': ['upcoming']}, Event, admin.EventAdmin
         )
         event = filter.queryset(None, Event.objects.all())[0]
         self.assertEqual(event.name, 'future')
@@ -42,7 +42,7 @@ class EventAdminTests(TestCase):
         pclass = baker.make_recipe('booking.future_PC', name='pole class')
 
         filter = admin.EventTypeListFilter(
-            None, {'type': 'class'}, Event, admin.EventAdmin
+            None, {'type': ['class']}, Event, admin.EventAdmin
         )
 
         result = filter.queryset(None, Event.objects.all())
@@ -50,7 +50,7 @@ class EventAdminTests(TestCase):
         self.assertEqual(result[0].name, 'pole class')
 
         filter = admin.EventTypeListFilter(
-            None, {'type': 'event'}, Event, admin.EventAdmin
+            None, {'type': ['event']}, Event, admin.EventAdmin
         )
 
         result = filter.queryset(None, Event.objects.all())
@@ -87,13 +87,13 @@ class BookingAdminTests(PatchRequestMixin, TestCase):
         baker.make_recipe('booking.booking', user=self.user, event=future_event)
 
         filter = admin.BookingDateListFilter(
-            None, {'event__date': 'past'}, Booking, admin.BookingAdmin
+            None, {'event__date': ['past']}, Booking, admin.BookingAdmin
         )
         booking = filter.queryset(None, Booking.objects.all())[0]
         self.assertEqual(booking.event.name, 'past')
 
         filter = admin.BookingDateListFilter(
-            None, {'event__date': 'upcoming'}, Booking, admin.BookingAdmin
+            None, {'event__date': ['upcoming']}, Booking, admin.BookingAdmin
         )
         booking = filter.queryset(None, Booking.objects.all())[0]
         self.assertEqual(booking.event.name, 'future')
@@ -176,7 +176,7 @@ class BookingAdminTests(PatchRequestMixin, TestCase):
         )
 
         userfilter = admin.UserFilter(
-            None, {'user': self.user.id}, Booking, admin.BookingAdmin
+            None, {'user': [self.user.id]}, Booking, admin.BookingAdmin
         )
         result = userfilter.queryset(None, Booking.objects.all())
         self.assertEqual(result.count(), 5)
@@ -242,7 +242,7 @@ class BlockAdminTests(PatchRequestMixin, TestCase):
         baker.make_recipe('booking.booking', block=full_block, _quantity=5)
 
         filter = admin.BlockFilter(
-            None, {'status': 'active'}, Block, admin.BlockAdmin
+            None, {'status': ['active']}, Block, admin.BlockAdmin
         )
         block_qset = filter.queryset(None, Block.objects.all())
         self.assertEqual(block_qset.count(), 1)
@@ -250,7 +250,7 @@ class BlockAdminTests(PatchRequestMixin, TestCase):
         self.assertEqual(block.id, paid_block.id)
 
         filter = admin.BlockFilter(
-            None, {'status': 'inactive'}, Block, admin.BlockAdmin
+            None, {'status': ['inactive']}, Block, admin.BlockAdmin
         )
         block_qset = filter.queryset(None, Block.objects.all())
         self.assertEqual(block_qset.count(), 3)
@@ -261,7 +261,7 @@ class BlockAdminTests(PatchRequestMixin, TestCase):
         )
 
         filter = admin.BlockFilter(
-            None, {'status': 'unpaid'}, Block, admin.BlockAdmin
+            None, {'status': ['unpaid']}, Block, admin.BlockAdmin
         )
         block_qset = filter.queryset(None, Block.objects.all())
         self.assertEqual(block_qset.count(), 1)
