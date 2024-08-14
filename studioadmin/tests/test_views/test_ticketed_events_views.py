@@ -136,10 +136,10 @@ class TicketedEventAdminListViewTests(TestPermissionMixin, TestCase):
 
         resp = self.client.get(self.url)
         self.assertIn(
-            'id="DELETE_0"', resp.rendered_content
+            'form-0-DELETE', resp.rendered_content
         )
         self.assertNotIn(
-            'id="DELETE_1"', resp.rendered_content
+            'form-1-DELETE', resp.rendered_content
         )
         self.assertIn('cancel_button', resp.rendered_content)
 

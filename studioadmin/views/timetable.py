@@ -54,25 +54,40 @@ def timetable_admin_list(request):
                                 )
                             )
                         else:
+                            session = form.save()
+                            changed_fields = []
+                            unchanged_fields = []
                             for field in form.changed_data:
+                                if getattr(session, field) == form.cleaned_data[field]:
+                                    changed_fields.append(field)
+                                else:
+                                    unchanged_fields.append(field)
+                            
+                            if changed_fields:
+                                fields_str = ", ".join(
+                                    [field.title().replace("_", " ") for field in changed_fields]
+                                )
                                 messages.success(
                                     request, mark_safe(
-                                        "<strong>{}</strong> updated for "
-                                        "<strong>{}</strong>".format(
-                                            field.title().replace("_", " "),
-                                            form.instance
-                                            )
+                                        f"<strong>{fields_str}</strong> updated for "
+                                        f"<strong>{session}</strong>"
                                     )
                                 )
                                 ActivityLog.objects.create(
-                                    log='Session {} (id {}) updated by admin '
-                                        'user {}'.format(
-                                        form.instance, form.instance.id,
-                                        request.user.username
+                                    log=f'Session {session} (id {session.id}) updated by admin '
+                                        f'user {request.user.username}: fields changed: {fields_str}'
+                                )
+                            if unchanged_fields:
+                                fields_str = ", ".join(
+                                    [field.title().replace("_", " ") for field in unchanged_fields]
+                                )
+                                messages.error(
+                                    request, mark_safe(
+                                        f"<strong>{fields_str}</strong> could not be updated for "
+                                        f"<strong>{session}</strong>"
                                     )
                                 )
-                        form.save()
-
+                                
                 sessionformset.save()
             return HttpResponseRedirect(
                 reverse('studioadmin:timetable')

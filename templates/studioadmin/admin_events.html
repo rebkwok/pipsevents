@@ -108,11 +108,11 @@
                                         {{ event.instance|bookings_count }}
                                     {% endif %}
                                 </td>
-                                <td class="text-center studioadmin-tbl"><div class="form-check">{{ event.visible_on_site }}</div></td>
-                                <td class="text-center studioadmin-tbl"><div class="form-check">{{ event.booking_open }}</div></td>
-                                <td class="text-center studioadmin-tbl"><div class="form-check">{{ event.payment_open }}</div></td>
+                                <td class="text-center studioadmin-tbl">{{ event.visible_on_site }}</td>
+                                <td class="text-center studioadmin-tbl">{{ event.booking_open }}</td>
+                                <td class="text-center studioadmin-tbl">{{ event.payment_open }}</td>
                                 {% if type != "online_tutorials" %}
-                                    <td class="text-center studioadmin-tbl"><div class="form-check">{{ event.advance_payment_required }}</div></td>
+                                    <td class="text-center studioadmin-tbl">{{ event.advance_payment_required }}</td>
                                 <td class="text-center studioadmin-tbl">{{ event.instance.allow_booking_cancellation|yesno:"Yes,No" }}</td>
                                 {% else %}
                                     <span class="hide">{{ event.advance_payment_required }}</span>
@@ -126,7 +126,7 @@
                                             <div id="cancel_button" class="btn btn-danger table-btn">Cancel {% if type == 'events' %}Event{% elif type == 'lessons' %}Class{% elif type == 'room_hires' %}Room Hire{% endif %}</div>
                                         </a>
                                     {% else %}
-                                        <div class="form-check">{{ event.DELETE }}<label for={{ event.DELETE_id }}></label></div>
+                                        {{ event.DELETE }}
                                     {% endif %}
                                 </td>
                             </tr>

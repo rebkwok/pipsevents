@@ -44,9 +44,9 @@
                                 <span class="hide">{{ event.id }}</span>
                                 <td class="studioadmin-tbl">{{ event.instance.date | date:"D d M, H:i" }}</td>
                                 <td class="studioadmin-tbl"><a href="{% url 'studioadmin:edit_ticketed_event' event.instance.slug %}">{{ event.instance.name }}</a></td>
-                                <td class="text-center studioadmin-tbl">{{ event.payment_open }}<label for={{ event.payment_open_id }}></label></td>
-                                <td class="text-center studioadmin-tbl">{{ event.advance_payment_required }}<label for={{ event.advance_payment_required_id }}></label></td>
-                                <td class="text-center studioadmin-tbl">{{ event.show_on_site }}<label for={{ event.show_on_site_id }}></label></td>
+                                <td class="text-center studioadmin-tbl">{{ event.payment_open }}</td>
+                                <td class="text-center studioadmin-tbl">{{ event.advance_payment_required }}</td>
+                                <td class="text-center studioadmin-tbl">{{ event.show_on_site }}</td>
                                 <td class="text-center studioadmin-tbl">{% if event.instance.max_tickets %}{{ event.instance.max_tickets }}{% else %}N/A{% endif %}</td>
                                 <td class="text-center studioadmin-tbl">{% if event.instance.tickets_left < 10000 %}{{ event.instance.tickets_left }}{% else %}N/A{% endif %}</td>
                                 <td class="text-center studioadmin-tbl"><a href="{% url 'studioadmin:ticketed_event_bookings' event.instance.slug %}"><span class="fas fa-ticket-alt fa-lg"></span></a></td>
@@ -59,7 +59,7 @@
                                     {% elif event.cannot_delete %}
                                         <a href="{% url 'studioadmin:cancel_ticketed_event' event.instance.slug %}"><div id='cancel_button' class="btn table-btn btn-danger">Cancel event</div></a>
                                     {% else %}
-                                        {{ event.DELETE }}<label for={{ event.DELETE_id }}></label>
+                                        {{ event.DELETE }}
                                     {% endif %}
                                 </td>
                             </tr>

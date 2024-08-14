@@ -244,8 +244,8 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
         assert event.bookings.all().count() == 1
         assert self.event.bookings.all().count() == 0
         resp = self.client.get(reverse("studioadmin:events"))
-        assert 'id="DELETE_0"' in resp.rendered_content
-        assert 'id="DELETE_1"' not in resp.rendered_content
+        assert 'form-0-DELETE' in resp.rendered_content
+        assert 'form-1-DELETE' not in resp.rendered_content
         assert 'cancel_button' in resp.rendered_content
 
     def test_can_delete(self):

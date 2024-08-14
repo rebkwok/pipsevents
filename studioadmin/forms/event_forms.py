@@ -21,44 +21,12 @@ class EventBaseFormSet(BaseModelFormSet):
     def add_fields(self, form, index):
         super(EventBaseFormSet, self).add_fields(form, index)
 
-        if form.instance:
-            form.fields['visible_on_site'] = forms.BooleanField(
-                widget=forms.CheckboxInput(attrs={
-                    'class': "form-check-input position-static studioadmin-list",
-                }),
-                required=False,
-                label="Visible"
-            )
+        form.fields['visible_on_site'] = forms.BooleanField(
+            label="Visible"
+        )
 
-            form.fields['booking_open'] = forms.BooleanField(
-                widget=forms.CheckboxInput(attrs={
-                    'class': "form-check-input position-static studioadmin-list",
-                }),
-                required=False
-            )
-
-            form.fields['payment_open'] = forms.BooleanField(
-                widget=forms.CheckboxInput(attrs={
-                    'class': "form-check-input position-static studioadmin-list",
-                }),
-                required=False
-            )
-
-            form.fields['advance_payment_required'] = forms.BooleanField(
-                widget=forms.CheckboxInput(attrs={
-                    'class': "form-check-input position-static  studioadmin-list",
-                }),
-                required=False
-            )
-
-            form.fields['DELETE'] = forms.BooleanField(
-                widget=forms.CheckboxInput(attrs={
-                    'class': 'form-check-input position-static studioadmin-list',
-                    'id': 'DELETE_{}'.format(index)
-                }),
-                required=False
-            )
-            form.DELETE_id = 'DELETE_{}'.format(index)
+        for field in form.fields.values():
+            field.required = False
 
 
 EventFormSet = modelformset_factory(

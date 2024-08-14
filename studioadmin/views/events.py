@@ -96,24 +96,41 @@ def event_admin_list(request, ev_type):
                                     )
                                 )
                             else:
+                                event = form.save()
+                                changed_fields = []
+                                unchanged_fields = []
                                 for field in form.changed_data:
+                                    if getattr(event, field) == form.cleaned_data[field]:
+                                        changed_fields.append(field)
+                                    else:
+                                        unchanged_fields.append(field)
+                                
+                                if changed_fields:
+                                    fields_str = ", ".join(
+                                        [field.title().replace("_", " ") for field in changed_fields]
+                                    )
                                     messages.success(
                                         request, mark_safe(
-                                            "<strong>{}</strong> updated for "
-                                            "<strong>{}</strong>".format(
-                                                field.title().replace("_", " "),
-                                                form.instance))
+                                            f"<strong>{fields_str}</strong> updated for "
+                                            f"<strong>{event}</strong>"
+                                        )
                                     )
-
                                     ActivityLog.objects.create(
-                                        log='{} {} (id {}) updated by admin user {}: field_changed: {}'.format(
-                                            ev_type_text.title(),
-                                            form.instance, form.instance.id,
-                                            request.user.username, field.title().replace("_", " ")
+                                        log=f"{ev_type_text.title()} {event} (id {event.id}) updated by "
+                                            f"admin user {request.user.username}: fields changed: {fields_str}"
+                                    )
+                                    
+                                if unchanged_fields:
+                                    fields_str = ", ".join(
+                                        [field.title().replace("_", " ") for field in unchanged_fields]
+                                    )
+                                    messages.error(
+                                        request, mark_safe(
+                                            f"<strong>{fields_str}</strong> could not be updated for "
+                                            f"<strong>{event}</strong>"
                                         )
                                     )
 
-                            form.save()
                     eventformset.save()
                 return HttpResponseRedirect(
                     reverse('studioadmin:{}'.format(ev_type))

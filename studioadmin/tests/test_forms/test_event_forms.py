@@ -81,19 +81,6 @@ class EventFormSetTests(TestCase):
             deleted_form_with_bookings.cleaned_data['id'], self.event1
         )
 
-        delete_no_bookings_widget = deleted_form_no_bookings.\
-            fields['DELETE'].widget
-        delete_with_bookings_widget = deleted_form_with_bookings.\
-            fields['DELETE'].widget
-        self.assertEqual(
-            delete_no_bookings_widget.attrs['class'],
-            'form-check-input position-static studioadmin-list'
-        )
-        self.assertEqual(
-            delete_with_bookings_widget.attrs['class'],
-            'form-check-input position-static studioadmin-list'
-        )
-
 
 class EventAdminFormTests(TestCase):
 

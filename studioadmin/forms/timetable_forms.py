@@ -23,38 +23,18 @@ class SessionBaseFormSet(BaseModelFormSet):
     def add_fields(self, form, index):
         super(SessionBaseFormSet, self).add_fields(form, index)
 
-        if form.instance:
-            form.formatted_day = DAY_CHOICES[form.instance.day]
+        form.formatted_day = DAY_CHOICES[form.instance.day]
 
-            form.fields['booking_open'] = forms.BooleanField(
-                widget=forms.CheckboxInput(attrs={'class': "form-check-input position-static"}),
-                required=False
-            )
-
-            form.fields['payment_open'] = forms.BooleanField(
-                widget=forms.CheckboxInput(attrs={'class': "form-check-input position-static"}),
-                initial=form.instance.payment_open,
-                required=False
-            )
-
-            form.fields['advance_payment_required'] = forms.BooleanField(
-                widget=forms.CheckboxInput(attrs={'class': "form-check-input position-static"}),
-                required=False
-            )
-
-            form.fields['DELETE'] = forms.BooleanField(
-                widget=forms.CheckboxInput(attrs={
-                    'class': 'form-check-input position-static studioadmin-list',
-                }),
-                required=False
-            )
+        for field in form.fields.values():
+            field.required = False
 
 
 TimetableSessionFormSet = modelformset_factory(
     Session,
     fields=(
         'booking_open',
-        'payment_open', 'advance_payment_required'
+        'payment_open',
+        'advance_payment_required'
     ),
     formset=SessionBaseFormSet,
     extra=0,

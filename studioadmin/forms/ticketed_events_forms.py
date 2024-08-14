@@ -20,49 +20,16 @@ class TicketedEventBaseFormSet(BaseModelFormSet):
 
     def add_fields(self, form, index):
         super(TicketedEventBaseFormSet, self).add_fields(form, index)
+            
+        confirmed_ticket_bookings = form.instance.ticket_bookings.filter(
+            purchase_confirmed=True
+        )
+        if confirmed_ticket_bookings:
+            form.cannot_delete = True
+        
+        for field in form.fields.values():
+            field.required = False
 
-        if form.instance:
-            form.fields['show_on_site'] = forms.BooleanField(
-                widget=forms.CheckboxInput(attrs={
-                    'class': "regular-checkbox studioadmin-list",
-                    'id': 'show_on_site_{}'.format(index)
-                }),
-                required=False
-            )
-            form.show_on_site_id = 'show_on_site_{}'.format(index)
-
-            form.fields['payment_open'] = forms.BooleanField(
-                widget=forms.CheckboxInput(attrs={
-                    'class': "regular-checkbox studioadmin-list",
-                    'id': 'payment_open_{}'.format(index)
-                }),
-                required=False
-            )
-            form.payment_open_id = 'payment_open_{}'.format(index)
-
-            form.fields['advance_payment_required'] = forms.BooleanField(
-                widget=forms.CheckboxInput(attrs={
-                    'class': "regular-checkbox studioadmin-list",
-                    'id': 'advance_payment_required_{}'.format(index)
-                }),
-                required=False
-            )
-            form.advance_payment_required_id = 'advance_payment_required_{}'.format(index)
-
-            confirmed_ticket_bookings = form.instance.ticket_bookings.filter(
-                purchase_confirmed=True
-            )
-            if confirmed_ticket_bookings:
-                form.cannot_delete = True
-
-            form.fields['DELETE'] = forms.BooleanField(
-                widget=forms.CheckboxInput(attrs={
-                    'class': 'delete-checkbox studioadmin-list',
-                    'id': 'DELETE_{}'.format(index)
-                }),
-                required=False
-            )
-            form.DELETE_id = 'DELETE_{}'.format(index)
 
 TicketedEventFormSet = modelformset_factory(
     TicketedEvent,

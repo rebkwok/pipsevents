@@ -422,17 +422,6 @@ class TicketedEventFormsetTests(TestCase):
         formset = TicketedEventFormSet(data=self.formset_data())
         self.assertTrue(formset.is_valid())
 
-    def test_additional_form_data(self):
-        formset = TicketedEventFormSet(
-            data=self.formset_data(), queryset=TicketedEvent.objects.all()
-        )
-        form = formset.forms[0]
-        self.assertEqual(form.payment_open_id, 'payment_open_0')
-        self.assertEqual(
-            form.advance_payment_required_id, 'advance_payment_required_0'
-        )
-        self.assertEqual(form.DELETE_id, 'DELETE_0')
-
     def test_can_only_delete_if_no_confirmed_ticket_purchases(self):
 
         tb = baker.make(
