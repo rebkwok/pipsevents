@@ -548,7 +548,7 @@ def update_block_bookings(request):
         messages.info(request, "Blocks used for {} bookings".format(len(block_booked)))
 
         # send email to user
-        host = 'http://{}'.format(request.META.get('HTTP_HOST'))
+        host = 'http://{}'.format(request.get_host())
         ctx = {
             'host': host,
             'bookings': block_booked,

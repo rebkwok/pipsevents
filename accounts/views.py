@@ -188,7 +188,7 @@ class NonRegisteredDisclaimerCreateView(CreateView):
         disclaimer = form.save(commit=False)
         disclaimer.version = form.disclaimer_content.version
         email = disclaimer.email
-        host = 'https://{}'.format(self.request.META.get('HTTP_HOST'))
+        host = 'https://{}'.format(self.request.get_host())
         ctx = {
             'host': host,
             'contact_email': settings.DEFAULT_STUDIO_EMAIL

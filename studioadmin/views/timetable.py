@@ -264,7 +264,7 @@ def upload_timetable_view(request,
             if visible_created_classes:
                 ctx = {
                     "new_classes": visible_created_classes,
-                    "host": 'http://{}'.format(request.META.get('HTTP_HOST'))
+                    "host": 'http://{}'.format(request.get_host())
                 }
 
                 send_mail(

@@ -295,7 +295,7 @@ class BookingUpdateView(
         if booking.block:
             # send email to user if they used block to book (paypal payment
             # sends separate emails
-            host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
+            host = 'http://{}'.format(self.request.get_host())
             if booking.event.event_type.event_type == 'EV':
                 ev_type = 'event'
             elif booking.event.event_type.event_type == 'CL':
@@ -366,7 +366,7 @@ def _email_free_class_request(request, booking, booking_status):
     booking.block = None
 
     # send email and set messages
-    host = 'http://{}'.format(request.META.get('HTTP_HOST'))
+    host = 'http://{}'.format(request.get_host())
     # send email to studio
     ctx = {
             'host': host,
@@ -452,7 +452,7 @@ class BookingDeleteView(
         # Check here so we can adjust the email message
         block_or_membership_booked_within_allowed_time = self._block_or_membership_booked_within_allowed_time(booking)
 
-        host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
+        host = 'http://{}'.format(self.request.get_host())
 
         # email if this isn't an unpaid/non-rebooked booking
         # send email to user
@@ -650,7 +650,7 @@ class BookingDeleteView(
                 send_waiting_list_email(
                     event,
                     [wluser.user for wluser in waiting_list_users],
-                    host='http://{}'.format(self.request.META.get('HTTP_HOST'))
+                    host='http://{}'.format(self.request.get_host())
                 )
                 ActivityLog.objects.create(
                     log='Waiting list email sent to user(s) {} for '
@@ -917,7 +917,7 @@ def ajax_create_booking(request, event_id):
                 booking.event, booking.user.username)
     )
 
-    host = 'http://{}'.format(request.META.get('HTTP_HOST'))
+    host = 'http://{}'.format(request.get_host())
     
     # send email to user ONLY IF PAID
     # If it's unpaid, they'll get the email with payment/update

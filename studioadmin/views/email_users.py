@@ -160,7 +160,7 @@ def email_users_view(request, mailing_list=False,
                         for i in range(0, email_count, 99)
                         ]
 
-            host = 'http://{}'.format(request.META.get('HTTP_HOST'))
+            host = 'http://{}'.format(request.get_host())
 
             try:
                 for i, email_list in enumerate(email_lists):

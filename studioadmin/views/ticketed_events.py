@@ -433,7 +433,7 @@ class TicketedEventBookingsListView(
     def _send_confirmation_email(self, request, ticket_booking, action):
         try:
             # send confirmation email
-            host = 'http://{}'.format(request.META.get('HTTP_HOST'))
+            host = 'http://{}'.format(request.get_host())
             # send email to studio
             ctx = {
                   'host': host,
@@ -498,7 +498,7 @@ def cancel_ticketed_event_view(request, slug):
     if request.method == 'POST':
         if 'confirm' in request.POST:
 
-            host = 'http://{}'.format(request.META.get('HTTP_HOST'))
+            host = 'http://{}'.format(request.get_host())
 
             for booking in open_paid_ticket_bookings + \
                     open_unpaid_ticket_bookings:
@@ -645,7 +645,7 @@ class ConfirmTicketBookingRefundView(
             ctx = {
                 'ticketed_event': ticket_booking.ticketed_event,
                 'ticket_booking': ticket_booking,
-                'host': 'http://{}'.format(self.request.META.get('HTTP_HOST'))
+                'host': 'http://{}'.format(self.request.get_host())
             }
 
             send_mail(
