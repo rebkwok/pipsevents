@@ -428,7 +428,7 @@ def ajax_toggle_attended(request, booking_id):
                 send_waiting_list_email(
                     booking.event,
                     [wluser.user for wluser in waiting_list_users],
-                    host='http://{}'.format(request.META.get('HTTP_HOST'))
+                    host='http://{}'.format(request.get_host())
                 )
                 ActivityLog.objects.create(
                     log='Waiting list email sent to user(s) {} for event {}'.format(

@@ -19,16 +19,15 @@ class AccountBanAdminTests(TestCase):
     def test_currently_banned_filter(self):
         current = baker.make(AccountBan, end_date=timezone.now() + timedelta(2))
         past = baker.make(AccountBan, end_date=timezone.now() - timedelta(2))
-
         filter = CurrentlyBannedListFilter(
-            None, {'currently_banned': 'currently_banned'}, AccountBan, AccountBanAdmin
+            None, {'currently_banned': ['currently_banned']}, AccountBan, AccountBanAdmin
         )
         assert filter.queryset(None, AccountBan.objects.all()).count() == 1
         ban = filter.queryset(None, AccountBan.objects.all())[0]
         assert ban.id == current.id
 
         filter = CurrentlyBannedListFilter(
-            None, {'currently_banned': 'previously_banned'}, AccountBan, AccountBanAdmin
+            None, {'currently_banned': ['previously_banned']}, AccountBan, AccountBanAdmin
         )
         assert filter.queryset(None, AccountBan.objects.all()).count() == 1
         ban = filter.queryset(None, AccountBan.objects.all())[0]
@@ -59,14 +58,14 @@ class CustomUserAdminTests(TestCase):
         baker.make(AccountBan, user=user1, end_date=timezone.now() - timedelta(2))
 
         filter = CurrentlyBannedUserListFilter(
-            None, {'currently_banned': 'currently_banned'}, User, CustomUserAdmin
+            None, {'currently_banned': ['currently_banned']}, User, CustomUserAdmin
         )
         assert filter.queryset(None, User.objects.all()).count() == 1
         user = filter.queryset(None, User.objects.all())[0]
         assert user.id == user.id
 
         filter = CurrentlyBannedUserListFilter(
-            None, {'currently_banned': 'not_banned'}, User, CustomUserAdmin
+            None, {'currently_banned': ['not_banned']}, User, CustomUserAdmin
         )
         assert filter.queryset(None, User.objects.all()).count() == 2
         past_banned_user = filter.queryset(None, User.objects.all())[0]

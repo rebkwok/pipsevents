@@ -239,7 +239,7 @@ class TicketCreateView(DataPolicyAgreementRequiredMixin, LoginRequiredMixin, Tem
                         )
                 )
 
-                host = 'http://{}'.format(request.META.get('HTTP_HOST'))
+                host = 'http://{}'.format(request.get_host())
                 ctx = {
                       'host': host,
                       'ticketed_event': self.ticketed_event,
@@ -516,7 +516,7 @@ class TicketBookingCancelView(LoginRequiredMixin, UpdateView):
 
             try:
                 # send email and set messages
-                host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
+                host = 'http://{}'.format(self.request.get_host())
                 # send email to user; no need to send to studio as cancelled
                 # before payment
                 ctx = {

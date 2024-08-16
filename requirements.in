@@ -1,4 +1,4 @@
-Django<5
+Django
 coverage
 coveralls
 dj-database-url
@@ -35,7 +35,7 @@ pytest
 pytest-django
 pytest-cov
 pytest-env
-pytest-freezegun
+pytest-freezer
 pytest-xdist
 pymemcache
 stripe

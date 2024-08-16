@@ -57,7 +57,12 @@ jobs:
           pytest --cov-config=.coveragerc --cov=. -k 'serial'
           pytest --cov-config=.coveragerc --cov=. --cov-append -n auto -k 'not serial'
 
-      - name: Coveralls
-        uses: AndreMiras/coveralls-python-action@develop
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run coverage 
+        run: |
+          source ${{ github.workspace }}/venv/bin/activate
+          coverage report
+
+      # - name: Coveralls
+      #   uses: AndreMiras/coveralls-python-action@develop
+      #   with:
+      #     github-token: ${{ secrets.GITHUB_TOKEN }}

@@ -76,7 +76,7 @@ class ConfirmPaymentView(LoginRequiredMixin, StaffUserMixin, UpdateView):
 
             ctx = {
                 'event': booking.event,
-                'host': 'http://{}'.format(self.request.META.get('HTTP_HOST')),
+                'host': 'http://{}'.format(self.request.get_host()),
                 'payment_status': payment_status
             }
             try:
@@ -147,7 +147,7 @@ class ConfirmRefundView(LoginRequiredMixin, StaffUserMixin, UpdateView):
 
             ctx = {
                 'event': booking.event,
-                'host': 'http://{}'.format(self.request.META.get('HTTP_HOST')),
+                'host': 'http://{}'.format(self.request.get_host()),
                 'free': free
             }
 

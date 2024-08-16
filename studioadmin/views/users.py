@@ -590,7 +590,7 @@ def process_user_booking_updates(form, request):
             send_confirmation_msg = ""
             if 'send_confirmation' in form.changed_data:
                 # send confirmation email
-                host = 'http://{}'.format(request.META.get('HTTP_HOST'))
+                host = 'http://{}'.format(request.get_host())
                 # send email to studio
                 ctx = {
                     'host': host,
@@ -674,7 +674,7 @@ def process_user_booking_updates(form, request):
                         [wluser.user for \
                             wluser in waiting_list_users],
                         host='http://{}'.format(
-                            request.META.get('HTTP_HOST')
+                            request.get_host()
                         )
                     )
                     ActivityLog.objects.create(

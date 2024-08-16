@@ -83,7 +83,7 @@ class BlockCreateView(
             )
         )
 
-        host = 'http://{}'.format(self.request.META.get('HTTP_HOST'))
+        host = 'http://{}'.format(self.request.get_host())
         # send email to user
         ctx = {
                           'host': host,

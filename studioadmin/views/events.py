@@ -398,7 +398,7 @@ def cancel_event_view(request, slug):
 
                 try:
                     # send notification email to user
-                    host = 'http://{}'.format(request.META.get('HTTP_HOST'))
+                    host = 'http://{}'.format(request.get_host())
                     ctx = {
                         'host': host,
                         'event_type': ev_type,
@@ -443,7 +443,7 @@ def cancel_event_view(request, slug):
             # deposits as we don't create
             # transfer blocks for deposit-only
             try:
-                host = 'http://{}'.format(request.META.get('HTTP_HOST'))
+                host = 'http://{}'.format(request.get_host())
                 # send email to studio
                 ctx = {
                     'host': host,
