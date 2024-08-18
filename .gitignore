@@ -21,3 +21,4 @@ provision/.vaultpass
 pipsevents.log
 .venv*/
 prices.json
+cache/
