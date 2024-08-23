@@ -19,7 +19,7 @@
                     {% for membership in memberships %}
                         <details>
                         <summary>{{ membership }}</summary>
-                        <dd class="ml-3">{{ membership.description }}
+                        <dd class="ml-3">{{ membership.description|linebreaks }}
                             <ul>
                                 {% for membership_item in membership.membership_items.all %}
                                 <li>{{ membership_item }}</li>

@@ -15,7 +15,7 @@
                     <dt>Membership Plan</dt>
                     <dd>{{ user_membership.membership }}</dd>
                     {% if user_membership.membership.description %}
-                    <dd>{{ user_membership.membership.description }}</dd>
+                    <dd>{{ user_membership.membership.description|linebreaks }}</dd>
                     {% endif %}
                     
 
