@@ -17,8 +17,8 @@
                 <h4>Memberships available:</h4>
                 {% if memberships %}
                     {% for membership in memberships %}
-                        <details>
-                        <summary>{{ membership }}</summary>
+                        <details open>
+                        <summary><strong>{{ membership.name }}</strong></summary>
                         <dd class="ml-3">{{ membership.description|linebreaks }}
                             <ul>
                                 {% for membership_item in membership.membership_items.all %}
