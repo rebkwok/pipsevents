@@ -346,11 +346,18 @@ def test_webhook_subscription_created_setup_pending(
     assert user_membership.subscription_status == "setup_pending"
 
 
+@pytest.mark.parametrize(
+    "studio_email",
+    (
+        True, False
+    )
+)
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 @patch("stripe_payments.views.webhook.stripe.Webhook")
 def test_webhook_setup_intent_succeeded_for_subscription_with_user_membership(
-    mock_webhook, get_mock_webhook_event, client, configured_stripe_user
+    mock_webhook, get_mock_webhook_event, client, configured_stripe_user, settings, studio_email
 ):
+    settings.NOTIFY_STUDIO_FOR_NEW_MEMBERSHIPS = studio_email
     membership = baker.make(Membership, name="membership")
     user_membership = baker.make(
         UserMembership, 
@@ -366,7 +373,12 @@ def test_webhook_setup_intent_succeeded_for_subscription_with_user_membership(
     )
     resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
     assert resp.status_code == 200, resp.content
-    assert len(mail.outbox) == 1
+    if studio_email:
+        assert len(mail.outbox) == 2
+        assert "A new membership has been set up" in mail.outbox[1].subject
+        assert mail.outbox[1].to == [settings.DEFAULT_STUDIO_EMAIL]
+    else:
+        assert len(mail.outbox) == 1
     assert "Your membership has been set up" in mail.outbox[0].subject
     user_membership.refresh_from_db()
     assert user_membership.pending_setup_intent is None
@@ -501,15 +513,22 @@ def test_webhook_subscription_updated_status_changed_to_active_from_cancelled(
     assert paid_booking.membership is None
 
 
+@pytest.mark.parametrize(
+    "studio_email",
+    [
+        True, False
+    ]
+)
 @pytest.mark.freeze_time("2024-02-26")
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 @patch("stripe_payments.views.webhook.stripe.Webhook")
 def test_webhook_subscription_updated_status_changed_to_active_from_incomplete(
-    mock_webhook, get_mock_webhook_event, client, configured_stripe_user
+    mock_webhook, get_mock_webhook_event, client, configured_stripe_user, settings, studio_email
 ):
     mock_webhook.construct_event.return_value = get_mock_webhook_event(
         webhook_event_type="customer.subscription.updated"
     )
+    settings.NOTIFY_STUDIO_FOR_NEW_MEMBERSHIPS = studio_email
 
     membership = baker.make(Membership, name="membership1")
     # booking with no membership yet
@@ -538,7 +557,12 @@ def test_webhook_subscription_updated_status_changed_to_active_from_incomplete(
     )
     resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
     assert resp.status_code == 200, resp.content
-    assert len(mail.outbox) == 1
+    if studio_email:
+        assert len(mail.outbox) == 2
+        assert "A new membership has been set up" in mail.outbox[1].subject
+        assert mail.outbox[1].to == [settings.DEFAULT_STUDIO_EMAIL]
+    else:
+        assert len(mail.outbox) == 1
     assert "Your membership has been set up" in mail.outbox[0].subject
     user_membership.refresh_from_db()
     assert user_membership.subscription_status == "active"

@@ -1,0 +1,6 @@
+{% include "account/email/do_not_reply.txt" %}
+
+A new membership has been set up:
+Membership: {{ user_membership.membership.name }}
+User: {{ user_membership.user.first_name }} {{ user_membership.user.last_name }}
+Start date: {{ user_membership.start_date|date:'d M Y' }}

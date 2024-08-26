@@ -105,12 +105,16 @@ def send_updated_membership_email_to_support(user_membership, new_price_id, old_
     )
 
 
-def _send_subscription_email(event_object, template_name, subject, user_membership=None):
+def _send_subscription_email(event_object, template_name, subject, user_membership=None, to_email=None):
     if user_membership is None:
         user, user_membership = _get_user_from_membership(event_object)
     else:
         user = user_membership.user
 
+    if to_email is None:
+        to = [user.email]
+    else:
+        to = [to_email]
     ctx = {
         'user': user,
         'user_membership': user_membership,
@@ -119,7 +123,7 @@ def _send_subscription_email(event_object, template_name, subject, user_membersh
     send_email(
         f'{settings.ACCOUNT_EMAIL_SUBJECT_PREFIX} {subject}',
         txt_template=f'stripe_payments/email/{template_name}.txt',
-        to_email=[user.email],
+        to_email=to,
         html_template=f'stripe_payments/email/{template_name}.html',
         extra_ctx=ctx
     )
@@ -138,3 +142,12 @@ def send_subscription_renewal_upcoming_email(event_object):
 
 def send_subscription_created_email(user_membership):
     _send_subscription_email(None, "subscription_created", "Your membership has been set up", user_membership=user_membership)
+    if settings.NOTIFY_STUDIO_FOR_NEW_MEMBERSHIPS:
+        _send_subscription_email(
+            None,
+            "subscription_created_to_studio", 
+            "A new membership has been set up", 
+            user_membership=user_membership, 
+            to_email=settings.DEFAULT_STUDIO_EMAIL
+        )
+    

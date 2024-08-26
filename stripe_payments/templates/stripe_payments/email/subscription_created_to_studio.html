@@ -1,0 +1,8 @@
+{% extends 'email_base.html' %}
+
+{% block messagecontent %}
+<p>A new membership has been set up:</p>
+<p><strong>Membership:</strong> {{ user_membership.membership.name }}</p>
+<p><strong>User:</strong> {{ user_membership.user.first_name }} {{ user_membership.user.last_name }}</p>
+<p><strong>Start date:</strong> {{ user_membership.start_date|date:'d M Y' }}</p>
+{% endblock %}
