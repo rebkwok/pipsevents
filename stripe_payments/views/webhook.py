@@ -240,8 +240,6 @@ def stripe_webhook(request):
                 # The membership instance should stay the same on the UserMembership, but in case it's changed from the
                 # Stripe account, we update membership and send emails to support to check
                 price_id = event_object["items"].data[0].price.id
-                logger.error("Price ID %s", price_id)
-                logger.error("User membership Price ID %s", user_membership.membership.stripe_price_id)
 
                 if price_id != user_membership.membership.stripe_price_id:
                     old_membership_name = user_membership.membership.name
