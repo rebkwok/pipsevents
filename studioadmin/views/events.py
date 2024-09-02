@@ -21,6 +21,7 @@ from dateutil.relativedelta import relativedelta
 from booking.models import Block, BlockType, Booking, Event, FilterCategory
 from booking.email_helpers import send_support_email
 from studioadmin.forms import EventFormSet,  EventAdminForm, OnlineTutorialAdminForm
+from studioadmin.views.email_helpers import send_new_classes_email_to_members
 from studioadmin.views.helpers import staff_required, StaffUserMixin, set_cloned_name, get_page
 from activitylog.models import ActivityLog
 
@@ -79,6 +80,7 @@ def event_admin_list(request, ev_type):
                 if not eventformset.has_changed():
                     messages.info(request, "No changes were made")
                 else:
+                    newly_visible = []
                     for form in eventformset:
                         if form.has_changed():
                             if 'DELETE' in form.changed_data:
@@ -97,6 +99,8 @@ def event_admin_list(request, ev_type):
                                 )
                             else:
                                 event = form.save()
+                                if "visible_on_site" in form.changed_data and event.visible_on_site:
+                                    newly_visible.append(event)
                                 changed_fields = []
                                 unchanged_fields = []
                                 for field in form.changed_data:
@@ -132,6 +136,10 @@ def event_admin_list(request, ev_type):
                                     )
 
                     eventformset.save()
+
+                    if newly_visible:
+                        send_new_classes_email_to_members(request, newly_visible)
+
                 return HttpResponseRedirect(
                     reverse('studioadmin:{}'.format(ev_type))
                 )
@@ -590,7 +598,13 @@ def open_all_events(request, event_type):
     events_to_open = Event.objects.filter(
         event_type__event_type=event_type_abbr, date__gte=timezone.now(), cancelled=False
     )
+    newly_visible = list(events_to_open.filter(visible_on_site=False))
     events_to_open.update(booking_open=True, payment_open=True, visible_on_site=True)
     messages.info(request, f"All upcoming {event_type_plural} are now visible and open for booking and payments")
     ActivityLog.objects.create(log=f"All upcoming {event_type_plural} opened by admin user {request.user.username}")
+    
+    # email members
+    if newly_visible:
+        send_new_classes_email_to_members(request, newly_visible)
+
     return HttpResponseRedirect(reverse(f"studioadmin:{event_type}"))

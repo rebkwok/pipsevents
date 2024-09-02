@@ -2,10 +2,8 @@ import logging
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User
 from django.contrib import messages
-from django.core.mail import send_mail
-from django.template.loader import get_template
+
 from django.urls import reverse
 from django.shortcuts import HttpResponseRedirect, render, get_object_or_404
 from django.views.generic import CreateView, UpdateView
@@ -13,10 +11,12 @@ from django.utils.safestring import mark_safe
 from braces.views import LoginRequiredMixin
 
 from booking import utils
-from booking.models import Event, FilterCategory, UserMembership
+from booking.models import Event, FilterCategory
 from timetable.models import Session
 from studioadmin.forms import TimetableSessionFormSet, SessionAdminForm, \
     DAY_CHOICES, UploadTimetableForm
+from studioadmin.views.email_helpers import send_new_classes_email_to_members
+
 from studioadmin.views.helpers import staff_required, StaffUserMixin, set_cloned_name
 from activitylog.models import ActivityLog
 
@@ -274,24 +274,9 @@ def upload_timetable_view(request,
             visible_created_classes = [
                 cl for cl in created_classes if cl.visible_on_site
             ]
-            members = list(User.objects.filter(id__in=UserMembership.active_member_ids()).values_list("email", flat=True))
 
             if visible_created_classes:
-                ctx = {
-                    "new_classes": visible_created_classes,
-                    "host": 'http://{}'.format(request.get_host())
-                }
-
-                send_mail(
-                    '{} New classes have been added'.format(
-                        settings.ACCOUNT_EMAIL_SUBJECT_PREFIX
-                    ),
-                    get_template('studioadmin/email/new_classes_uploaded.txt').render(ctx),
-                    settings.DEFAULT_FROM_EMAIL,
-                    [*members, settings.SUPPORT_EMAIL],
-                    html_message=get_template('studioadmin/email/new_classes_uploaded.html').render(ctx),
-                    fail_silently=False
-                )
+                send_new_classes_email_to_members(request, visible_created_classes)
 
             return render(
                 request, 'studioadmin/upload_timetable_confirmation.html',
