@@ -96,11 +96,9 @@ class UserFilterFormTests(TestCase):
     def test_events_dropdown(self):
         form = UserFilterForm()
         event_field = form.fields['events']
-        event_choices = [
-            choice for choice in event_field.widget.choices
-            ]
-        self.assertEqual(len(event_choices), 3)
-        event_ids = [id for (id, name) in event_choices]
+        qs = event_field.widget.get_queryset()
+        self.assertEqual(qs.count(), 3)
+        event_ids = [event.id for event in qs]
         event_type = set([
             event.event_type.event_type
             for event in Event.objects.filter(id__in=event_ids)
@@ -110,11 +108,9 @@ class UserFilterFormTests(TestCase):
     def test_lessons_dropdown(self):
         form = UserFilterForm()
         lesson_field = form.fields['lessons']
-        lesson_choices = [
-            choice for choice in lesson_field.widget.choices
-            ]
-        self.assertEqual(len(lesson_choices), 4)
-        lesson_ids = [id for (id, name) in lesson_choices]
+        qs = lesson_field.widget.get_queryset()
+        self.assertEqual(qs.count(), 4)
+        lesson_ids = [lesson.id for lesson in qs]
         event_type = set([
             event.event_type.event_type
             for event in Event.objects.filter(id__in=lesson_ids)

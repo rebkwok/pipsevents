@@ -35,6 +35,7 @@ django==5.1
     #   crispy-bootstrap4
     #   dj-database-url
     #   django-allauth
+    #   django-appconf
     #   django-braces
     #   django-ckeditor
     #   django-classy-tags
@@ -47,10 +48,13 @@ django==5.1
     #   django-migration-testcase
     #   django-one-time-notices
     #   django-paypal
+    #   django-select2
     #   djangorestframework
     #   model-bakery
 django-allauth[socialaccount]==64.0.0
     # via -r requirements.in
+django-appconf==1.0.6
+    # via django-select2
 django-braces==1.15.0
     # via -r requirements.in
 django-ckeditor==6.7.1
@@ -83,6 +87,8 @@ django-migration-testcase==0.0.15
 django-one-time-notices==1.0.0
     # via -r requirements.in
 django-paypal==2.1
+    # via -r requirements.in
+django-select2==8.2.1
     # via -r requirements.in
 djangorestframework==3.15.2
     # via -r requirements.in

@@ -17,6 +17,7 @@ django-migration-testcase
 django-one-time-notices
 django-paypal
 djangorestframework
+django-select2
 dj-static
 psycopg2
 python-dateutil

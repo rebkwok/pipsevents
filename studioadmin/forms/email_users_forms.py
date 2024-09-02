@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
+from collections.abc import Mapping
 from datetime import datetime
+from typing import Any
+from django.forms.utils import ErrorList
 import pytz
 from django import forms
 from django.conf import settings
@@ -8,60 +11,66 @@ from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.contrib.auth.models import User
 from django.forms.models import modelformset_factory, BaseModelFormSet
 from django.utils import timezone
+
+from django_select2 import forms as s2forms
+
 from booking.models import Event
 
 from ckeditor.widgets import CKEditorWidget
 
 
-def get_event_names(event_type):
+class StudentWidget(s2forms.ModelSelect2MultipleWidget):
+    search_fields = [
+        "username__icontains",
+        "first_name__icontains",
+        "last_name__icontains",
+    ]
 
-    def callable():
-        def _format_datetime(dt):
-            uk = pytz.timezone('Europe/London')
-            uk_date = dt.astimezone(uk)
-            return uk_date.strftime('%d-%b-%y, %H:%M')
+    def get_queryset(self):
+        return User.objects.all().order_by("first_name", "last_name")
 
-        EVENT_CHOICES = [(event.id, f"{event.name} - {_format_datetime(event.date)}") for event in Event.objects.filter(
-            event_type__event_type=event_type, date__gte=timezone.now()
-        ).order_by('date')]
-        return tuple(EVENT_CHOICES)
-
-    return callable
+    def label_from_instance(self, obj):
+        return f"{obj.first_name} {obj.last_name} ({obj.username})"
 
 
-def get_students():
+class EventWidget(s2forms.ModelSelect2MultipleWidget):
+    search_fields = [
+        "name__icontains",
+    ]
 
-    def callable():
-        return tuple(
-            [
-                (user.id, '{} {} ({})'.format(
-                    user.first_name, user.last_name, user.username
-                )) for user in User.objects.all().order_by("first_name")
-                ]
-        )
-    return callable
+    def get_queryset(self):
+        return Event.objects.filter(
+            event_type__event_type="EV", date__gte=timezone.now()
+        ).order_by('date')
+
+
+class LessonWidget(s2forms.ModelSelect2MultipleWidget):
+    search_fields = [
+        "name__icontains",
+    ]
+    def get_queryset(self):
+        return Event.objects.filter(
+            event_type__event_type="CL", date__gte=timezone.now()
+        ).order_by('date')
+
 
 
 class UserFilterForm(forms.Form):
 
     events = forms.MultipleChoiceField(
-        choices=get_event_names('EV'),
-        widget=forms.SelectMultiple(attrs={"class": "form-control"}),
+        widget=EventWidget(attrs={"class": "form-control"}),
         required=False,
-        label=""
+        label="Choose events/workshops (search by name)",
     )
-
     lessons = forms.MultipleChoiceField(
-        choices=get_event_names('CL'),
-        widget=forms.SelectMultiple(attrs={"class": "form-control"}),
+        widget=LessonWidget(attrs={"class": "form-control"}),
         required=False,
-        label=""
+        label="Choose classes (search by name)"
     )
     students = forms.MultipleChoiceField(
-        choices=get_students(),
-        widget=forms.SelectMultiple(attrs={"class": "form-control"}),
+        widget=StudentWidget(attrs={"class": "form-control"}),
         required=False,
-        label=""
+        label="Choose students (search by first name, last name or username)"
     )
 
 

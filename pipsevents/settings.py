@@ -89,6 +89,7 @@ INSTALLED_APPS = (
     'crispy_forms',
     'crispy_bootstrap4',
     'debug_toolbar',
+    'django_select2',
     'accounts',
     'booking',
     'common',
@@ -122,6 +123,10 @@ if TESTING:
         'default': {
             'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
             'LOCATION': 'test-pips',
+        },
+        "select2": {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'test-select2',
         }
     }
 else:   # pragma: no cover
@@ -129,8 +134,13 @@ else:   # pragma: no cover
         "default": {
             "BACKEND": 'django.core.cache.backends.filebased.FileBasedCache',
             "LOCATION": root("cache"),
+        },
+        "select2": {
+            "BACKEND": 'django.core.cache.backends.filebased.FileBasedCache',
+            "LOCATION": os.path.join(root("cache"), "select2"),
         }
     }
+SELECT2_CACHE_BACKEND = "select2"
 
 
 AUTHENTICATION_BACKENDS = (

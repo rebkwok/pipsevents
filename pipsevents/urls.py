@@ -13,6 +13,7 @@ from booking.views import stripe_checkout, membership_create, stripe_subscriptio
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path("select2/", include("django_select2.urls")),
     path('studioadmin/', include('studioadmin.urls')),
     path('', include('booking.urls')),
     path(
