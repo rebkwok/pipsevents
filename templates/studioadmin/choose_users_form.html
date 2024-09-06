@@ -11,9 +11,31 @@
                 <div class="card-body">
                     <form action="" method="post">
                         {% csrf_token %}
-                        {{ userfilterform.as_p }}
-                        <div class="col-12 mt-2">
-                            <input class="btn table-btn btn-secondary" name="filter" type="submit" value="Show Students" /><br/>
+                        <div class="form-group">
+                            <details>
+                                <summary>
+                                    <label><strong>{{ userfilterform.events.label }}</strong></label>
+                                    <span {% if event_count %}class="text-success"{% endif %}> ({{ event_count }} selected)</span>
+                                </summary>
+                                {{ userfilterform.events }}
+                            </details>
+                        </div>
+                        <div class="form-group">
+                            <details>
+                                <summary>
+                                    <label><strong>{{ userfilterform.lessons.label }}</strong></label>
+                                    <span {% if lesson_count %}class="text-success"{% endif %}> ({{ lesson_count }} selected)</span>
+                                </summary>
+                                {{ userfilterform.lessons }}
+                            </details>
+                        </div>
+                        <div class="form-group">
+                            <label><strong>{{ userfilterform.students.label }}</strong></label>
+                            {{ userfilterform.students }}
+                            <div class="col-12 mt-2">
+                                <input class="btn btn-sm btn-success" name="filter" type="submit" value="Show Students" /> 
+                                <input class="btn btn-sm btn-danger" name="clear_filter" type="submit" value="Clear filters" /><br/>
+                            </div>
                         </div>
                     </form>
                 </div>

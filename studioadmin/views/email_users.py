@@ -30,6 +30,13 @@ from activitylog.models import ActivityLog
 logger = logging.getLogger(__name__)
 
 
+def _reset_filters(request):
+    if request.session.get('events'):
+        del request.session['events']
+    if request.session.get('lessons'):
+        del request.session['lessons']
+    return ChooseUsersFormSet(queryset=User.objects.none())
+    
 @login_required
 @staff_required
 def choose_users_to_email(
@@ -38,7 +45,12 @@ def choose_users_to_email(
     userfilterform = UserFilterForm(prefix='filter')
     showing_students = False
 
-    if 'filter' in request.POST:
+    event_ids = []
+    lesson_ids = []
+    if 'clear_filter' in request.POST:
+        usersformset = _reset_filters(request)
+
+    elif 'filter' in request.POST:
         showing_students = True
         event_ids = request.POST.getlist('filter-events')
         lesson_ids = request.POST.getlist('filter-lessons')
@@ -46,14 +58,12 @@ def choose_users_to_email(
         if not event_ids:
             if request.session.get('events'):
                 del request.session['events']
-            event_ids = []
         else:
             request.session['events'] = event_ids
 
         if not lesson_ids:
             if request.session.get('lessons'):
                 del request.session['lessons']
-            lesson_ids = []
         else:
             request.session['lessons'] = lesson_ids
 
@@ -101,18 +111,16 @@ def choose_users_to_email(
 
     else:
         # for a new GET, remove any event/lesson session data
-        if request.session.get('events'):
-            del request.session['events']
-        if request.session.get('lessons'):
-            del request.session['lessons']
-        usersformset = ChooseUsersFormSet(queryset=User.objects.none())
+        usersformset = _reset_filters(request)
 
     return TemplateResponse(
         request, template_name, {
             'usersformset': usersformset,
             'userfilterform': userfilterform,
             'sidenav_selection': 'email_users',
-            'showing_students': showing_students
+            'showing_students': showing_students,
+            'event_count': len(event_ids),
+            'lesson_count': len(lesson_ids)
             }
     )
 

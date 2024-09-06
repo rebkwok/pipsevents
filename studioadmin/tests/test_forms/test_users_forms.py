@@ -96,7 +96,7 @@ class UserFilterFormTests(TestCase):
     def test_events_dropdown(self):
         form = UserFilterForm()
         event_field = form.fields['events']
-        qs = event_field.widget.get_queryset()
+        qs = event_field.queryset
         self.assertEqual(qs.count(), 3)
         event_ids = [event.id for event in qs]
         event_type = set([
@@ -108,7 +108,7 @@ class UserFilterFormTests(TestCase):
     def test_lessons_dropdown(self):
         form = UserFilterForm()
         lesson_field = form.fields['lessons']
-        qs = lesson_field.widget.get_queryset()
+        qs = lesson_field.queryset
         self.assertEqual(qs.count(), 4)
         lesson_ids = [lesson.id for lesson in qs]
         event_type = set([

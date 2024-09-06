@@ -7,7 +7,6 @@ from django.forms.utils import ErrorList
 import pytz
 from django import forms
 from django.conf import settings
-from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.contrib.auth.models import User
 from django.forms.models import modelformset_factory, BaseModelFormSet
 from django.utils import timezone
@@ -33,39 +32,23 @@ class StudentWidget(s2forms.ModelSelect2MultipleWidget):
         return f"{obj.first_name} {obj.last_name} ({obj.username})"
 
 
-class EventWidget(s2forms.ModelSelect2MultipleWidget):
-    search_fields = [
-        "name__icontains",
-    ]
-
-    def get_queryset(self):
-        return Event.objects.filter(
-            event_type__event_type="EV", date__gte=timezone.now()
-        ).order_by('date')
-
-
-class LessonWidget(s2forms.ModelSelect2MultipleWidget):
-    search_fields = [
-        "name__icontains",
-    ]
-    def get_queryset(self):
-        return Event.objects.filter(
-            event_type__event_type="CL", date__gte=timezone.now()
-        ).order_by('date')
-
-
-
 class UserFilterForm(forms.Form):
 
-    events = forms.MultipleChoiceField(
-        widget=EventWidget(attrs={"class": "form-control"}),
+    events = forms.ModelMultipleChoiceField(
+        widget=forms.CheckboxSelectMultiple(),
         required=False,
-        label="Choose events/workshops (search by name)",
+        label="Choose events/workshops",
+        queryset=Event.objects.filter(
+            event_type__event_type="EV", date__gte=timezone.now()
+        ).order_by('date')
     )
-    lessons = forms.MultipleChoiceField(
-        widget=LessonWidget(attrs={"class": "form-control"}),
+    lessons = forms.ModelMultipleChoiceField(
+        widget=forms.CheckboxSelectMultiple(),
         required=False,
-        label="Choose classes (search by name)"
+        label="Choose classes",
+        queryset=Event.objects.filter(
+            event_type__event_type="CL", date__gte=timezone.now()
+        ).order_by('date')
     )
     students = forms.MultipleChoiceField(
         widget=StudentWidget(attrs={"class": "form-control"}),
