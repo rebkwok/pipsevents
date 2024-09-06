@@ -727,10 +727,12 @@ def test_webhook_subscription_updated_price_changed(
 def test_webhook_source_expiring(
     mock_webhook, get_mock_webhook_event, client, configured_stripe_user
 ):
-    mock_webhook.construct_event.return_value = get_mock_webhook_event(
+    webhook_event = get_mock_webhook_event(
        webhook_event_type="customer.source.expiring",
+       object="card",
        customer="cus-1"
     )
+    mock_webhook.construct_event.return_value = webhook_event
     # sends email to user with link to membership page to update payment method
     resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
     assert resp.status_code == 200, resp.content
@@ -744,6 +746,7 @@ def test_webhook_invoice_upcoming(
 ):
     mock_webhook.construct_event.return_value = get_mock_webhook_event(
        webhook_event_type="invoice.upcoming",
+       object="card",
        customer="cus-1",
     )
     resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
@@ -828,8 +831,6 @@ def test_webhook_refunded_for_subscription(
 ):
     mock_webhook.construct_event.return_value = get_mock_webhook_event(
        webhook_event_type="charge.refunded",
-       customer="cus-1"
-
     )
     resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
     assert resp.status_code == 200, resp.content
@@ -843,7 +844,6 @@ def test_webhook_refund_updated_for_subscription(
 ):
     mock_webhook.construct_event.return_value = get_mock_webhook_event(
        webhook_event_type="charge.refund.updated",
-       customer="cus-1"
     )
     resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
     assert resp.status_code == 200, resp.content

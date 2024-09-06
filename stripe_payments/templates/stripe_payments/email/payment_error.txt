@@ -5,7 +5,7 @@ Payment Error
 Stripe payment/setup intent id: {{ payment_intent.id }}
 payment status: {{ payment_intent.status }}
 {% endif %}
-{% if event_type %}
+{% if event_type or event_object %}
 Webhook Error
 -------------
 Webhook event type: {{ event_type }}

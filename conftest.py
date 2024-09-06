@@ -98,6 +98,15 @@ def get_mock_setup_intent(**params):
     }
     options = {**defaults, **params}
     return Mock(**options)
+    
+
+class MockEventObject:
+    def __init__(self, **init_dict):
+        for k, v in init_dict.items():
+            setattr(self, k, v)
+    
+    def __getitem__(self, item):
+        return getattr(self, item)
 
 
 def get_mock_payment_intent(webhook_event_type=None, **params):
@@ -115,16 +124,7 @@ def get_mock_payment_intent(webhook_event_type=None, **params):
     options = {**defaults, **params}
     if webhook_event_type == "payment_intent.payment_failed":
         options["last_payment_error"] = {'error': 'an error'}
-    return Mock(**options)
-    
-
-class MockSubscription:
-    def __init__(self, **init_dict):
-        for k, v in init_dict.items():
-            setattr(self, k, v)
-    
-    def __getitem__(self, item):
-        return getattr(self, item)
+    return MockEventObject(**options)
 
 
 def get_mock_subscription(webhook_event_type, **params):
@@ -142,7 +142,7 @@ def get_mock_subscription(webhook_event_type, **params):
         "discount": None,
     }
     options = {**defaults, **params}
-    return MockSubscription(**options)
+    return MockEventObject(**options)
 
 
 @pytest.fixture
@@ -155,7 +155,12 @@ def get_mock_webhook_event(seller):
         elif webhook_event_type in ["customer.subscription.created", "customer.subscription.deleted", "customer.subscription.updated"]:
             object = get_mock_subscription(webhook_event_type, **params)
         else:
-            object = Mock(**{"metadata": {}, **params})
+            # an event object always has an id and an object
+            if "id" not in params:
+                params["id"] = "id"
+            if "object" not in params:
+                params["object"] = "dummy_default_object"
+            object = MockEventObject(**{"metadata": {}, **params})
         # name is a special attribute, need to set it after construction
         if "name" in params:
             object.name = params["name"]

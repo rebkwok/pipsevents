@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from datetime import timezone as datetime_tz
 from unittest.mock import patch, Mock
 
@@ -8,13 +8,16 @@ import pytest
 from django.urls import reverse
 
 from model_bakery import baker
+from django.utils import timezone
 
 from stripe_payments.models import Seller, StripeSubscriptionInvoice
 from stripe_payments.utils import get_utcdate_from_timestamp
 from stripe_payments.tests.mock_connector import MockConnector
 
 from booking.models import Membership, MembershipItem, UserMembership, StripeSubscriptionVoucher
-from booking.views.membership_views import ensure_subscription_up_to_date
+from booking.views.membership_views import ensure_subscription_up_to_date, validate_voucher_code
+
+from conftest import MockEventObject
 
 
 pytestmark = pytest.mark.django_db
@@ -484,7 +487,6 @@ def test_membership_change_post_invalid_form(client, seller, configured_stripe_u
 #     - active, but with non-succeeded pending_setup_intent
 # - if it doesn't find a matching one, creates a new one
 # - Returns either the setup intent or invoices payment intent secret
-from conftest import MockSubscription
 @pytest.mark.parametrize(
     "subscriptions,setup_intent_secret,invoice_secret,expected_secret,expected_setup_type,voucher_code,voucher_valid",
     [
@@ -513,8 +515,9 @@ from conftest import MockSubscription
         # matching subscriptions, setup intent
         (
             {
-                "s1": MockSubscription(
+                "s1": MockEventObject(
                     id="s1",
+                    object="subscription",
                     customer="cus-1", 
                     status="active", 
                     pending_setup_intent=Mock(client_secret="foo", status="payment_method_required"),
@@ -530,8 +533,9 @@ from conftest import MockSubscription
         # matching subscriptions, setup intent, with voucher, no existing discount
         (
             {
-                "s1": MockSubscription(
+                "s1": MockEventObject(
                     id="s1",
+                    object="subscription",
                     customer="cus-1", 
                     status="active", 
                     pending_setup_intent=Mock(client_secret="foo", status="payment_method_required"),
@@ -547,8 +551,9 @@ from conftest import MockSubscription
         # matching subscriptions, setup intent, with voucher, existing mismatched discount
         (
             {
-                "s1": MockSubscription(
+                "s1": MockEventObject(
                     id="s1",
+                    object="subscription",
                     customer="cus-1", 
                     status="active", 
                     pending_setup_intent=Mock(client_secret="foo", status="payment_method_required"),
@@ -564,8 +569,9 @@ from conftest import MockSubscription
         # matching subscriptions, setup intent, no voucher, existing discount
         (
             {
-                "s1": MockSubscription(
+                "s1": MockEventObject(
                     id="s1",
+                    object="subscription",
                     customer="cus-1", 
                     status="active", 
                     pending_setup_intent=Mock(client_secret="foo", status="payment_method_required"),
@@ -581,8 +587,9 @@ from conftest import MockSubscription
          # matching subscriptions, setup intent, with voucher, existing matched discount
         (
             {
-                "s1": MockSubscription(
+                "s1": MockEventObject(
                     id="s1",
+                    object="subscription",
                     customer="cus-1", 
                     status="active", 
                     pending_setup_intent=Mock(client_secret="foo", status="payment_method_required"),
@@ -598,8 +605,9 @@ from conftest import MockSubscription
         # matching subscriptions, setup intent succeeded
         (
             {
-                "s1": MockSubscription(
+                "s1": MockEventObject(
                     id="s1",
+                    object="subscription",
                     customer="cus-1", 
                     status="active", 
                     pending_setup_intent=Mock(client_secret="foo", status="succeeded"),
@@ -615,8 +623,9 @@ from conftest import MockSubscription
         # matching subscriptions, invoice
         (
             {
-                "s1": MockSubscription(
+                "s1": MockEventObject(
                     id="s1",
+                    object="subscription",
                     customer="cus-1", 
                     status="active", 
                     pending_setup_intent=None,
@@ -632,8 +641,9 @@ from conftest import MockSubscription
         # matching subscriptions, invoice paid
         (
             {
-                "s1": MockSubscription(
+                "s1": MockEventObject(
                     id="s1",
+                    object="subscription",
                     customer="cus-1", 
                     status="active", 
                     pending_setup_intent=None,
@@ -918,8 +928,9 @@ def test_membership_status(
     now, status, end_date, current_period_end, latest_invoice, cancel_at_ts, upcoming_invoice_discount, expected
 ):
     freezer.move_to(now)
-    mock_get_subscription.return_value = MockSubscription(
+    mock_get_subscription.return_value = MockEventObject(
         id="sub-1",
+        object="subscription",
         customer="cus-1", 
         status="active", 
         cancel_at=cancel_at_ts,
@@ -995,8 +1006,9 @@ def test_membership_list_no_user_memberships(client, seller, configured_stripe_u
 def test_membership_list(mock_conn, client, seller, configured_stripe_user, purchasable_membership):
     mock_connector = MockConnector(
         subscriptions={
-            "sub-1": MockSubscription(
-                id="sub-1", canceled_at=None, cancel_at=None, status="active", start_date=123, billing_cycle_anchor=123),
+            "sub-1": MockEventObject(
+                id="sub-1", object="subscription", canceled_at=None, cancel_at=None, 
+                status="active", start_date=123, billing_cycle_anchor=123),
         }
     )
     mock_conn.return_value = mock_connector
@@ -1038,7 +1050,7 @@ def test_membership_list_get_subscription(mock_conn, client, seller, configured_
     [
         (
             "active",
-            MockSubscription(
+            MockEventObject(
                 canceled_at=None,
                 cancel_at=None,
                 status="active",
@@ -1056,7 +1068,7 @@ def test_membership_list_get_subscription(mock_conn, client, seller, configured_
         ),
         (
             "canceled",
-            MockSubscription(
+            MockEventObject(
                 canceled_at=None,
                 cancel_at=None,
                 status="active",
@@ -1074,7 +1086,7 @@ def test_membership_list_get_subscription(mock_conn, client, seller, configured_
         ),
         (
             "active",
-            MockSubscription(
+            MockEventObject(
                 canceled_at=datetime(2024, 2, 10, tzinfo=datetime_tz.utc).timestamp(),
                 cancel_at=None,
                 status="active",
@@ -1092,7 +1104,7 @@ def test_membership_list_get_subscription(mock_conn, client, seller, configured_
         ),
         (
             "active",
-            MockSubscription(
+            MockEventObject(
                 canceled_at=None,
                 cancel_at=datetime(2024, 2, 10, tzinfo=datetime_tz.utc).timestamp(),
                 status="active",
@@ -1111,7 +1123,7 @@ def test_membership_list_get_subscription(mock_conn, client, seller, configured_
         # setup_pending stays as is if pending setup intent not complete
         (
             "setup_pending",
-            MockSubscription(
+            MockEventObject(
                 canceled_at=None,
                 cancel_at=None,
                 status="active",
@@ -1132,7 +1144,7 @@ def test_membership_list_get_subscription(mock_conn, client, seller, configured_
         # setup_pending updated if default payment method
         (
             "setup_pending",
-            MockSubscription(
+            MockEventObject(
                 canceled_at=None,
                 cancel_at=None,
                 status="active",
@@ -1153,7 +1165,7 @@ def test_membership_list_get_subscription(mock_conn, client, seller, configured_
         # setup_pending updated if setup succeeded
         (
             "setup_pending",
-            MockSubscription(
+            MockEventObject(
                 canceled_at=None,
                 cancel_at=None,
                 status="active",
@@ -1190,11 +1202,6 @@ def test_ensure_subscription_up_to_date(
     user_membership.refresh_from_db()
     for attr, value in expected.items():
         assert getattr(user_membership, attr) == value, attr
-
-
-from django.utils import timezone
-from datetime import timedelta
-from booking.views.membership_views import validate_voucher_code
 
 
 @pytest.mark.parametrize(

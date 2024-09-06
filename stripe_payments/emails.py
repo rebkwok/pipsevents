@@ -11,16 +11,19 @@ def _get_user_from_invoice(invoice):
         return None
     
 
-def _get_user_from_membership(event_object):
+def _get_user_from_event_object(event_object):
+    user = None
+    user_membership = None
+
+    if getattr(event_object, "customer", None) is None:
+        return user, user_membership
+    
     user = User.objects.filter(userprofile__stripe_customer_id=event_object.customer).first()
+    
     if event_object.object == "subscription":
         user_membership = user.memberships.get(subscription_id=event_object.id)
-    else:
-        user_membership = None
             
-    if user is not None:
-        return user, user_membership
-    return None, None
+    return user, user_membership
 
 
 def send_processed_payment_emails(invoice):
@@ -52,7 +55,7 @@ def send_processed_payment_emails(invoice):
 
 def send_processed_refund_emails(invoice, event_object):
     if invoice is None:
-        user, user_membership = _get_user_from_membership(event_object)
+        user, user_membership = _get_user_from_event_object(event_object)
     else:
         user = _get_user_from_invoice(invoice)
         user_membership = None
@@ -107,7 +110,7 @@ def send_updated_membership_email_to_support(user_membership, new_price_id, old_
 
 def _send_subscription_email(event_object, template_name, subject, user_membership=None, to_email=None):
     if user_membership is None:
-        user, user_membership = _get_user_from_membership(event_object)
+        user, user_membership = _get_user_from_event_object(event_object)
     else:
         user = user_membership.user
 
