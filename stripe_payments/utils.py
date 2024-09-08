@@ -26,8 +26,17 @@ def get_first_of_next_month_from_timestamp(timestamp):
 
 def get_invoice_from_event_metadata(event_object, raise_immediately=False):
     # Don't raise the exception here so we don't expose it to the user; leave it for the webhook
+    # Get the invoice from the event metadata if available
     invoice_id = event_object.metadata.get("invoice_id")
     if not invoice_id:
+        # Try to get invoice from a matching payment intent
+        # Refunds may be returned with no invoice metadata
+        payment_intent = getattr(event_object, "payment_intent", None)
+        if payment_intent:
+            try:
+                return StripePaymentIntent.objects.get(payment_intent_id=payment_intent).invoice
+            except StripePaymentIntent.DoesNotExist:
+                ...
         # don't raise exception here, it may validly not have an invoice id (e.g. subscriptions)
         return None
     try:
