@@ -12,17 +12,18 @@ def _get_user_from_invoice(invoice):
     
 
 def _get_user_from_event_object(event_object):
+    from booking.models import UserMembership
+
     user = None
     user_membership = None
-
-    if getattr(event_object, "customer", None) is None:
-        return user, user_membership
-    
-    user = User.objects.filter(userprofile__stripe_customer_id=event_object.customer).first()
-    
     if event_object.object == "subscription":
-        user_membership = user.memberships.get(subscription_id=event_object.id)
-            
+        user_membership = UserMembership.objects.get(subscription_id=event_object.id)
+        user = user_membership.user
+    elif event_object.object == "invoice" and event_object.subscription:
+        user_membership = UserMembership.objects.get(subscription_id=event_object.subscription)
+        user = user_membership.user
+    elif getattr(event_object, "customer", None) is not None:
+        user = User.objects.filter(userprofile__stripe_customer_id=event_object.customer).first()
     return user, user_membership
 
 
@@ -114,6 +115,9 @@ def _send_subscription_email(event_object, template_name, subject, user_membersh
     else:
         user = user_membership.user
 
+    if template_name == "payment_expiring" and not user.memberships.exists():
+        # Only send payment expiring email if the user has/had a membership
+        return
     if to_email is None:
         to = [user.email]
     else:

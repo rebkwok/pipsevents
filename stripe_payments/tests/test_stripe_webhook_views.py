@@ -723,14 +723,19 @@ def test_webhook_subscription_updated_price_changed(
     assert user_membership.membership == membership1
 
 
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
 @patch("stripe_payments.views.webhook.stripe.Webhook")
 def test_webhook_source_expiring(
     mock_webhook, get_mock_webhook_event, client, configured_stripe_user
 ):
+    baker.make(
+        UserMembership, membership__name="M", user=configured_stripe_user, subscription_id="id",
+        subscription_status="active",
+    )
     webhook_event = get_mock_webhook_event(
        webhook_event_type="customer.source.expiring",
        object="card",
-       customer="cus-1"
+       customer=configured_stripe_user.userprofile.stripe_customer_id
     )
     mock_webhook.construct_event.return_value = webhook_event
     # sends email to user with link to membership page to update payment method
@@ -741,6 +746,21 @@ def test_webhook_source_expiring(
 
 
 @patch("stripe_payments.views.webhook.stripe.Webhook")
+def test_webhook_source_expiring_no_membership(
+    mock_webhook, get_mock_webhook_event, client, configured_stripe_user
+):
+    webhook_event = get_mock_webhook_event(
+       webhook_event_type="customer.source.expiring",
+       object="card",
+       customer="cus-1"
+    )
+    mock_webhook.construct_event.return_value = webhook_event
+    resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
+    assert resp.status_code == 200, resp.content
+    assert len(mail.outbox) == 0
+
+
+@patch("stripe_payments.views.webhook.stripe.Webhook")
 def test_webhook_invoice_upcoming(
     mock_webhook, get_mock_webhook_event, client, configured_stripe_user
 ):
@@ -748,11 +768,27 @@ def test_webhook_invoice_upcoming(
        webhook_event_type="invoice.upcoming",
        object="card",
        customer="cus-1",
+       subscription="sub-1",
     )
     resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
     assert resp.status_code == 200, resp.content
     assert len(mail.outbox) == 1
     assert "Your membership will renew soon" in mail.outbox[0].subject
+
+
+@patch("stripe_payments.views.webhook.stripe.Webhook")
+def test_webhook_invoice_upcoming_no_membership(
+    mock_webhook, get_mock_webhook_event, client, configured_stripe_user
+):
+    mock_webhook.construct_event.return_value = get_mock_webhook_event(
+       webhook_event_type="invoice.upcoming",
+       object="card",
+       customer="cus-1",
+       subscription=None,
+    )
+    resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
+    assert resp.status_code == 200, resp.content
+    assert len(mail.outbox) == 0
 
 
 @patch("stripe_payments.views.webhook.stripe.Webhook")
@@ -778,6 +814,27 @@ def test_webhook_invoice_finalised(
     assert sub_inv.total == 10
     assert sub_inv.invoice_date == datetime(2024, 2, 25, tzinfo=datetime_tz.utc)
 
+
+@patch("stripe_payments.views.webhook.stripe.Webhook")
+def test_webhook_invoice_finalised_no_subscription(
+    mock_webhook, get_mock_webhook_event, client
+):
+    mock_webhook.construct_event.return_value = get_mock_webhook_event(
+       webhook_event_type="invoice.finalized",
+       id="id",
+       customer="cus-1",
+       subscription=None,
+       status="finalized",
+       total=1000, 
+       effective_at=datetime(2024, 2, 25).timestamp(),
+       discount=None,
+    )
+    assert not StripeSubscriptionInvoice.objects.exists()
+    resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
+    assert resp.status_code == 200, resp.content
+    assert len(mail.outbox) == 0
+
+    assert not StripeSubscriptionInvoice.objects.exists()
 
 @patch("stripe_payments.views.webhook.stripe.Webhook")
 def test_webhook_invoice_paid(

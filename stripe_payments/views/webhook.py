@@ -283,11 +283,14 @@ def stripe_webhook(request):
 
         elif event.type == "invoice.upcoming":
             # send warning email to user that subscription will recur soon
-            send_subscription_renewal_upcoming_email(event_object)
+            if event_object.subscription is not None:
+                send_subscription_renewal_upcoming_email(event_object)
 
         elif event.type in ["invoice.finalized", "invoice.paid"]:
             # create/update StripeSubscriptionInvoice
-            StripeSubscriptionInvoice.from_stripe_event(event_object)
+            # Ignore if there's no subscription on the invoice
+            if event_object.subscription is not None:
+                StripeSubscriptionInvoice.from_stripe_event(event_object)
         
         elif event.type == "product.updated":
             # get membership matching product (if exists)
