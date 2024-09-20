@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.mail.message import EmailMultiAlternatives
+from django.contrib import messages
 from django.template.loader import get_template
 
 from booking.models import UserMembership
@@ -32,4 +33,5 @@ def send_new_classes_email_to_members(request, new_classes):
         "text/html"
     )
     msg.send(fail_silently=False)
-
+    if members:
+        messages.success(request, f"{len(members)} have been notified by email")
