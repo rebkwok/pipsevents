@@ -125,8 +125,8 @@ if TESTING:
             'LOCATION': 'test-pips',
         },
         "select2": {
-            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-            'LOCATION': 'test-select2',
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "select2",
         }
     }
 else:   # pragma: no cover
@@ -135,9 +135,13 @@ else:   # pragma: no cover
             "BACKEND": 'django.core.cache.backends.filebased.FileBasedCache',
             "LOCATION": root("cache"),
         },
+        # "select2": {
+        #     "BACKEND": 'django.core.cache.backends.filebased.FileBasedCache',
+        #     "LOCATION": os.path.join(root("cache"), "select2"),
+        # }
         "select2": {
-            "BACKEND": 'django.core.cache.backends.filebased.FileBasedCache',
-            "LOCATION": os.path.join(root("cache"), "select2"),
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "select2",
         }
     }
 SELECT2_CACHE_BACKEND = "select2"
