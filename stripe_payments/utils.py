@@ -91,13 +91,20 @@ def process_invoice_items(invoice, payment_method, request=None):
     invoice.paid = True
     invoice.save()
 
-    # SEND EMAILS
-    send_processed_payment_emails(invoice)
-    for gift_voucher in invoice.gift_vouchers:
-        send_gift_voucher_email(gift_voucher)
-    ActivityLog.objects.create(
+    # LOG AND SEND EMAILS
+    # There is a race condition here between the stripe success view and the
+    # webhook. If the webhook is fast enough, both call this method (the webhook
+    # checks if the invoice is paid, but it might have been called by the view but
+    # not marked paid yet); we don't care
+    # that it attemps to set the invoice items again, but we don't want to create
+    # duplicate logs or senf duplicate emails.
+    _, created = ActivityLog.objects.get_or_create(
         log=f"Invoice {invoice.invoice_id} (user {invoice.username}) paid by {payment_method}"
     )
+    if created:
+        send_processed_payment_emails(invoice)
+        for gift_voucher in invoice.gift_vouchers:
+            send_gift_voucher_email(gift_voucher)
 
 
 def process_completed_stripe_payment(payment_intent, invoice, seller=None, request=None):
