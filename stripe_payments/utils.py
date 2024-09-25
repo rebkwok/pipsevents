@@ -266,7 +266,7 @@ class StripeConnector:
     def get_subscription(self, subscription_id):
         kwargs = dict(
             id=subscription_id, stripe_account=self.connected_account_id, 
-            expand=['latest_invoice', 'pending_setup_intent', 'schedule']
+            expand=['latest_invoice.payment_intent', 'pending_setup_intent', 'schedule']
         )
         return stripe.Subscription.retrieve(**kwargs)
 
@@ -275,7 +275,7 @@ class StripeConnector:
             status=status, 
             customer=customer_id, 
             stripe_account=self.connected_account_id,
-            expand=['data.latest_invoice', 'data.pending_setup_intent'],
+            expand=['data.latest_invoice.payment_intent', 'data.pending_setup_intent'],
         )
         all_subscriptions = {sub["id"]: sub for sub in subscriptions.data}
 
