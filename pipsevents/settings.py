@@ -124,8 +124,12 @@ if TESTING:
             'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
             'LOCATION': 'test-pips',
         },
+        # "select2": {
+        #     "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        #     "LOCATION": "select2",
+        # },
         "select2": {
-            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "BACKEND": "django.core.cache.backends.db.DatabaseCache",
             "LOCATION": "select2",
         }
     }
@@ -139,8 +143,12 @@ else:   # pragma: no cover
         #     "BACKEND": 'django.core.cache.backends.filebased.FileBasedCache',
         #     "LOCATION": os.path.join(root("cache"), "select2"),
         # }
+        # "select2": {
+        #     "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        #     "LOCATION": "select2",
+        # },
         "select2": {
-            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "BACKEND": "django.core.cache.backends.db.DatabaseCache",
             "LOCATION": "select2",
         }
     }
