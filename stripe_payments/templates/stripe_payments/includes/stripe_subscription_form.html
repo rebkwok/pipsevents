@@ -1,8 +1,10 @@
 <form id="payment-form">
     <h3 class="mt-1">Billing Details</h3>
 
+    {% if creating %}
     <div>
         <p>
+        
         {% if amount %}
         <strong>£{{ next_amount|floatformat:2 }}</strong> will be charged immediately.
         {% else %}
@@ -13,6 +15,7 @@
         Regular membership price (charged monthly on 25th): <strong>£{{ regular_amount|floatformat:2 }}</strong>
         </p>
     </div>
+    {% endif %}
 
     <div id="payment-element">
       <!--Stripe.js injects the Payment Element-->

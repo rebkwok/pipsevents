@@ -397,7 +397,8 @@ def test_webhook_subscription_deleted(
     mock_webhook.construct_event.return_value = get_mock_webhook_event(
         webhook_event_type="customer.subscription.deleted", 
         canceled_at=datetime(2024, 3, 1).timestamp(),
-        status="canceled"
+        status="canceled",
+        cancellation_details=Mock(reason="")
     )
     resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
     assert resp.status_code == 200, resp.content
@@ -407,6 +408,29 @@ def test_webhook_subscription_deleted(
     assert user_membership.end_date == datetime(2024, 4, 1, tzinfo=datetime_tz.utc)
     # No emails sent
     assert len(mail.outbox) == 0
+
+
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+@patch("stripe_payments.views.webhook.stripe.Webhook")
+def test_webhook_subscription_deleted_due_to_failed_payment(
+    mock_webhook, get_mock_webhook_event, client, configured_stripe_user
+):
+    membership = baker.make(Membership, name="membership1")
+    user_membership = baker.make(
+        UserMembership, membership=membership, user=configured_stripe_user, subscription_id="id"
+    )
+    mock_webhook.construct_event.return_value = get_mock_webhook_event(
+        webhook_event_type="customer.subscription.deleted", 
+        canceled_at=datetime(2024, 3, 1).timestamp(),
+        status="canceled",
+        cancellation_details=Mock(reason="payment_failed")
+    )
+    resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
+    assert resp.status_code == 200, resp.content
+
+    assert not UserMembership.objects.exists()
+    assert len(mail.outbox) == 1
+    assert mail.outbox[0].to == [configured_stripe_user.email]
 
 
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
@@ -521,12 +545,18 @@ def test_webhook_subscription_updated_status_changed_to_active_from_cancelled(
 )
 @pytest.mark.freeze_time("2024-02-26")
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
+@patch("stripe_payments.views.webhook.StripeConnector")
 @patch("stripe_payments.views.webhook.stripe.Webhook")
 def test_webhook_subscription_updated_status_changed_to_active_from_incomplete(
-    mock_webhook, get_mock_webhook_event, client, configured_stripe_user, settings, studio_email
+    mock_webhook, mock_webhook_connector, get_mock_webhook_event, client, configured_stripe_user, settings, studio_email
 ):
+    connector = MockConnector(subscriptions={"id": "1"})
+    connector.invoice=Mock(payment_intent=Mock(status="succeeded"))
+    mock_webhook_connector.return_value = connector
+    
     mock_webhook.construct_event.return_value = get_mock_webhook_event(
-        webhook_event_type="customer.subscription.updated"
+        webhook_event_type="customer.subscription.updated",
+        latest_invoice=Mock(payment_intent=Mock(status="succeeded"))
     )
     settings.NOTIFY_STUDIO_FOR_NEW_MEMBERSHIPS = studio_email
 
@@ -554,6 +584,7 @@ def test_webhook_subscription_updated_status_changed_to_active_from_incomplete(
         status="active",
         canceled_at=None,
         cancel_at=None,
+        latest_invoice=Mock(payment_intent=Mock(status="succeeded"))
     )
     resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
     assert resp.status_code == 200, resp.content

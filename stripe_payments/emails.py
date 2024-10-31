@@ -147,6 +147,9 @@ def send_subscription_renewal_upcoming_email(event_object):
     _send_subscription_email(event_object, "subscription_renewal_upcoming", "Your membership will renew soon")
 
 
+def send_subscription_setup_failed_email(event_object):
+    _send_subscription_email(event_object, "subscription_setup_failed", "Your membership setup has failed")
+
 def send_subscription_created_email(user_membership):
     _send_subscription_email(None, "subscription_created", "Your membership has been set up", user_membership=user_membership)
     if settings.NOTIFY_STUDIO_FOR_NEW_MEMBERSHIPS:
@@ -157,4 +160,3 @@ def send_subscription_created_email(user_membership):
             user_membership=user_membership, 
             to_email=settings.DEFAULT_STUDIO_EMAIL
         )
-    

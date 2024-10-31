@@ -1,0 +1,7 @@
+{% extends 'email_base.html' %}
+
+{% block messagecontent %}
+<h2>Your membership setup failed</h2>
+<p><strong>Membership:</strong> {{ user_membership.membership.name }}</p>
+<p>We have been unable to set up your membership because your payment has failed.</p>
+{% endblock %}

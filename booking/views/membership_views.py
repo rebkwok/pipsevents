@@ -215,8 +215,7 @@ def subscription_create(request):
                 client_secret =  subscription.pending_setup_intent.client_secret
             else:
                 confirm_type = "payment"
-                payment_intent_id = subscription.latest_invoice.payment_intent
-                payment_intent = client.get_payment_intent(payment_intent_id)
+                payment_intent = subscription.latest_invoice.payment_intent
                 client_secret = payment_intent.client_secret
         else:
             sub_kwargs_with_discounts = client.get_subscription_kwargs(customer_id, price_id, backdate=backdate, discounts=discounts)
@@ -407,7 +406,7 @@ def stripe_subscription_checkout(request):
             "membership": user_membership.membership,
             "customer_id": request.user.userprofile.stripe_customer_id,
             "client_secret": client_secret,
-            "confirm_type": confirm_type
+            "confirm_type": confirm_type,
         })
     else:
         membership = get_object_or_404(Membership, id=request.POST.get("membership"))
@@ -436,7 +435,6 @@ def stripe_subscription_checkout(request):
             "regular_amount": regular_amount,
             "next_amount": regular_amount,
         })
-
     return TemplateResponse(request, "stripe_payments/subscribe.html", context)
 
 
@@ -467,6 +465,11 @@ def ensure_subscription_up_to_date(user_membership, subscription, subscription_i
             and subscription.pending_setup_intent.status != "succeeded"
         ):
             status = "setup_pending"
+
+    if status == "active" and user_membership.subscription_status == "incomplete":
+        payment_intent_status = subscription.latest_invoice.payment_intent.status
+        if payment_intent_status != "succeeded":
+            status = "incomplete"
 
     subscription_data = {
         "subscription_start_date": get_utcdate_from_timestamp(subscription.start_date),

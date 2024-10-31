@@ -8,23 +8,23 @@
 
     <table class="table table-responsive table-striped">
         <thead>
+            <th>Invoice Date</th>
             <th>Invoice</th>
             <th>Status</th>
             <th>User</th>
             <th>Amount</th>
             <th>Voucher</th>
-            <th>Date Paid</th>
             <th>Membership</th>
         </thead>
         <tbody>
             {% for invoice in invoices %}
-                <tr>
+                <tr {% if invoice.status == "paid" %}class="text-success"{% endif %}>
+                    <td>{{ invoice.invoice_date|date:"d-M-y H:i" }}</td>
                     <td>{{ invoice.invoice_id }}</td>
                     <td class="text-center">{{ invoice.status }}</td>
                     <td class="text-center">{{ invoice.subscription.user.username }}</td>
                     <td class="text-center">£{{ invoice.total }}</td>
                     <td class="text-center">{{ invoice.voucher_code }}</td>
-                    <td>{{ invoice.invoice_date|date:"d-M-y H:i" }}</td>
                     <td>{{ invoice.subscription.membership }}</td>
                 </tr>
             {% endfor %}

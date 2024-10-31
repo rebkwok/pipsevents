@@ -20,7 +20,8 @@ from ..emails import (
     send_payment_expiring_email,
     send_subscription_past_due_email,
     send_subscription_renewal_upcoming_email,
-    send_subscription_created_email
+    send_subscription_created_email,
+    send_subscription_setup_failed_email,
 )
 from ..exceptions import StripeProcessingError
 from ..models import Seller, StripeSubscriptionInvoice
@@ -171,16 +172,31 @@ def stripe_webhook(request):
                 # It might not exist if we're cancelling an unpaid setup pending subscription
                 ...
             else:
-                # the end date for the membership is the stripe subscription end; cancelled at will be the 25th
-                # the actual membership ends at the end of the month
-                user_membership.subscription_status = event_object.status
-                user_membership.subscription_end_date = get_utcdate_from_timestamp(event_object.canceled_at)
-                user_membership.end_date = UserMembership.calculate_membership_end_date(user_membership.subscription_end_date)
-                user_membership.save()
-                user_membership.reallocate_bookings()
-                ActivityLog.objects.create(
-                    log=f"Stripe webhook: Membership {user_membership.membership.name} for {user_membership.user} (stripe subscription id {event_object.id}, cancelled on {user_membership.subscription_end_date})"
-                )
+                # Check cancellation reason; if it's payment_failed, delete instead of cancelling
+                # check no bookings exist on it, as a sanity check; if they do, just cancel
+                if event_object.cancellation_details.reason == "payment_failed" and not user_membership.bookings.exists():
+                    ActivityLog.objects.create(
+                        log=(
+                            f"Stripe webhook: Membership {user_membership.membership.name} for user {user_membership.user} cancelled "
+                            f"due to failed payment and deleted (stripe id {event_object.id})"
+                        )
+                    )
+                    # Send emails, because user will have seen message saying it's processing
+                    # send it before we delete, so we have access to the user membership to find the email to send
+                    send_subscription_setup_failed_email(event_object)
+                    user_membership.delete()
+
+                else:
+                    # the end date for the membership is the stripe subscription end; cancelled at will be the 25th
+                    # the actual membership ends at the end of the month
+                    user_membership.subscription_status = event_object.status
+                    user_membership.subscription_end_date = get_utcdate_from_timestamp(event_object.canceled_at)
+                    user_membership.end_date = UserMembership.calculate_membership_end_date(user_membership.subscription_end_date)
+                    user_membership.save()
+                    user_membership.reallocate_bookings()
+                    ActivityLog.objects.create(
+                        log=f"Stripe webhook: Membership {user_membership.membership.name} for {user_membership.user} (stripe subscription id {event_object.id}, cancelled on {user_membership.subscription_end_date})"
+                    )
 
         elif event.type == "customer.subscription.updated":
             user_membership = UserMembership.objects.get(subscription_id=event_object.id)
@@ -207,8 +223,22 @@ def stripe_webhook(request):
 
             elif event_object.status == "active":
                 if old_status == "incomplete":
-                    # A new subscription was just activated
-                    send_subscription_created_email(user_membership)
+                    subscription_activated = True
+                    if event_object.latest_invoice:
+                        subscription = client.get_subscription(subscription_id=event_object.id)
+                        payment_intent_status = subscription.latest_invoice.payment_intent.status
+                        if payment_intent_status != "succeeded":
+                            subscription_activated = False
+                            user_membership.subscription_status = "incomplete"
+                            user_membership.save()
+                            ActivityLog.objects.create(
+                                log=(
+                                    f"Stripe webhook: Membership {user_membership.membership.name} for user {user_membership.user} changed back to incomplete due to failed payment"
+                                )
+                            )                          
+                    if subscription_activated:
+                        # A new subscription was just activated
+                        send_subscription_created_email(user_membership)
                 # has it been cancelled in future?               
                 if event_object.cancel_at:
                     subscription_end_date = datetime.fromtimestamp(event_object.cancel_at).replace(tzinfo=datetime_tz.utc)

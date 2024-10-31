@@ -1,0 +1,9 @@
+{% include "account/email/do_not_reply.txt" %}
+
+
+Your membership setup failed
+----------------------------
+Membership: {{ user_membership.membership.name }}
+
+We have been unable to set up your membership because your payment has failed.
+

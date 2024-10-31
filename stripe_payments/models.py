@@ -233,5 +233,6 @@ class StripeSubscriptionInvoice(models.Model):
     def voucher_code(self):
         from booking.models import StripeSubscriptionVoucher
         if self.promo_code_id:
-            return StripeSubscriptionVoucher.objects.filter(promo_code_id=self.promo_code_id).first().code
+            voucher = StripeSubscriptionVoucher.objects.filter(promo_code_id=self.promo_code_id).first()
+            return voucher.code if voucher else ""
         return ""

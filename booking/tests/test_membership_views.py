@@ -620,7 +620,7 @@ def test_membership_change_post_invalid_form(client, seller, configured_stripe_u
             }, 
             "setup_secret", None, "setup_secret", "setup", None, False,
         ),
-        # matching subscriptions, invoice
+        # matching subscriptions, invoice unpaid
         (
             {
                 "s1": MockEventObject(
@@ -629,7 +629,7 @@ def test_membership_change_post_invalid_form(client, seller, configured_stripe_u
                     customer="cus-1", 
                     status="active", 
                     pending_setup_intent=None,
-                    latest_invoice=Mock(payment_intent="pi-1", paid=False, client_secret="foo"),
+                    latest_invoice=Mock(payment_intent=Mock(id="pi-1",client_secret="foo"), paid=False),
                     items=Mock(data=[Mock(price=Mock(id="price-1"), quantity=1)]),
                     billing_cycle_anchor=datetime(2024, 2, 25, tzinfo=datetime_tz.utc).timestamp(),
                     payment_settings=Mock(save_default_payment_method="on_subscription"),
@@ -647,7 +647,7 @@ def test_membership_change_post_invalid_form(client, seller, configured_stripe_u
                     customer="cus-1", 
                     status="active", 
                     pending_setup_intent=None,
-                    latest_invoice=Mock(payment_intent="pi-1", paid=True, client_secret="foo"),
+                    latest_invoice=Mock(payment_intent=Mock(id="pi-1",client_secret="foo"), paid=True),
                     items=Mock(data=[Mock(price=Mock(id="price-1"), quantity=1)]),
                     billing_cycle_anchor=datetime(2024, 2, 25, tzinfo=datetime_tz.utc).timestamp(),
                     payment_settings=Mock(save_default_payment_method="on_subscription"),
