@@ -468,7 +468,7 @@ def ensure_subscription_up_to_date(user_membership, subscription, subscription_i
 
     if status == "active" and user_membership.subscription_status == "incomplete":
         payment_intent_status = subscription.latest_invoice.payment_intent.status
-        if payment_intent_status != "succeeded":
+        if payment_intent_status not in ["succeeded", "processing"]:
             status = "incomplete"
 
     subscription_data = {

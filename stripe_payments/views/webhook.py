@@ -185,7 +185,6 @@ def stripe_webhook(request):
                     # send it before we delete, so we have access to the user membership to find the email to send
                     send_subscription_setup_failed_email(event_object)
                     user_membership.delete()
-
                 else:
                     # the end date for the membership is the stripe subscription end; cancelled at will be the 25th
                     # the actual membership ends at the end of the month
@@ -227,7 +226,7 @@ def stripe_webhook(request):
                     if event_object.latest_invoice:
                         subscription = client.get_subscription(subscription_id=event_object.id)
                         payment_intent_status = subscription.latest_invoice.payment_intent.status
-                        if payment_intent_status != "succeeded":
+                        if payment_intent_status not in ["succeeded", "processing"]:
                             subscription_activated = False
                             user_membership.subscription_status = "incomplete"
                             user_membership.save()
@@ -235,7 +234,13 @@ def stripe_webhook(request):
                                 log=(
                                     f"Stripe webhook: Membership {user_membership.membership.name} for user {user_membership.user} changed back to incomplete due to failed payment"
                                 )
-                            )                          
+                            )       
+                        if payment_intent_status == "processing":
+                            # Allow it, but email
+                            send_failed_payment_emails(
+                                error=f"Membership {user_membership.membership.name} for user {user_membership.user} was activated with payment still processing", 
+                                event_type=event.type, event_object=event_object
+                            )  
                     if subscription_activated:
                         # A new subscription was just activated
                         send_subscription_created_email(user_membership)
