@@ -1,5 +1,6 @@
 
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
 import logging
 import re
 
@@ -431,13 +432,30 @@ class StripeSubscriptionVoucher(models.Model):
     duration = models.CharField(max_length=255, choices=(("once", "once"), ("forever", "forever"), ("repeating", "repeating")), default="once")
     duration_in_months = models.PositiveIntegerField(null=True, blank=True)
     max_redemptions = models.PositiveIntegerField(null=True, blank=True)
-    redeem_by = models.DateTimeField(null=True, blank=True)
+    redeem_by = models.DateTimeField(
+        null=True, blank=True, 
+        help_text=(
+            "Date after which users can no longer apply the code; note that once applied, it will apply for the voucher duration, "
+            "even if that duration extends beyond the redeem by date. i.e. if a voucher applies for 2 months, and is redeemed on the "
+            "redeem by date, it will still apply for the next 2 months' membership. If you want to override this behaviour, set an "
+            "expiry date as well."
+        )
+    )
+    expiry_date = models.DateTimeField(
+        null=True, blank=True,
+        help_text=(
+            "Date after which the code will be removed from any memberships that have currently applied it."
+        )
+    )
     active = models.BooleanField(default=True)
     # Apppy to new subscriptions only; this is not a Stripe-handled restriction (Stripe has 'first_time_transaction' restriction on
     # promo codes, but they are customer-based, not product-based)
     new_memberships_only = models.BooleanField(
         default=True, help_text="Valid for new memberships only"
     )
+
+    class Meta:
+        ordering = ("-active", "-expiry_date", "-redeem_by")
 
     def __str__(self) -> str:
         return self.code
@@ -449,6 +467,10 @@ class StripeSubscriptionVoucher(models.Model):
 
     @property
     def description(self):
+        suffix = ""
+        if self.expiry_date:
+            suffix = f" (expires on {self.expiry_date.strftime('%d-%b-%Y')})"
+
         if self.amount_off:
             discount = f"£{self.amount_off} off"
         else:
@@ -456,11 +478,11 @@ class StripeSubscriptionVoucher(models.Model):
 
         match self.duration:
             case "once":
-                return f"{discount} one month's membership"
+                return f"{discount} one month's membership{suffix}"
             case "forever":
-                return discount
+                return f"{discount}{suffix}"
             case "repeating":
-                return f"{discount} {self.duration_in_months} months membership"
+                return f"{discount} {self.duration_in_months} months membership{suffix}"
 
     def save(self, *args, **kwargs):
         presaved = None
@@ -468,6 +490,8 @@ class StripeSubscriptionVoucher(models.Model):
             self.code = self.code.lower()
         else:
             presaved = StripeSubscriptionVoucher.objects.get(id=self.id)
+        if self.expiry_date:
+            self.expiry_date.replace(hour=23, minute=59)
         super().save(*args, **kwargs)
         stripe_client = StripeConnector()
         if presaved:
@@ -496,3 +520,20 @@ class StripeSubscriptionVoucher(models.Model):
             )
             self.promo_code_id = promo_code.id
             self.save()
+
+    def expires_before_next_payment_date(self):
+        if not self.expiry_date:
+            return False
+        now = timezone.now()
+        if now.day >= 25:
+            next_payment_date = (now + relativedelta(months=1)).replace(day=25)
+        else:
+            next_payment_date = now.replace(day=25)
+        return self.expiry_date < next_payment_date
+
+    @property
+    def applied_description(self):
+        if self.amount_off:
+            return f"£{self.amount_off:.2f}"
+        assert self.percent_off
+        return f"{self.percent_off:.0f}%"

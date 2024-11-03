@@ -18,8 +18,8 @@
                                 <th class="text-center">Active</th>
                                 <th class="text-center">Discount (%)</th>
                                 <th class="text-center">Discount (£)</th>
-                                {% comment %} <th class="text-center">Start Date</th> {% endcomment %}
-                                <th class="text-center">Expiry Date</th>
+                                <th class="text-center">Redeem by</th>
+                                <th class="text-center">Expires on</th>
                                 <th class="text-center">Max<br/>total uses</th>
                                 <th>Memberships</th>
                             </tr>
@@ -40,8 +40,8 @@
                                     </td>
                                     <td class="text-center studioadmin-tbl">{% if voucher.percent_off %}{{ voucher.percent_off }}%{% else %}-{% endif %}</td>
                                     <td class="text-center studioadmin-tbl">{% if voucher.amount_off %}£{{ voucher.amount_off }}{% else %}-{% endif %}</td>
-                                    {% comment %} <td class="text-center studioadmin-tbl">{{ voucher.start_date|date:"d M Y" }} {% endcomment %}
-                                    <td class="text-center studioadmin-tbl">{% if voucher.expiry_date %}{{ voucher.redeem_by|date:"d M Y" }}{% else %}-{% endif %}</td>
+                                    <td class="text-center studioadmin-tbl">{% if voucher.redeem_by %}{{ voucher.redeem_by|date:"d M Y" }}{% else %}-{% endif %}</td>
+                                    <td class="text-center studioadmin-tbl">{% if voucher.expiry_date %}{{ voucher.expiry_date|date:"d M Y" }}{% else %}-{% endif %}</td>
                                     <td class="text-center studioadmin-tbl">{% if voucher.max_redemptions %}{{ voucher.max_redemptions }}{% else %}-{% endif %}</td>
                                     <td class="studioadmin-tbl">{% for membership in voucher.memberships.all %}{{ membership.name }}{% if not forloop.last %}<br/>{% endif %}{% endfor %}</td>
                                 </tr>

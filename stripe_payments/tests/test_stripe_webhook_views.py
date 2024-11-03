@@ -496,7 +496,8 @@ def test_webhook_subscription_updated_status_changed_to_active_from_cancelled(
     mock_webhook, get_mock_webhook_event, client, configured_stripe_user
 ):
     mock_webhook.construct_event.return_value = get_mock_webhook_event(
-        webhook_event_type="customer.subscription.updated"
+        webhook_event_type="customer.subscription.updated",
+        current_period_end=datetime(2024, 3, 25).timestamp(),
     )
 
     membership = baker.make(Membership, name="membership1")
@@ -523,6 +524,7 @@ def test_webhook_subscription_updated_status_changed_to_active_from_cancelled(
         status="active",
         canceled_at=None,
         cancel_at=None,
+        current_period_end=datetime(2024, 3, 25).timestamp(),
     )
     resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
     assert resp.status_code == 200, resp.content
@@ -556,7 +558,8 @@ def test_webhook_subscription_updated_status_changed_to_active_from_incomplete(
     
     mock_webhook.construct_event.return_value = get_mock_webhook_event(
         webhook_event_type="customer.subscription.updated",
-        latest_invoice=Mock(payment_intent=Mock(status="succeeded"))
+        latest_invoice=Mock(payment_intent=Mock(status="succeeded")),
+        discounts=[],
     )
     settings.NOTIFY_STUDIO_FOR_NEW_MEMBERSHIPS = studio_email
 
@@ -584,7 +587,9 @@ def test_webhook_subscription_updated_status_changed_to_active_from_incomplete(
         status="active",
         canceled_at=None,
         cancel_at=None,
-        latest_invoice=Mock(payment_intent=Mock(status="succeeded"))
+        latest_invoice=Mock(payment_intent=Mock(status="succeeded")),
+        current_period_end=datetime(2024, 3, 25).timestamp(),
+        discounts=[],
     )
     resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
     assert resp.status_code == 200, resp.content
@@ -626,6 +631,7 @@ def test_webhook_subscription_updated_status_changed_to_incomplete_expired(
         webhook_event_type="customer.subscription.updated", 
         status="incomplete_expired",
         canceled_at=None,
+        current_period_end=datetime(2024, 3, 25).timestamp(),
     )
     resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
     assert resp.status_code == 200, resp.content
@@ -669,6 +675,7 @@ def test_webhook_subscription_updated_status_scheduled_to_cancel(
         status="active",
         canceled_at=None,
         cancel_at=(datetime(2024, 1, 25)).timestamp(),
+        current_period_end=datetime(2024, 1, 25).timestamp(),
     )
     resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
     assert resp.status_code == 200, resp.content
@@ -706,6 +713,7 @@ def test_webhook_subscription_updated_status_scheduled_to_cancel_removed(
         status="active",
         canceled_at=None,
         cancel_at=None,
+        current_period_end=datetime(2024, 4, 25).timestamp(),
     )
     resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
     assert resp.status_code == 200, resp.content
@@ -745,6 +753,7 @@ def test_webhook_subscription_updated_price_changed(
         status="active",
         items=Mock(data=[Mock(price=Mock(id="price_abc"))]),
         cancel_at=None,
+        current_period_end=datetime(2024, 4, 25).timestamp(),
     )
     resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
     assert resp.status_code == 200, resp.content

@@ -1,3 +1,12 @@
+{% comment %} set in context processor {% endcomment %}
+{% if membership_voucher_message %}
+<div class="alert alert-success alert-dismissible" role="alert">
+    {{ membership_voucher_message|safe }}
+<button type="button" class="pt-0 pb-0 close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+</div>
+{% endif %}
+
+
 <form 
     method="post" 
     hx-post="{% url 'membership_voucher_validate' %}" 
@@ -22,7 +31,7 @@
 
 </form>
 
-{% if htmx and has_changed %}
+{% if htmx %}
     <div id="stripe-subscription-form" hx-swap-oob="true" >
         {% include 'stripe_payments/includes/stripe_subscription_form.html' %}
     </div>

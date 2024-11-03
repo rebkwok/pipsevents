@@ -15,4 +15,5 @@ def booking(request):
         # hide online tutorials
         "online_tutorials_exist": False,
         "show_memberships": settings.SHOW_MEMBERSHIPS,
+        "membership_voucher_message": settings.MEMBERSHIP_VOUCHER_MESSAGE,
     }
