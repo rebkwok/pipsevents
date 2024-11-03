@@ -12,7 +12,7 @@ from django.utils import timezone
 import stripe
 from model_bakery import baker
 
-from booking.models import Block, Membership, UserMembership
+from booking.models import Block, Membership, UserMembership, StripeSubscriptionVoucher
 from ..models import Seller, StripePaymentIntent, StripeSubscriptionInvoice
 from .mock_connector import MockConnector
 
@@ -496,7 +496,8 @@ def test_webhook_subscription_updated_status_changed_to_active_from_cancelled(
     mock_webhook, get_mock_webhook_event, client, configured_stripe_user
 ):
     mock_webhook.construct_event.return_value = get_mock_webhook_event(
-        webhook_event_type="customer.subscription.updated"
+        webhook_event_type="customer.subscription.updated",
+        current_period_end=datetime(2024, 3, 25).timestamp(),
     )
 
     membership = baker.make(Membership, name="membership1")
@@ -523,6 +524,7 @@ def test_webhook_subscription_updated_status_changed_to_active_from_cancelled(
         status="active",
         canceled_at=None,
         cancel_at=None,
+        current_period_end=datetime(2024, 3, 25).timestamp(),
     )
     resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
     assert resp.status_code == 200, resp.content
@@ -538,9 +540,12 @@ def test_webhook_subscription_updated_status_changed_to_active_from_cancelled(
 
 
 @pytest.mark.parametrize(
-    "studio_email",
+    "studio_email,payment_intent_status",
     [
-        True, False
+        (True, "succeeded"),
+        (False, "succeeded"),
+        (False, "processing"),
+        (True, "processing"),
     ]
 )
 @pytest.mark.freeze_time("2024-02-26")
@@ -548,16 +553,12 @@ def test_webhook_subscription_updated_status_changed_to_active_from_cancelled(
 @patch("stripe_payments.views.webhook.StripeConnector")
 @patch("stripe_payments.views.webhook.stripe.Webhook")
 def test_webhook_subscription_updated_status_changed_to_active_from_incomplete(
-    mock_webhook, mock_webhook_connector, get_mock_webhook_event, client, configured_stripe_user, settings, studio_email
+    mock_webhook, mock_webhook_connector, get_mock_webhook_event, client, configured_stripe_user, settings, studio_email, payment_intent_status
 ):
     connector = MockConnector(subscriptions={"id": "1"})
-    connector.invoice=Mock(payment_intent=Mock(status="succeeded"))
+    connector.invoice=Mock(payment_intent=Mock(status=payment_intent_status))
     mock_webhook_connector.return_value = connector
     
-    mock_webhook.construct_event.return_value = get_mock_webhook_event(
-        webhook_event_type="customer.subscription.updated",
-        latest_invoice=Mock(payment_intent=Mock(status="succeeded"))
-    )
     settings.NOTIFY_STUDIO_FOR_NEW_MEMBERSHIPS = studio_email
 
     membership = baker.make(Membership, name="membership1")
@@ -584,17 +585,22 @@ def test_webhook_subscription_updated_status_changed_to_active_from_incomplete(
         status="active",
         canceled_at=None,
         cancel_at=None,
-        latest_invoice=Mock(payment_intent=Mock(status="succeeded"))
+        latest_invoice=Mock(payment_intent=Mock(status=payment_intent_status)),
+        current_period_end=datetime(2024, 3, 25).timestamp(),
+        discounts=[],
     )
     resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
     assert resp.status_code == 200, resp.content
     if studio_email:
-        assert len(mail.outbox) == 2
-        assert "A new membership has been set up" in mail.outbox[1].subject
-        assert mail.outbox[1].to == [settings.DEFAULT_STUDIO_EMAIL]
+        assert len(mail.outbox) == 2 if payment_intent_status == "succeeded" else 3
+        assert "A new membership has been set up" in mail.outbox[-1].subject
+        assert mail.outbox[-1].to == [settings.DEFAULT_STUDIO_EMAIL]
     else:
-        assert len(mail.outbox) == 1
-    assert "Your membership has been set up" in mail.outbox[0].subject
+        # warning email also sent to support if payment intent status is processing
+        assert len(mail.outbox) == 1 if payment_intent_status == "succeeded" else 2
+
+    user_email = mail.outbox[0] if payment_intent_status == "succeeded" else mail.outbox[1]
+    assert "Your membership has been set up" in user_email.subject
     user_membership.refresh_from_db()
     assert user_membership.subscription_status == "active"
 
@@ -605,7 +611,127 @@ def test_webhook_subscription_updated_status_changed_to_active_from_incomplete(
     assert paid_booking.membership is None
 
 
+@pytest.mark.freeze_time("2024-02-26")
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+@patch("stripe_payments.views.webhook.StripeConnector")
+@patch("stripe_payments.views.webhook.stripe.Webhook")
+def test_webhook_subscription_updated_status_changed_to_active_from_incomplete_unpaid(
+    mock_webhook, mock_webhook_connector, get_mock_webhook_event, client, configured_stripe_user
+):
+    connector = MockConnector(subscriptions={"id": "1"})
+    connector.invoice=Mock(payment_intent=Mock(status="unknown"))
+    mock_webhook_connector.return_value = connector
+    
+    membership = baker.make(Membership, name="membership1")
+    user_membership = baker.make(
+        UserMembership, membership=membership, user=configured_stripe_user, subscription_id="id",
+        subscription_status="incomplete", start_date=datetime(2024, 1, 25, tzinfo=datetime_tz.utc)
+    )
+    mock_webhook.construct_event.return_value = get_mock_webhook_event(
+        webhook_event_type="customer.subscription.updated", 
+        status="active",
+        canceled_at=None,
+        cancel_at=None,
+        latest_invoice=Mock(payment_intent=Mock(status="unknown")),
+        current_period_end=datetime(2024, 3, 25).timestamp(),
+        discounts=[],
+    )
+    resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
+    assert resp.status_code == 200, resp.content
+    
+    assert len(mail.outbox) == 0
+    user_membership.refresh_from_db()
+    assert user_membership.subscription_status == "incomplete"
 
+
+@pytest.mark.freeze_time("2024-02-26")
+@pytest.mark.parametrize(
+    "code,start,end,expiry_date,added",
+    [
+        ("promo1", datetime(2024, 2, 1, tzinfo=datetime_tz.utc), datetime(2024, 3, 1, tzinfo=datetime_tz.utc), None, True),
+        # valid expiry
+        ("promo1", datetime(2024, 2, 1, tzinfo=datetime_tz.utc), datetime(2024, 3, 1, tzinfo=datetime_tz.utc), datetime(2024, 4, 1, tzinfo=datetime_tz.utc), True),
+        # invalid expiry
+        ("promo1", datetime(2024, 2, 1, tzinfo=datetime_tz.utc), datetime(2024, 3, 1, tzinfo=datetime_tz.utc), datetime(2024, 3, 20, tzinfo=datetime_tz.utc), False),
+        # invalid code
+        ("promo2", datetime(2024, 2, 1, tzinfo=datetime_tz.utc), datetime(2024, 3, 1, tzinfo=datetime_tz.utc), None, False),
+        # outside of application window
+        ("promo1", datetime(2024, 2, 1, tzinfo=datetime_tz.utc), datetime(2024, 2, 25, tzinfo=datetime_tz.utc), None, False),
+
+    ]
+)
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+@patch("stripe_payments.views.webhook.StripeConnector")
+@patch("stripe_payments.views.webhook.stripe.Webhook")
+def test_webhook_subscription_updated_activated_autoapply_voucher(
+    mock_webhook, mock_webhook_connector, get_mock_webhook_event, client, configured_stripe_user, settings,
+    code, start, end, expiry_date, added
+):
+    # include invalid promo id, start/end of autoapply dates
+    settings.AUTO_APPLY_MEMBERSHIP_PROMO_ID = code
+    settings.AUTO_APPLY_MEMBERSHIP_PROMO_START = start
+    settings.AUTO_APPLY_MEMBERSHIP_PROMO_END = end
+    baker.make(StripeSubscriptionVoucher, amount_off=2, promo_code_id="promo1", expiry_date=expiry_date)
+
+    connector = MockConnector(subscriptions={"id": "1"})
+    connector.invoice=Mock(payment_intent=Mock(status="succeeded"))
+    mock_webhook_connector.return_value = connector
+    
+    membership = baker.make(Membership, name="membership1")
+    baker.make(
+        UserMembership, membership=membership, user=configured_stripe_user, subscription_id="id",
+        subscription_status="incomplete", start_date=datetime(2024, 1, 25, tzinfo=datetime_tz.utc)
+    )
+    mock_webhook.construct_event.return_value = get_mock_webhook_event(
+        webhook_event_type="customer.subscription.updated", 
+        status="active",
+        canceled_at=None,
+        cancel_at=None,
+        latest_invoice=Mock(payment_intent=Mock(status="succeeded")),
+        current_period_end=datetime(2024, 3, 25).timestamp(),
+        discounts=[],
+    )
+    resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
+    assert resp.status_code == 200, resp.content
+    if added:
+        assert connector.method_calls["add_discount_to_subscription"] == [{'args': (['promo1'],), 'kwargs': {}}]
+    else:
+        assert "add_discount_to_subscription" not in connector.method_calls
+
+
+@pytest.mark.freeze_time("2024-02-26")
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+@patch("stripe_payments.views.webhook.StripeConnector")
+@patch("stripe_payments.views.webhook.stripe.Webhook")
+def test_webhook_subscription_updated_activated_expiring_voucher_applied(
+    mock_webhook, mock_webhook_connector, get_mock_webhook_event, client, configured_stripe_user,
+):
+
+    baker.make(StripeSubscriptionVoucher, amount_off=2, promo_code_id="promo1", expiry_date=datetime(2024, 3, 20))
+
+    connector = MockConnector(subscriptions={"id": "1"}, discount={"promotion_code": "promo1"})
+    connector.invoice=Mock(payment_intent=Mock(status="succeeded"))
+    mock_webhook_connector.return_value = connector
+    
+    mock_webhook.construct_event.return_value = get_mock_webhook_event(
+        webhook_event_type="customer.subscription.updated",
+        latest_invoice=Mock(payment_intent=Mock(status="succeeded")),
+        current_period_end=datetime(2024, 3, 25).timestamp(),
+        canceled_at=None,
+        cancel_at=None,
+        discounts=[Mock(promotion_code="promo1")],
+    )
+    
+    membership = baker.make(Membership, name="membership1")
+    baker.make(
+        UserMembership, membership=membership, user=configured_stripe_user, subscription_id="id",
+        subscription_status="incomplete", start_date=datetime(2024, 1, 25, tzinfo=datetime_tz.utc)
+    )
+    resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
+    assert resp.status_code == 200, resp.content
+    connector.method_calls["remove_discount_from_subscription"] == [{'args': (['promo1'],), 'kwargs': {}}]
+
+ 
 @pytest.mark.freeze_time("2024-02-26")
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 @patch("stripe_payments.views.webhook.stripe.Webhook")
@@ -626,6 +752,7 @@ def test_webhook_subscription_updated_status_changed_to_incomplete_expired(
         webhook_event_type="customer.subscription.updated", 
         status="incomplete_expired",
         canceled_at=None,
+        current_period_end=datetime(2024, 3, 25).timestamp(),
     )
     resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
     assert resp.status_code == 200, resp.content
@@ -669,6 +796,7 @@ def test_webhook_subscription_updated_status_scheduled_to_cancel(
         status="active",
         canceled_at=None,
         cancel_at=(datetime(2024, 1, 25)).timestamp(),
+        current_period_end=datetime(2024, 1, 25).timestamp(),
     )
     resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
     assert resp.status_code == 200, resp.content
@@ -706,6 +834,7 @@ def test_webhook_subscription_updated_status_scheduled_to_cancel_removed(
         status="active",
         canceled_at=None,
         cancel_at=None,
+        current_period_end=datetime(2024, 4, 25).timestamp(),
     )
     resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
     assert resp.status_code == 200, resp.content
@@ -745,6 +874,7 @@ def test_webhook_subscription_updated_price_changed(
         status="active",
         items=Mock(data=[Mock(price=Mock(id="price_abc"))]),
         cancel_at=None,
+        current_period_end=datetime(2024, 4, 25).timestamp(),
     )
     resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
     assert resp.status_code == 200, resp.content

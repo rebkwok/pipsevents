@@ -304,3 +304,35 @@ def test_membership_voucher_form_redeem_by_bad_date(purchasable_membership):
     assert form.errors == {
         "redeem_by": ['Invalid date format.  Select from the date picker or enter date in the format dd Mmm YYYY']
     }
+
+
+def test_membership_voucher_form_expiry_date(purchasable_membership):
+    data = {
+        "code": "Foo",
+        "percent_off": 10,
+        "active": True,
+        "duration": "once",
+        "memberships": [purchasable_membership.id],
+        "expiry_date": "03 Oct 2024"
+    }
+    form = MembershipVoucherForm(data)
+    assert form.is_valid(), form.errors
+    assert form.cleaned_data["expiry_date"] == datetime(2024, 10, 3, 23, 59, tzinfo=UTC)
+
+
+
+def test_membership_voucher_form_redeem_by_after_expiry(purchasable_membership):
+    data = {
+        "code": "Foo",
+        "percent_off": 10,
+        "active": True,
+        "duration": "once",
+        "memberships": [purchasable_membership.id],
+        "redeem_by": "30 Oct 2024",
+        "expiry_date": "28 Oct 2024",
+    }
+    form = MembershipVoucherForm(data)
+    assert not form.is_valid()
+    assert form.errors == {
+        "expiry_date": ['Expiry date must be after redeem by date']
+    }

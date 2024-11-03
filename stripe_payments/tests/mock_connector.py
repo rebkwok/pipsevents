@@ -19,6 +19,7 @@ class MockConnector:
             get_payment_intent=None,
             subscription_status=None,
             no_subscription=False,
+            discount=None,
         ):
         super().__init__()
         self.connector = StripeConnector()
@@ -57,6 +58,9 @@ class MockConnector:
 
         # no subscrption == return None from get_subscription
         self.no_subscription = no_subscription
+
+        # discount - return with get_subscription
+        self.discount = discount
         
     def _record(self, fn, *args, **kwargs):
         self.method_calls.setdefault(fn.__name__, []).append({"args": args, "kwargs": kwargs})
@@ -105,6 +109,7 @@ class MockConnector:
             pending_setup_intent=self.pending_setup_intent,
             default_payment_method=self.default_payment_method,
             status=self.subscription_status,
+            discounts=[Mock(**self.discount)] if self.discount else []
         )
 
     def get_subscriptions_for_customer(self, customer_id, status="all"):

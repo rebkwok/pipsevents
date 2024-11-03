@@ -198,12 +198,13 @@ def subscription_create(request):
             # update subscription changed discounts if necessary
             if voucher is None:
                 # No voucher code; remove any previously applied discount
-                if subscription.discount:
+                if subscription.discounts:
                     client.remove_discount_from_subscription(subscription.id)
             else:
                 # Voucher code; remove any different previous discount and apply this new one
-                if subscription.discount:
-                    if subscription.discount.promotion_code != voucher.promo_code_id:
+                if subscription.discounts:
+                    discount = subscription.discounts[0]
+                    if discount.promotion_code != voucher.promo_code_id:
                         client.remove_discount_from_subscription(subscription.id)
                         client.add_discount_to_subscription(subscription.id, promo_code_id=voucher.promo_code_id)
                 else:
@@ -302,6 +303,7 @@ def validate_voucher_code(voucher_code, membership, existing_subscription_id=Fal
 def membership_voucher_validate(request):
     client = StripeConnector()
     membership = get_object_or_404(Membership, id=request.POST.get("membership_id"))
+    amount_being_charged_now = int(request.POST.get("amount", 0))
     context = {
         "htmx": True,
         "membership": membership,
@@ -312,7 +314,7 @@ def membership_voucher_validate(request):
         "creating": request.POST.get("creating"),
         "client_secret": request.POST.get("client_secret", ""),
         "backdate": request.POST.get("backdate"),
-        "amount": request.POST.get("amount"),
+        "amount": amount_being_charged_now,
         "regular_amount": membership.price,
         "confirm_type": request.POST.get("confirm_type"),
     }
@@ -321,6 +323,12 @@ def membership_voucher_validate(request):
     voucher_code = request.POST.get("voucher_code").lower()
     voucher, voucher_valid, voucher_message = validate_voucher_code(voucher_code, membership)
 
+    if voucher and voucher.expiry_date and not amount_being_charged_now:
+        # if there's no amount being charged now, check if the voucher is valid for the next amount
+        if voucher.expires_before_next_payment_date():       
+            voucher_valid = False
+            voucher_message = "Voucher expires before next payment date"
+    
     amount_in_p = int(membership.price * 100)
     if voucher_valid:
         if voucher.percent_off:
@@ -332,6 +340,7 @@ def membership_voucher_validate(request):
     
     context.update(
         {
+            "amount": amount_being_charged_now,
             "voucher_message": voucher_message,
             "voucher_valid": voucher_valid,
             "voucher_code": voucher_code,
@@ -439,8 +448,9 @@ def stripe_subscription_checkout(request):
 
 
 def ensure_subscription_up_to_date(user_membership, subscription, subscription_id=None):
+    client = StripeConnector()
+
     if subscription is None:
-        client = StripeConnector()
         subscription = client.get_subscription(subscription_id)
         if subscription is None:
             return
@@ -488,6 +498,13 @@ def ensure_subscription_up_to_date(user_membership, subscription, subscription_i
     if needs_update:
         user_membership.save()
     
+    # Make sure any discounts on the subscription are valid for the next payment date
+    if subscription.discounts:
+        discount = subscription.discounts[0]
+        voucher = StripeSubscriptionVoucher.objects.get(promo_code_id=discount.promotion_code)
+        if voucher.expires_before_next_payment_date():
+            client.remove_discount_from_subscription(subscription_id)
+    
     return user_membership
 
 
@@ -504,27 +521,38 @@ def membership_status(request, subscription_id):
     # cancelling in the future
     if user_membership.subscription_status != 'canceled' and not subscription.cancel_at:
         next_invoice = client.get_upcoming_invoice(subscription_id)
-        if next_invoice.discount:
-            voucher_code = StripeSubscriptionVoucher.objects.get(promo_code_id=next_invoice.discount.promotion_code).code
+        invoice_date = get_utcdate_from_timestamp(next_invoice.period_end)
+        if next_invoice.discounts:
+            discount = next_invoice.discounts[0]
+            # Check if the voucher applied expires before the invoice date and remove if necessary
+            voucher = StripeSubscriptionVoucher.objects.get(promo_code_id=discount.promotion_code)
+            if voucher.expiry_date and voucher.expiry_date < invoice_date:
+                client.remove_discount_from_subscription(subscription.id)
+                # Fetch the invoice again so the amount is updated
+                next_invoice = client.get_upcoming_invoice(subscription_id)
+                voucher_description = None
+            else:
+                voucher_description = voucher.applied_description
         else:
-            voucher_code = None
+            voucher_description = None
         upcoming_invoice = {
-            "date": get_utcdate_from_timestamp(next_invoice.period_end),
+            "date": invoice_date,
             "amount": next_invoice.total / 100,
-            "voucher_code": voucher_code
+            "voucher_description": voucher_description
         }
     else:
         upcoming_invoice = None
 
     if subscription.latest_invoice:
-        if subscription.latest_invoice.discount:
-            voucher_code = StripeSubscriptionVoucher.objects.get(promo_code_id=subscription.latest_invoice.discount.promotion_code).code
+        if subscription.latest_invoice.discounts:
+            discount = subscription.latest_invoice.discounts[0]
+            voucher_description = StripeSubscriptionVoucher.objects.get(promo_code_id=discount.promotion_code).applied_description
         else:
-            voucher_code = None
+            voucher_description = None
         last_invoice = {
             "date": get_utcdate_from_timestamp(subscription.latest_invoice.effective_at),
             "amount": subscription.latest_invoice.total / 100,
-            "voucher_code": voucher_code
+            "voucher_description": voucher_description
         }
     else:
         last_invoice = None

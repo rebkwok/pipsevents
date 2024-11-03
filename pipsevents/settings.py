@@ -11,6 +11,8 @@ import environ
 import os
 import sys
 
+from datetime import datetime, UTC
+
 root = environ.Path(__file__) - 2  # two folders back (/a/b/ - 3 = /)
 
 # defaults
@@ -549,3 +551,16 @@ SHOW_MEMBERSHIPS = env.bool("SHOW_MEMBERSHIPS", False)
 NOTIFY_STUDIO_FOR_NEW_MEMBERSHIPS = env.bool("NOTIFY_STUDIO_FOR_NEW_MEMBERSHIPS", True)
 
 SILENCED_SYSTEM_CHECKS = ["ckeditor.W001"]
+
+# Auto apply memberships
+# Applied in webhook when memberships are activated; does NOT apply automatically to
+# immediate setup payments
+AUTO_APPLY_MEMBERSHIP_PROMO_ID = env.str("AUTO_APPLY_MEMBERSHIP_PROMO_ID", default="")
+AUTO_APPLY_MEMBERSHIP_PROMO_START = env.str("AUTO_APPLY_MEMBERSHIP_PROMO_START", default="")
+if AUTO_APPLY_MEMBERSHIP_PROMO_START:
+    AUTO_APPLY_MEMBERSHIP_PROMO_START = datetime.strptime(AUTO_APPLY_MEMBERSHIP_PROMO_START, "%Y-%m-%d").replace(tzinfo=UTC)
+AUTO_APPLY_MEMBERSHIP_PROMO_END = env.str("AUTO_APPLY_MEMBERSHIP_PROMO_END", default="")
+if AUTO_APPLY_MEMBERSHIP_PROMO_END:
+    AUTO_APPLY_MEMBERSHIP_PROMO_END = datetime.strptime(AUTO_APPLY_MEMBERSHIP_PROMO_END, "%Y-%m-%d").replace(hour=23, minute=59, tzinfo=UTC)
+# Message to show on membership setup page
+MEMBERSHIP_VOUCHER_MESSAGE = env.str("MEMBERSHIP_VOUCHER_MESSAGE", default="")

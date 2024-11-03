@@ -4,8 +4,7 @@
     {% if creating %}
     <div>
         <p>
-        
-        {% if amount %}
+        {% if amount > 0 %}
         <strong>£{{ next_amount|floatformat:2 }}</strong> will be charged immediately.
         {% else %}
         <strong>No payment will be taken now. £{{ next_amount|floatformat:2 }}</strong> will be charged at the next billing date (25th of the month).

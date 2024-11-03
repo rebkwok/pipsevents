@@ -283,7 +283,8 @@ class MembershipVoucherForm(forms.ModelForm):
             "amount_off": "Discount amount (£)",
             "duration": "How often will this voucher be applied?",
             "duration_in_months": "How many months will the voucher apply? (Repeating vouchers only)",
-            "redeem_by": "End date",
+            "redeem_by": "Redeem by date",
+            "expiry_date": "Expiry date",
             "active": "Code is active and redeemable",
             "max_redemptions": "Max uses (across all users)",
         }
@@ -316,6 +317,17 @@ class MembershipVoucherForm(forms.ModelForm):
             required=False,
             input_formats=['%d %b %Y']
         )
+        self.fields["expiry_date"] = forms.DateField(
+            widget=forms.DateInput(
+                attrs={
+                    'class': "form-control",
+                    'id': 'datepicker1',
+                    'onchange': "this.form.submit()"},
+                format='%d %b %Y'
+            ),
+            required=False,
+            input_formats=['%d %b %Y']
+        )
         back_url = reverse('studioadmin:membership_vouchers')
 
         self.helper = FormHelper()
@@ -328,6 +340,7 @@ class MembershipVoucherForm(forms.ModelForm):
             "duration_in_months",
             "max_redemptions",
             "redeem_by",
+            "expiry_date",
             "active",
             "new_memberships_only",
             Submit('submit', f'Save', css_class="btn btn-success"),
@@ -341,21 +354,31 @@ class MembershipVoucherForm(forms.ModelForm):
         else:
             return code
 
-    def clean(self):
-        redeem_by = self.data.get('redeem_by')
-        if redeem_by:
-            if "redeem_by" in self.errors:   # pragma: no cover
-                del self.errors["redeem_by"]
+    def _clean_date_field(self, date_field):
+        value = self.data.get(date_field)
+        if value:
+            if date_field in self.errors:   # pragma: no cover
+                del self.errors[date_field]
 
             try:
-                redeem_by = datetime.strptime(redeem_by, '%d %b %Y').replace(hour=23, minute=59, tzinfo=datetime_tz.utc)
-                self.cleaned_data["redeem_by"] = redeem_by
+                value = datetime.strptime(value, '%d %b %Y').replace(hour=23, minute=59, tzinfo=datetime_tz.utc)
+                self.cleaned_data[date_field] = value
             except ValueError:
                 self.add_error(
-                    'redeem_by',
+                    date_field,
                     'Invalid date format.  Select from the date picker or '
                     'enter date in the format dd Mmm YYYY'
                 )
+
+    def clean(self):
+        for field in ["redeem_by", "expiry_date"]:
+            self._clean_date_field(field)
+
+        expiry_date = self.data.get('expiry_date')
+        redeem_by = self.data.get('redeem_by')
+        if expiry_date and redeem_by:
+            if expiry_date < redeem_by:
+                self.add_error("expiry_date", "Expiry date must be after redeem by date")
         
         amount_off = self.cleaned_data.get("amount_off")
         percent_off = self.cleaned_data.get("percent_off")

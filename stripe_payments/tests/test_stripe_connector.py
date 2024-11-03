@@ -482,7 +482,8 @@ def test_create_subscription(
         'payment_behavior': ['default_incomplete'],
         'payment_settings[save_default_payment_method]': ['on_subscription'],
         'expand[0]': ['latest_invoice.payment_intent'], 
-        'expand[1]': ['pending_setup_intent'],
+        'expand[1]': ['latest_invoice.discounts'],
+        'expand[2]': ['pending_setup_intent'],
     }
     if expected_backdate_start_date:
         expected["backdate_start_date"] = [str(expected_backdate_start_date)]
@@ -830,7 +831,7 @@ def test_connector_get_promo_code(seller, mocked_responses):
 
 def test_connector_get_upcoming_invoice(seller, mocked_responses):
     mocked_responses.get(
-        "https://api.stripe.com/v1/invoices/upcoming?subscription=sub-1",
+        "https://api.stripe.com/v1/invoices/upcoming?subscription=sub-1&expand[0]=discounts",
         body=json.dumps(
             {
                 "object": "invoice",

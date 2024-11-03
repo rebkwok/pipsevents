@@ -12,7 +12,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import HttpResponse
 
 from activitylog.models import ActivityLog
-from booking.models import UserMembership, Membership
+from booking.models import UserMembership, Membership, StripeSubscriptionVoucher
 from ..emails import (
     send_failed_payment_emails, 
     send_processed_refund_emails, 
@@ -221,6 +221,20 @@ def stripe_webhook(request):
                 user_membership.delete()
 
             elif event_object.status == "active":
+                should_autoapply_voucher = (
+                    settings.AUTO_APPLY_MEMBERSHIP_PROMO_ID 
+                    and (settings.AUTO_APPLY_MEMBERSHIP_PROMO_START < datetime.now(datetime_tz.utc) < settings.AUTO_APPLY_MEMBERSHIP_PROMO_END)
+                )
+                subscription = event_object
+                next_payment_date = datetime.fromtimestamp(subscription.current_period_end).replace(tzinfo=datetime_tz.utc)
+                if should_autoapply_voucher:
+                    autoapply_voucher = StripeSubscriptionVoucher.objects.filter(promo_code_id=settings.AUTO_APPLY_MEMBERSHIP_PROMO_ID).first()
+                    if autoapply_voucher is None:
+                        logger.error("Invalid AUTO_APPLY_MEMBERSHIP_PROMO_ID var; matching StripeSubscriptionVoucher not found")
+                        should_autoapply_voucher = False
+                    elif autoapply_voucher.expiry_date and autoapply_voucher.expiry_date < next_payment_date:
+                        should_autoapply_voucher = False
+
                 if old_status == "incomplete":
                     subscription_activated = True
                     if event_object.latest_invoice:
@@ -242,8 +256,22 @@ def stripe_webhook(request):
                                 event_type=event.type, event_object=event_object
                             )  
                     if subscription_activated:
+                        # Check for auto-applied promo codes
+                        if should_autoapply_voucher:
+                            client.add_discount_to_subscription(settings.AUTO_APPLY_MEMBERSHIP_PROMO_ID)
                         # A new subscription was just activated
                         send_subscription_created_email(user_membership)
+
+                # For active subscriptions, do we have a voucher applied that expires before the next payment date
+                # if so, remove it. We don't need to refresh the subscription because we shouldn't have applied the
+                # autoapply code if it expires before the next payment date.
+                if subscription.discounts:
+                    discount = subscription.discounts[0]
+                    # check if the voucher expires before the next payment date.
+                    voucher = StripeSubscriptionVoucher.objects.get(promo_code_id=discount.promotion_code)
+                    if voucher.expiry_date and voucher.expiry_date < next_payment_date:
+                        client.remove_discount_from_subscription(subscription.id)
+
                 # has it been cancelled in future?               
                 if event_object.cancel_at:
                     subscription_end_date = datetime.fromtimestamp(event_object.cancel_at).replace(tzinfo=datetime_tz.utc)

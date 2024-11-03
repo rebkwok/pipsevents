@@ -266,7 +266,7 @@ class StripeConnector:
     def get_subscription(self, subscription_id):
         kwargs = dict(
             id=subscription_id, stripe_account=self.connected_account_id, 
-            expand=['latest_invoice.payment_intent', 'pending_setup_intent', 'schedule']
+            expand=['latest_invoice.payment_intent', 'latest_invoice.discounts', 'pending_setup_intent', 'schedule', "discounts"]
         )
         return stripe.Subscription.retrieve(**kwargs)
 
@@ -275,7 +275,7 @@ class StripeConnector:
             status=status, 
             customer=customer_id, 
             stripe_account=self.connected_account_id,
-            expand=['data.latest_invoice.payment_intent', 'data.pending_setup_intent'],
+            expand=['data.discounts', 'data.latest_invoice.payment_intent', 'data.latest_invoice.discounts', 'data.pending_setup_intent'],
         )
         all_subscriptions = {sub["id"]: sub for sub in subscriptions.data}
 
@@ -284,7 +284,7 @@ class StripeConnector:
                 status=status, 
                 customer=customer_id, 
                 stripe_account=self.connected_account_id,
-                expand=['data.latest_invoice.payment_intent', 'data.pending_setup_intent'],
+                expand=['data.latest_invoice.payment_intent', 'data.latest_invoice.discounts', 'data.pending_setup_intent'],
                 starting_after=subscriptions.data[-1].id
             )
             all_subscriptions.update({sub["id"]: sub for sub in subscriptions.data})
@@ -326,7 +326,7 @@ class StripeConnector:
             billing_cycle_anchor=int(next_cycle_start_date.timestamp()),
             payment_behavior='default_incomplete',  # create subscription as incomplete
             payment_settings={'save_default_payment_method': 'on_subscription'},   # save customer default payment
-            expand=['latest_invoice.payment_intent', 'pending_setup_intent'],
+            expand=['latest_invoice.payment_intent', 'latest_invoice.discounts', 'pending_setup_intent'],
             stripe_account=self.connected_account_id,
         )
         if backdate_for_next_month or backdate:
@@ -513,7 +513,9 @@ class StripeConnector:
             logger.error("Attempt to retrieve invalid promo code: %s", str(e))
 
     def get_upcoming_invoice(self, subscription_id):
-        return stripe.Invoice.upcoming(subscription=subscription_id, stripe_account=self.connected_account_id)
+        return stripe.Invoice.upcoming(
+            subscription=subscription_id, expand=["discounts"], stripe_account=self.connected_account_id
+        )
 
     def add_discount_to_subscription(self, subscription_id, promo_code_id=None):
         # for an existing suscription, add a discount

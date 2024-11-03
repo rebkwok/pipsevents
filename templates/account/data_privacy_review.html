@@ -27,7 +27,7 @@
                <div class="studioadmin-help col-xs-10 col-xs-offset-2">{{ form.confirm.help_text }}</div>
            </div>
 
-            <h4>Mailing List</h4>
+           <h4>Mailing List</h4>
                 <p>We only use our mailing list to send occasional newsletters and updates regarding the studio.
                     You are free to unsubscribe at any time.
             <div class="form-group">
@@ -42,7 +42,7 @@
                   {% endfor %}
                </div>
            </div>
-            <input type="hidden" name="next_url" value={{ form.next_url }}/>
+            <input type="hidden" name="next_url" value="{{ form.next_url }}" />
             <input class="btn btn-wm topspace" type="submit" value="Submit" />
         </form>
 </div>

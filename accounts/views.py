@@ -307,7 +307,6 @@ class SignedDataPrivacyCreateView(LoginRequiredMixin, FormView):
     def form_valid(self, form):        
         user = self.request.user
         next_url = self.request.POST.get("next_url")
-
         SignedDataPrivacy.objects.get_or_create(
             user=user, version=form.data_privacy_policy.version
         )

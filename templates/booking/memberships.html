@@ -31,7 +31,7 @@
                         </tr>
                         {% for user_membership in memberships %}
                             <tr {% if user_membership.subscription_status in "incomplete,past_due,unpaid,setup_pending" %}class="not_paid_block"{% elif user_membership.is_active %}class="active_block"{% else %}class="expired_block"{% endif %}>
-                                <td>{{ user_membership.membership }}<br/><a class="studioadmin-help" href="{% url 'membership_status' user_membership.subscription_id %}">View details and update</a></td>
+                                <td>{{ user_membership.membership.name }}<br/><a class="studioadmin-help" href="{% url 'membership_status' user_membership.subscription_id %}">View details and update</a></td>
                                 <td>{{ user_membership.hr_status }}{% if user_membership.subscription_status == "active" and user_membership.end_date %} (ends on {{ user_membership.end_date|date:"d M Y"}}){% endif %}</td>
                                 <td>{{ user_membership.start_date|date:"d M Y"}}</td>
                                 <td>{% if user_membership.end_date %}{{ user_membership.end_date|date:"d M Y"}}{% endif %}</td>

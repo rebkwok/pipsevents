@@ -28,8 +28,11 @@
                     {% endif %}
                 </dt>
                 
-                <dt>Expiry date</dt>
+                <dt>Redeem by</dt>
                 <dd>{% if voucher.redeem_by %}{{ voucher.redeem_by|date:"d M Y"}}{% else %}N/A{% endif %}</dd>
+
+                <dt>Expires on</dt>
+                <dd>{% if voucher.expiry_date %}{{ voucher.expiry_date|date:"d M Y"}}{% else %}N/A{% endif %}</dd>
 
                 <dt>Duration</dt>
                 <dd>{% if voucher.duration == "once" %}One time only{% elif voucher.duration == "forever"%}Forever{% else%}For {{ voucher.duration_in_months }} month{{ voucher.duration_in_months|pluralize }}{% endif %}</dd>

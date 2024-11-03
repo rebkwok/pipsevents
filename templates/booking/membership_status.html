@@ -71,7 +71,7 @@
                     <dt>Apply a voucher code</dt>
                     <p>If you have a voucher code, you can apply it to your next membership payment(s) here. Please note that only
                         one code can be applied at a time; if you have already applied a code, it will be removed and replaced. You
-                        can see the code applied to your next invoice (if any) below.</p>
+                        can see the discount applied to your next invoice (if any) below.</p>
                     <dd>
                         <div id="membership-voucher-apply-form">
                         {% include "booking/includes/membership_voucher_apply_form.html" %}
@@ -87,7 +87,7 @@
                         <dd>
                         {% if upcoming_invoice %}
                             {{ upcoming_invoice.date|date:"d M Y" }} - £{{ upcoming_invoice.amount|floatformat:2 }}
-                            {% if upcoming_invoice.voucher_code %}<span class="badge badge-info">voucher code: {{ upcoming_invoice.voucher_code }}</span>{% endif %}
+                            {% if upcoming_invoice.voucher_description %}<span class="badge badge-info">Discount applied: {{ upcoming_invoice.voucher_description }}</span>{% endif %}
                         {% else %}
                             -
                         {% endif %}</dd>
@@ -95,7 +95,7 @@
                 <dl>
                     <dt>Last payment received</dt>
                     <dd>{% if last_invoice %}{{ last_invoice.date|date:"d M Y" }} - £{{ last_invoice.amount|floatformat:2 }}{% else %}-{% endif %}
-                        {% if last_invoice.voucher_code %}<span class="badge badge-info">voucher code: {{ last_invoice.voucher_code }}</span>{% endif %}</dd>
+                        {% if last_invoice.voucher_description %}<span class="badge badge-info">Discount applied: {{ last_invoice.voucher_description }}</span>{% endif %}</dd>
                 </dl>
                 <hr/>
                 <dl>

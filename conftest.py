@@ -140,6 +140,7 @@ def get_mock_subscription(webhook_event_type, **params):
         "billing_cycle_anchor": datetime(2024, 7, 25).timestamp(),
         "metadata": {},
         "discount": None,
+        "discounts": [],
     }
     options = {**defaults, **params}
     return MockEventObject(**options)
