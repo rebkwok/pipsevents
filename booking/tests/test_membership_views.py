@@ -834,65 +834,65 @@ def test_subscription_cancel_with_error(
     "now,status,end_date,"
     "current_period_end,latest_invoice,cancel_at_ts,upcoming_invoice_discount,expected",
     [   
-        # # not cancelling, no latest invoice
-        # (
-        #     datetime(2024, 2, 12, tzinfo=datetime_tz.utc), "active", None, 
-        #     datetime(2024, 5, 25, tzinfo=datetime_tz.utc).timestamp(), None, None,
-        #     None,
-        #     dict(
-        #         this_month="February",
-        #         next_month="March",
-        #         last_invoice=None,
-        #         cancelling=False,
-        #     )
-        # ),
-        # # cancelled, no latest invoice
-        # (
-        #     datetime(2024, 2, 12, tzinfo=datetime_tz.utc), "canceled", datetime(2024, 2, 25, tzinfo=datetime_tz.utc), 
-        #     datetime(2024, 5, 25, tzinfo=datetime_tz.utc).timestamp(), None, None,
-        #     None,
-        #     dict(
-        #         this_month="February",
-        #         next_month="March",
-        #         last_invoice=None,
-        #         cancelling=True,
-        #     )
-        # ),
-        # # December, calculate next month correctly
-        # (
-        #     datetime(2024, 12, 12, tzinfo=datetime_tz.utc), "active", None, 
-        #     datetime(2024, 12, 25, tzinfo=datetime_tz.utc).timestamp(), None, None,
-        #     None,
-        #     dict(
-        #         this_month="December",
-        #         next_month="January",
-        #         last_invoice=None,
-        #         cancelling=False,
-        #     )
-        # ),
-        # # not cancelling, with latest invoice
-        # (
-        #     datetime(2024, 2, 12, tzinfo=datetime_tz.utc), "active", None, 
-        #     datetime(2024, 5, 25, tzinfo=datetime_tz.utc).timestamp(), 
-        #     Mock(
-        #         effective_at=datetime(2024, 4, 25, tzinfo=datetime_tz.utc).timestamp(),
-        #         discount=None,
-        #         discounts=[],
-        #         total=1000,
-        #     ), 
-        #     None,
-        #     None,
-        #     dict(
-        #         this_month="February",
-        #         next_month="March",
-        #         last_invoice={
-        #             "date": datetime(2024, 4, 25, tzinfo=datetime_tz.utc),
-        #             "amount": 10,
-        #             "voucher_description": None
-        #         },
-        #         cancelling=False,
-        #     )
-        # ),
+        # not cancelling, no latest invoice
+        (
+            datetime(2024, 2, 12, tzinfo=datetime_tz.utc), "active", None, 
+            datetime(2024, 5, 25, tzinfo=datetime_tz.utc).timestamp(), None, None,
+            None,
+            dict(
+                this_month="February",
+                next_month="March",
+                last_invoice=None,
+                cancelling=False,
+            )
+        ),
+        # cancelled, no latest invoice
+        (
+            datetime(2024, 2, 12, tzinfo=datetime_tz.utc), "canceled", datetime(2024, 2, 25, tzinfo=datetime_tz.utc), 
+            datetime(2024, 5, 25, tzinfo=datetime_tz.utc).timestamp(), None, None,
+            None,
+            dict(
+                this_month="February",
+                next_month="March",
+                last_invoice=None,
+                cancelling=True,
+            )
+        ),
+        # December, calculate next month correctly
+        (
+            datetime(2024, 12, 12, tzinfo=datetime_tz.utc), "active", None, 
+            datetime(2024, 12, 25, tzinfo=datetime_tz.utc).timestamp(), None, None,
+            None,
+            dict(
+                this_month="December",
+                next_month="January",
+                last_invoice=None,
+                cancelling=False,
+            )
+        ),
+        # not cancelling, with latest invoice
+        (
+            datetime(2024, 2, 12, tzinfo=datetime_tz.utc), "active", None, 
+            datetime(2024, 5, 25, tzinfo=datetime_tz.utc).timestamp(), 
+            Mock(
+                effective_at=datetime(2024, 4, 25, tzinfo=datetime_tz.utc).timestamp(),
+                discount=None,
+                discounts=[],
+                total=1000,
+            ), 
+            None,
+            None,
+            dict(
+                this_month="February",
+                next_month="March",
+                last_invoice={
+                    "date": datetime(2024, 4, 25, tzinfo=datetime_tz.utc),
+                    "amount": 10,
+                    "voucher_description": None
+                },
+                cancelling=False,
+            )
+        ),
         # not cancelling, with latest invoice and discount
         (
             datetime(2024, 2, 12, tzinfo=datetime_tz.utc), "active", None, 
@@ -990,6 +990,85 @@ def test_membership_status(
         "upcoming_invoice": upcoming_invoice,
         **expected,
     } 
+
+
+@pytest.mark.parametrize(
+    "voucher_expiry,upcoming_invoice_voucher_description",
+    [
+        (None, "£1.00"),
+        (datetime(2024, 4, 23, tzinfo=datetime_tz.utc), "£1.00"),
+        (datetime(2024, 3, 23, tzinfo=datetime_tz.utc), None)
+    ]
+)
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+@patch("booking.views.membership_views.StripeConnector.get_upcoming_invoice")
+@patch("booking.views.membership_views.StripeConnector.remove_discount_from_subscription")
+@patch("booking.views.membership_views.StripeConnector.get_subscription")
+def test_membership_status_with_vouchers(
+    mock_get_subscription, mock_remove_discount,  mock_upcoming_invoice, freezer, 
+    client, seller, configured_stripe_user, purchasable_membership,
+    voucher_expiry, upcoming_invoice_voucher_description
+):
+    freezer.move_to("2024-03-01")
+    baker.make(
+        StripeSubscriptionVoucher, code="foo", promo_code_id="foo", amount_off=1, 
+        expiry_date=voucher_expiry
+    )
+    latest_invoice = Mock(
+        effective_at=datetime(2024, 2, 25, tzinfo=datetime_tz.utc).timestamp(),
+        discount=Mock(promotion_code="foo"),
+        discounts=[Mock(promotion_code="foo")],
+        total=purchasable_membership.price * 100,
+    )
+    mock_upcoming_invoice.return_value = Mock(
+        id="inv-1",
+        customer="cus-1", 
+        status="active",
+        period_end=datetime(2024, 3, 25, tzinfo=datetime_tz.utc).timestamp(),
+        discount=Mock(promotion_code="foo"),
+        discounts=[Mock(promotion_code="foo")],
+        total=purchasable_membership.price * 100,
+    )
+    mock_get_subscription.return_value = MockEventObject(
+        id="sub-1",
+        object="subscription",
+        customer="cus-1", 
+        status="active", 
+        cancel_at=None,
+        current_period_end=datetime(2024, 3, 25).timestamp(),
+        latest_invoice=latest_invoice,
+        discount=latest_invoice.discount,
+        discounts=latest_invoice.discounts
+    )
+
+    client.force_login(configured_stripe_user)
+    baker.make(
+        UserMembership, 
+        user=configured_stripe_user, 
+        membership=purchasable_membership, 
+        subscription_id="sub-1",
+        subscription_status="active",
+    )
+    resp = client.get(reverse("membership_status", args=("sub-1",)))
+
+    # remove discount called
+    if not upcoming_invoice_voucher_description:
+        mock_remove_discount.assert_called_once()
+    else:
+        mock_remove_discount.assert_not_called()
+    # no voucher description for upcoming
+    upcoming_invoice_ctx = {
+        "date": datetime(2024, 3, 25, tzinfo=datetime_tz.utc),
+        "amount": purchasable_membership.price,
+        "voucher_description": upcoming_invoice_voucher_description
+    }
+    last_invoice_ctx = {
+        "date": datetime(2024, 2, 25, tzinfo=datetime_tz.utc),
+        "amount": purchasable_membership.price,
+        "voucher_description": "£1.00"
+    }
+    assert resp.context_data["upcoming_invoice"] == upcoming_invoice_ctx
+    assert resp.context_data["last_invoice"] == last_invoice_ctx
 
 
 # membership list
@@ -1141,6 +1220,70 @@ def test_membership_list_get_subscription(mock_conn, client, seller, configured_
                 subscription_billing_cycle_anchor=datetime(2024, 1, 25, tzinfo=datetime_tz.utc)
             )
         ),
+        # payment intent status not succeeded/processing
+        (
+            "incomplete",
+            MockEventObject(
+                canceled_at=None,
+                cancel_at=datetime(2024, 2, 10, tzinfo=datetime_tz.utc).timestamp(),
+                status="active",
+                start_date=datetime(2024, 1, 12, tzinfo=datetime_tz.utc).timestamp(),
+                billing_cycle_anchor=datetime(2024, 1, 25, tzinfo=datetime_tz.utc).timestamp(),
+                latest_invoice=Mock(payment_intent=Mock(status="pending")),
+                discount=None, 
+                discounts=[]
+            ),
+            dict(
+                subscription_status="incomplete",
+                start_date=datetime(2024, 2, 1, tzinfo=datetime_tz.utc),
+                subscription_start_date=datetime(2024, 1, 12, tzinfo=datetime_tz.utc),
+                end_date=datetime(2024, 3, 1, tzinfo=datetime_tz.utc),
+                subscription_end_date=datetime(2024, 2, 10, tzinfo=datetime_tz.utc),
+                subscription_billing_cycle_anchor=datetime(2024, 1, 25, tzinfo=datetime_tz.utc)
+            )
+        ),
+        # with non-expiring discount
+        (
+            "active",
+            MockEventObject(
+                canceled_at=None,
+                cancel_at=datetime(2024, 2, 10, tzinfo=datetime_tz.utc).timestamp(),
+                status="active",
+                start_date=datetime(2024, 1, 12, tzinfo=datetime_tz.utc).timestamp(),
+                billing_cycle_anchor=datetime(2024, 1, 25, tzinfo=datetime_tz.utc).timestamp(),
+                discount=Mock(promotion_code="no_expire"), 
+                discounts=[Mock(promotion_code="no_expire")]
+            ),
+            dict(
+                subscription_status="active",
+                start_date=datetime(2024, 2, 1, tzinfo=datetime_tz.utc),
+                subscription_start_date=datetime(2024, 1, 12, tzinfo=datetime_tz.utc),
+                end_date=datetime(2024, 3, 1, tzinfo=datetime_tz.utc),
+                subscription_end_date=datetime(2024, 2, 10, tzinfo=datetime_tz.utc),
+                subscription_billing_cycle_anchor=datetime(2024, 1, 25, tzinfo=datetime_tz.utc)
+            )
+        ),
+        # with expiring discount
+        (
+            "active",
+            MockEventObject(
+                canceled_at=None,
+                cancel_at=datetime(2024, 2, 10, tzinfo=datetime_tz.utc).timestamp(),
+                status="active",
+                start_date=datetime(2024, 1, 12, tzinfo=datetime_tz.utc).timestamp(),
+                billing_cycle_anchor=datetime(2024, 1, 25, tzinfo=datetime_tz.utc).timestamp(),
+                discount=Mock(promotion_code="expire"), 
+                discounts=[Mock(promotion_code="expire")]
+            ),
+            dict(
+                subscription_status="active",
+                start_date=datetime(2024, 2, 1, tzinfo=datetime_tz.utc),
+                subscription_start_date=datetime(2024, 1, 12, tzinfo=datetime_tz.utc),
+                end_date=datetime(2024, 3, 1, tzinfo=datetime_tz.utc),
+                subscription_end_date=datetime(2024, 2, 10, tzinfo=datetime_tz.utc),
+                subscription_billing_cycle_anchor=datetime(2024, 1, 25, tzinfo=datetime_tz.utc)
+            )
+        ),
         # setup_pending stays as is if pending setup intent not complete
         (
             "setup_pending",
@@ -1213,10 +1356,19 @@ def test_membership_list_get_subscription(mock_conn, client, seller, configured_
     ]
 )
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
+@patch("booking.views.membership_views.StripeConnector")
 def test_ensure_subscription_up_to_date(
-    seller, configured_stripe_user, user_membership_status, subscription, purchasable_membership,
+    mock_view_connector, seller, configured_stripe_user, user_membership_status, subscription, purchasable_membership,
     expected
 ):
+    view_connector = MockConnector()
+    mock_view_connector.return_value = view_connector
+    baker.make(
+        StripeSubscriptionVoucher, code="foo", promo_code_id="no_expire", amount_off=2, expiry_date=None
+    )
+    baker.make(
+        StripeSubscriptionVoucher, code="bar", promo_code_id="expire", amount_off=2, expiry_date=datetime.now(datetime_tz.utc)
+    )
     user_membership = baker.make(
         UserMembership, 
         user=configured_stripe_user, 
@@ -1229,6 +1381,12 @@ def test_ensure_subscription_up_to_date(
     user_membership.refresh_from_db()
     for attr, value in expected.items():
         assert getattr(user_membership, attr) == value, attr
+    
+    if subscription.discount:
+        if subscription.discount.promotion_code == "expire":
+            view_connector.method_calls["remove_discount_from_subscription"]
+        else:
+            assert "remove_discount_from_subscription" not in view_connector.method_calls
 
 
 @pytest.mark.parametrize(
@@ -1332,18 +1490,22 @@ def test_validate_voucher_code(mock_get_promo_code, seller, code, active, redeem
 
 
 @pytest.mark.parametrize(
-    "code,amount,percent, expected",
+    "code,amount,percent,amount_charged_now,expected",
     [
-        ("foo", 10, None, {"voucher_valid": True, "next_amount": 10}),
-        ("foo", None, 10, {"voucher_valid": True, "next_amount": 18}),
-        ("bar", 10, None, {"voucher_valid": False, "next_amount": 20}),
-        ("bar", None, 10, {"voucher_valid": False, "next_amount": 20}),
+        ("foo", 10, None, 10, {"voucher_valid": True, "next_amount": 10}),
+        ("foo", None, 10, 10, {"voucher_valid": True, "next_amount": 18}),
+        ("bar", 10, None, 10, {"voucher_valid": False, "next_amount": 20}),
+        ("bar", None, 10, 10, {"voucher_valid": False, "next_amount": 20}),
+        # amount_charged_now=0 means subscription is for next period; voucher expires
+        ("expires", None, 10, 0, {"voucher_valid": False, "next_amount": 20, "voucher_message": "Voucher expires before next payment date"}),
+        # amount_charged_now>0 None means subscription is for current period; voucher expires before next
+        ("expires", None, 10, 10, {"voucher_valid": True, "next_amount": 18}),
     ]
 
 )
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 @patch("booking.views.membership_views.StripeConnector.get_promo_code")
-def test_membership_voucher_validate_view(mock_get_promo_code, client, seller, code, amount, percent, expected, configured_stripe_user):
+def test_membership_voucher_validate_view(mock_get_promo_code, client, seller, code, amount, percent, amount_charged_now, expected, configured_stripe_user):
     mock_get_promo_code.return_value = Mock(active=True)
     membership = baker.make(
         Membership, name="memb-1", description="a membership", price=20, visible=True
@@ -1360,8 +1522,20 @@ def test_membership_voucher_validate_view(mock_get_promo_code, client, seller, c
     )
     voucher.memberships.add(membership)
 
+    expiring_voucher = baker.make(
+        StripeSubscriptionVoucher, 
+        code="expires", 
+        promo_code_id="p-2",
+        percent_off=percent,
+        amount_off=amount,
+        duration="once",
+        active=True,
+        expiry_date=timezone.now()
+    )
+    expiring_voucher.memberships.add(membership)
+
     client.force_login(configured_stripe_user)
-    post_data = {"membership_id": membership.id, "voucher_code": code}
+    post_data = {"membership_id": membership.id, "voucher_code": code, "amount": amount_charged_now}
     resp = client.post(reverse("membership_voucher_validate"), post_data)
     for k, v in expected.items():
         assert resp.context_data[k] == v

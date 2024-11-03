@@ -1141,6 +1141,26 @@ def test_subscription_voucher(seller):
     assert voucher_expired.description == "£10 off"
 
 
+def test_subscription_voucher_expires_before_next_payment_date(seller, freezer):
+    voucher = baker.make(
+        StripeSubscriptionVoucher, code="Foo", promo_code_id="",
+        expiry_date=datetime(2024, 3, 20, tzinfo=dt_tz.utc),
+        percent_off=10,
+        duration="once",
+    )
+    freezer.move_to("2024-02-20")
+    # next payment date 2024-02-25
+    assert not voucher.expires_before_next_payment_date()
+
+    freezer.move_to("2024-02-25")
+    # next payment date 2024-03-25
+    assert voucher.expires_before_next_payment_date()
+
+    freezer.move_to("2024-02-29")
+    # next payment date 2024-03-25
+    assert voucher.expires_before_next_payment_date()
+
+
 def test_subscription_voucher_create_stripe_code_no_memberships(seller):
     voucher = baker.make(
         StripeSubscriptionVoucher, code="foo", promo_code_id="", redeem_by=timezone.now() + timedelta(1),
