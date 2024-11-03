@@ -225,7 +225,9 @@ def stripe_webhook(request):
                     settings.AUTO_APPLY_MEMBERSHIP_PROMO_ID 
                     and (settings.AUTO_APPLY_MEMBERSHIP_PROMO_START < datetime.now(datetime_tz.utc) < settings.AUTO_APPLY_MEMBERSHIP_PROMO_END)
                 )
-                subscription = event_object
+
+                # fetch the subscription so we have the discount info on it
+                subscription = client.get_subscription(subscription_id=event_object.id)
                 next_payment_date = datetime.fromtimestamp(subscription.current_period_end).replace(tzinfo=datetime_tz.utc)
                 if should_autoapply_voucher:
                     autoapply_voucher = StripeSubscriptionVoucher.objects.filter(promo_code_id=settings.AUTO_APPLY_MEMBERSHIP_PROMO_ID).first()
@@ -238,7 +240,6 @@ def stripe_webhook(request):
                 if old_status == "incomplete":
                     subscription_activated = True
                     if event_object.latest_invoice:
-                        subscription = client.get_subscription(subscription_id=event_object.id)
                         payment_intent_status = subscription.latest_invoice.payment_intent.status
                         if payment_intent_status not in ["succeeded", "processing"]:
                             subscription_activated = False

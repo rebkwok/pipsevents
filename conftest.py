@@ -127,7 +127,7 @@ def get_mock_payment_intent(webhook_event_type=None, **params):
     return MockEventObject(**options)
 
 
-def get_mock_subscription(webhook_event_type, **params):
+def get_mock_subscription(webhook_event_type, webhook=False, **params):
     defaults = {
         "object": "subscription",
         "id": "id",
@@ -139,9 +139,12 @@ def get_mock_subscription(webhook_event_type, **params):
         "start_date": datetime(2024, 6, 25).timestamp(),
         "billing_cycle_anchor": datetime(2024, 7, 25).timestamp(),
         "metadata": {},
-        "discount": None,
-        "discounts": [],
     }
+    if not webhook:
+        defaults.update({
+            "discount": None,
+            "discounts": [],
+        })
     options = {**defaults, **params}
     return MockEventObject(**options)
 
@@ -154,7 +157,7 @@ def get_mock_webhook_event(seller):
         if webhook_event_type in ["payment_intent.succeeded", "payment_intent.payment_failed"]:
             object = get_mock_payment_intent(webhook_event_type, **params)
         elif webhook_event_type in ["customer.subscription.created", "customer.subscription.deleted", "customer.subscription.updated"]:
-            object = get_mock_subscription(webhook_event_type, **params)
+            object = get_mock_subscription(webhook_event_type, webhook=True, **params)
         else:
             # an event object always has an id and an object
             if "id" not in params:
