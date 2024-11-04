@@ -433,6 +433,28 @@ def stripe_subscription_checkout(request):
         else:
             amount_to_charge_now = 0
 
+        should_autoapply_voucher = (
+            settings.AUTO_APPLY_MEMBERSHIP_PROMO_ID 
+            and (settings.AUTO_APPLY_MEMBERSHIP_PROMO_START < datetime.now(datetime_tz.utc) < settings.AUTO_APPLY_MEMBERSHIP_PROMO_END)
+        )
+
+        if should_autoapply_voucher:
+            autoapply_voucher = StripeSubscriptionVoucher.objects.filter(promo_code_id=settings.AUTO_APPLY_MEMBERSHIP_PROMO_ID).first()
+            if autoapply_voucher is None:
+                logger.error("Invalid AUTO_APPLY_MEMBERSHIP_PROMO_ID var; matching StripeSubscriptionVoucher not found")
+                should_autoapply_voucher = False
+            elif autoapply_voucher.expiry_date and autoapply_voucher.expires_before_next_payment_date():
+                should_autoapply_voucher = False
+        
+        if should_autoapply_voucher:
+            if autoapply_voucher.percent_off:
+                regular_amount_in_p = int(regular_amount * 100)
+                next_amount = (regular_amount_in_p - (regular_amount_in_p * (autoapply_voucher.percent_off / 100))) / 100
+            else:
+                next_amount = regular_amount - regular_amount.amount_off
+        else:
+            next_amount = regular_amount
+
         context.update({
             "creating": True,
             "membership": membership,
@@ -442,7 +464,7 @@ def stripe_subscription_checkout(request):
             "amount": amount_to_charge_now,
             # amounts to display (in £)
             "regular_amount": regular_amount,
-            "next_amount": regular_amount,
+            "next_amount": next_amount,
         })
     return TemplateResponse(request, "stripe_payments/subscribe.html", context)
 

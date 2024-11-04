@@ -1,8 +1,9 @@
 {% comment %} set in context processor {% endcomment %}
 {% if membership_voucher_message %}
-<div class="alert alert-success alert-dismissible" role="alert">
+<div class="row">
+<div class="col alert alert-success alert-dismissible" role="alert">
     {{ membership_voucher_message|safe }}
-<button type="button" class="pt-0 pb-0 close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+</div>
 </div>
 {% endif %}
 

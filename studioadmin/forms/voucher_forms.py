@@ -374,8 +374,8 @@ class MembershipVoucherForm(forms.ModelForm):
         for field in ["redeem_by", "expiry_date"]:
             self._clean_date_field(field)
 
-        expiry_date = self.data.get('expiry_date')
-        redeem_by = self.data.get('redeem_by')
+        expiry_date = self.cleaned_data.get('expiry_date')
+        redeem_by = self.cleaned_data.get('redeem_by')
         if expiry_date and redeem_by:
             if expiry_date < redeem_by:
                 self.add_error("expiry_date", "Expiry date must be after redeem by date")
