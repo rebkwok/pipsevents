@@ -33,10 +33,6 @@ def event_strings(event):
     return ev_type_code, ev_type_for_url, ev_type_str
 
 def get_event_context(context, event, user, booking=None):
-    disclaimer = has_active_disclaimer(user)
-    expired_disclaimer = has_expired_disclaimer(user)
-    context['disclaimer'] = disclaimer
-    context['expired_disclaimer'] = expired_disclaimer
 
     ev_type_code, ev_type_for_url, ev_type_str = event_strings(event)
     context["ev_type_code"] = ev_type_code
@@ -57,26 +53,7 @@ def get_event_context(context, event, user, booking=None):
         else:
             payment_text = "Online payments are open. " + event.payment_info
     context['payment_text'] = payment_text
-
-    # booked flag
-    any_user_booking = booking or user.bookings.filter(event=event).first()
-    if any_user_booking:
-        user_booking = (
-            any_user_booking if any_user_booking.status == "OPEN" and not any_user_booking.no_show
-            else None
-        )
-        user_cancelled = any_user_booking.status == "CANCELLED"
-        auto_cancelled = user_cancelled and any_user_booking.auto_cancelled
-        user_no_show = any_user_booking.status == "OPEN" and any_user_booking.no_show
-        cancelled = user_cancelled or user_no_show
-
-    else:
-        user_booking = None
-        cancelled = auto_cancelled = False
-    
-
-    # waiting_list flag
-    context['on_waiting_list'] = user.waitinglists.filter(event=event).exists()
+        
 
     # booking info text and bookable
     booking_info_text = ""
@@ -85,77 +62,102 @@ def get_event_context(context, event, user, booking=None):
         context["online_class"] = True
         context["show_video_link"] = event.show_video_link
 
-    if user_booking is not None:
-        context['bookable'] = False
-        context['booking'] = user_booking
-        context['booked'] = True
-        if event.event_type.event_type == 'OT':
-            if context['booking'].paid:
-                booking_info_text = "You have purchased this {}.".format(ev_type_str)
-        else:
-            booking_info_text = "You have booked for this {}.".format(ev_type_str)
-
-    elif not disclaimer:
-        action = "purchasing" if event.event_type.event_type == 'OT' else "booking"
-        if expired_disclaimer:
-            booking_info_text = "<strong>Please update your <a href='{}' " \
-                                "target=_blank>disclaimer form</a> before " \
-                                "{}.</strong>".format(
-                                    reverse('disclaimer_form'), action
-                                )
-        else:
-            booking_info_text = "<strong>Please complete a <a href='{}' " \
-                                "target=_blank>disclaimer form</a> before " \
-                                "{}.</strong>".format(
-                                    reverse('disclaimer_form'), action
-                                )
-    elif not event.has_permission_to_book(user):
-        context['bookable'] = False
-        context['needs_permission'] = True
-        description = event.allowed_group_description
-        if event.members_only:
-            permission_msg = f"This {ev_type_str} is open to members only."
-        else:
-            extra_info = f" ({description})" if description else ""
-            permission_msg = (
-                f"This class requires additional permission{extra_info}. Please contact "
-                f"<a href='mailto:{event.contact_email}' target=_blank>{event.contact_email}</a> "
-                "to request to have your account upgraded.</span>"
+    if user and user.is_authenticated:
+        # None of this is relevant if user isn't logged in
+        disclaimer = has_active_disclaimer(user)
+        expired_disclaimer = has_expired_disclaimer(user)
+        context['disclaimer'] = disclaimer
+        context['expired_disclaimer'] = expired_disclaimer
+    
+        any_user_booking = booking or user.bookings.filter(event=event).first()
+        if any_user_booking:
+            user_booking = (
+                any_user_booking if any_user_booking.status == "OPEN" and not any_user_booking.no_show
+                else None
             )
+            user_cancelled = any_user_booking.status == "CANCELLED"
+            auto_cancelled = user_cancelled and any_user_booking.auto_cancelled
+            user_no_show = any_user_booking.status == "OPEN" and any_user_booking.no_show
+            cancelled = user_cancelled or user_no_show
 
-        booking_info_text = f"<span class='cancel-warning'>NOT AVAILABLE FOR BOOKING</br>{permission_msg}"
-    else:
-        if auto_cancelled:
-            context['auto_cancelled'] = True
-            booking_info_text_cancelled = "To rebook this {} please contact " \
-                                          "{} directly.".format(
-                                            ev_type_str, event.contact_email
-                                            )
-            context['booking_info_text_cancelled'] = booking_info_text_cancelled
-        elif cancelled:
-            context['cancelled'] = True
-            booking_info_text_cancelled = "You have previously booked for " \
-                                          "this {} and your booking has been " \
-                                          "cancelled.".format(ev_type_str)
-            context['booking_info_text_cancelled'] = booking_info_text_cancelled
+        else:
+            user_booking = None
+            cancelled = auto_cancelled = False
+        
 
-        if event.event_type.subtype == "External instructor class":
-            booking_info_text = "Please contact {} directly to book".format(event.contact_person)
-        elif not event.booking_open:
-            target = "Purchases" if event.event_type.event_type == 'OT' else "Bookings"
-            booking_info_text = "{} are not open for this {}.".format(
-                target, ev_type_str
-            )
-        if event.spaces_left <= 0:
-            booking_info_text = "This {} is now full.".format(ev_type_str)
-        if event.payment_due_date:
-            if event.payment_due_date < timezone.now():
-                booking_info_text = "The payment due date has passed for " \
-                                    "this {}.  Please make your payment as " \
-                                    "soon as possible to secure your " \
-                                    "place.".format(ev_type_str)
+        # waiting_list flag
+        context['on_waiting_list'] = user.waitinglists.filter(event=event).exists()
+        if user_booking is not None:
+            context['bookable'] = False
+            context['booking'] = user_booking
+            context['booked'] = True
+            if event.event_type.event_type == 'OT':
+                if context['booking'].paid:
+                    booking_info_text = "You have purchased this {}.".format(ev_type_str)
+            else:
+                booking_info_text = "You have booked for this {}.".format(ev_type_str)
 
-    context['booking_info_text'] = booking_info_text
+        elif not disclaimer:
+            action = "purchasing" if event.event_type.event_type == 'OT' else "booking"
+            if expired_disclaimer:
+                booking_info_text = "<strong>Please update your <a href='{}' " \
+                                    "target=_blank>disclaimer form</a> before " \
+                                    "{}.</strong>".format(
+                                        reverse('disclaimer_form'), action
+                                    )
+            else:
+                booking_info_text = "<strong>Please complete a <a href='{}' " \
+                                    "target=_blank>disclaimer form</a> before " \
+                                    "{}.</strong>".format(
+                                        reverse('disclaimer_form'), action
+                                    )
+        elif not event.has_permission_to_book(user):
+            context['bookable'] = False
+            context['needs_permission'] = True
+            description = event.allowed_group_description
+            if event.members_only:
+                permission_msg = f"This {ev_type_str} is open to members only."
+            else:
+                extra_info = f" ({description})" if description else ""
+                permission_msg = (
+                    f"This class requires additional permission{extra_info}. Please contact "
+                    f"<a href='mailto:{event.contact_email}' target=_blank>{event.contact_email}</a> "
+                    "to request to have your account upgraded.</span>"
+                )
+
+            booking_info_text = f"<span class='cancel-warning'>NOT AVAILABLE FOR BOOKING</br>{permission_msg}"
+        else:
+            if auto_cancelled:
+                context['auto_cancelled'] = True
+                booking_info_text_cancelled = "To rebook this {} please contact " \
+                                            "{} directly.".format(
+                                                ev_type_str, event.contact_email
+                                                )
+                context['booking_info_text_cancelled'] = booking_info_text_cancelled
+            elif cancelled:
+                context['cancelled'] = True
+                booking_info_text_cancelled = "You have previously booked for " \
+                                            "this {} and your booking has been " \
+                                            "cancelled.".format(ev_type_str)
+                context['booking_info_text_cancelled'] = booking_info_text_cancelled
+
+            if event.event_type.subtype == "External instructor class":
+                booking_info_text = "Please contact {} directly to book".format(event.contact_person)
+            elif not event.booking_open:
+                target = "Purchases" if event.event_type.event_type == 'OT' else "Bookings"
+                booking_info_text = "{} are not open for this {}.".format(
+                    target, ev_type_str
+                )
+            if event.spaces_left <= 0:
+                booking_info_text = "This {} is now full.".format(ev_type_str)
+            if event.payment_due_date:
+                if event.payment_due_date < timezone.now():
+                    booking_info_text = "The payment due date has passed for " \
+                                        "this {}.  Please make your payment as " \
+                                        "soon as possible to secure your " \
+                                        "place.".format(ev_type_str)
+
+        context['booking_info_text'] = booking_info_text
 
     # get payment due date
     uk_tz = pytz.timezone('Europe/London')

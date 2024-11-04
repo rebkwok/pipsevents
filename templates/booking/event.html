@@ -38,12 +38,14 @@
                 {% if event.cancelled %}
                     <h3>This {{ ev_type_str }} has been cancelled.</h3>
                 {% endif %}
-
-                {% if not disclaimer %}
-                    {% if expired_disclaimer %}
-                        <p>Your disclaimer has expired.  Please <a href="{% url 'disclaimer_form' %}">review and confirm your information</a> before booking</p>
-                    {% else %}
-                        <p>Please note that you will need to complete a <a href="{% url 'disclaimer_form' %}">disclaimer form</a> before booking</p>
+                
+                {% if request.user.is_authenticated %}
+                    {% if not disclaimer %}
+                        {% if expired_disclaimer %}
+                            <p>Your disclaimer has expired.  Please <a href="{% url 'disclaimer_form' %}">review and confirm your information</a> before booking</p>
+                        {% else %}
+                            <p>Please note that you will need to complete a <a href="{% url 'disclaimer_form' %}">disclaimer form</a> before booking</p>
+                        {% endif %}
                     {% endif %}
                 {% endif %}
 

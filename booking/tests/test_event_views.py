@@ -664,13 +664,16 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
         view = EventDetailView.as_view()
         return view(request, slug=event.slug, ev_type=ev_type)
 
-    def test_login_required(self):
+    def test_login_not_required(self):
         """
         test that page redirects if there is no user logged in
         """
         url = reverse('booking:event_detail', kwargs={'slug': self.event.slug})
         resp = self.client.get(url)
-        self.assertEqual(resp.status_code, 302)
+        assert resp.status_code == 200
+        for item in ["booking", "disclaimer", "disclaimer_expired"]:
+            assert item not in resp.context_data
+        assert "To book this workshop" in resp.rendered_content
 
     def test_with_logged_in_user(self):
         """
