@@ -438,22 +438,25 @@ def stripe_subscription_checkout(request):
             and (settings.AUTO_APPLY_MEMBERSHIP_PROMO_START < datetime.now(datetime_tz.utc) < settings.AUTO_APPLY_MEMBERSHIP_PROMO_END)
         )
 
-        if should_autoapply_voucher:
-            autoapply_voucher = StripeSubscriptionVoucher.objects.filter(promo_code_id=settings.AUTO_APPLY_MEMBERSHIP_PROMO_ID).first()
-            if autoapply_voucher is None:
-                logger.error("Invalid AUTO_APPLY_MEMBERSHIP_PROMO_ID var; matching StripeSubscriptionVoucher not found")
-                should_autoapply_voucher = False
-            elif autoapply_voucher.expiry_date and autoapply_voucher.expires_before_next_payment_date():
-                should_autoapply_voucher = False
-        
-        if should_autoapply_voucher:
-            if autoapply_voucher.percent_off:
-                regular_amount_in_p = int(regular_amount * 100)
-                next_amount = (regular_amount_in_p - (regular_amount_in_p * (autoapply_voucher.percent_off / 100))) / 100
+        next_amount = regular_amount
+        # For a future membership set up, check if a discount will be automatically applied
+        if amount_to_charge_now == 0:
+            if should_autoapply_voucher:
+                autoapply_voucher = StripeSubscriptionVoucher.objects.filter(promo_code_id=settings.AUTO_APPLY_MEMBERSHIP_PROMO_ID).first()
+                if autoapply_voucher is None:
+                    logger.error("Invalid AUTO_APPLY_MEMBERSHIP_PROMO_ID var; matching StripeSubscriptionVoucher not found")
+                    should_autoapply_voucher = False
+                elif autoapply_voucher.expiry_date and autoapply_voucher.expires_before_next_payment_date():
+                    should_autoapply_voucher = False
+            
+            if should_autoapply_voucher:
+                if autoapply_voucher.percent_off:
+                    regular_amount_in_p = int(regular_amount * 100)
+                    next_amount = (regular_amount_in_p - (regular_amount_in_p * (autoapply_voucher.percent_off / 100))) / 100
+                else:
+                    next_amount = regular_amount - regular_amount.amount_off
             else:
-                next_amount = regular_amount - regular_amount.amount_off
-        else:
-            next_amount = regular_amount
+                next_amount = regular_amount
 
         context.update({
             "creating": True,
