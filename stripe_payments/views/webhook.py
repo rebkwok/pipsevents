@@ -186,11 +186,14 @@ def stripe_webhook(request):
                     send_subscription_setup_failed_email(event_object)
                     user_membership.delete()
                 else:
-                    # the end date for the membership is the stripe subscription end; cancelled at will be the 25th
-                    # the actual membership ends at the end of the month
+                    # the end_date for the membership is the first of the next month
+                    # the stripe subscription end date is always the 25th, UNLESS this was cancelled immediately (i.e. not yet activated)
+                    # cancel_at is the date set to cancel in the future via a schedule; this will always be the 25th if it's
+                    # set. If it's not set, we use the canceled at date.
+                    subscription_end_date = event_object.cancel_at or event_object.canceled_at
                     user_membership.subscription_status = event_object.status
-                    user_membership.subscription_end_date = get_utcdate_from_timestamp(event_object.canceled_at)
-                    user_membership.end_date = UserMembership.calculate_membership_end_date(user_membership.subscription_end_date)
+                    user_membership.subscription_end_date = get_utcdate_from_timestamp(subscription_end_date)
+                    user_membership.end_date = get_first_of_next_month_from_timestamp(subscription_end_date)
                     user_membership.save()
                     user_membership.reallocate_bookings()
                     ActivityLog.objects.create(
@@ -226,7 +229,7 @@ def stripe_webhook(request):
                     and (settings.AUTO_APPLY_MEMBERSHIP_PROMO_START < datetime.now(datetime_tz.utc) < settings.AUTO_APPLY_MEMBERSHIP_PROMO_END)
                 )
 
-                # fetch the subscription so we have the discount info on it
+                # Get subscription so we have the expanded invoice and discounts info
                 subscription = client.get_subscription(subscription_id=event_object.id)
                 next_payment_date = datetime.fromtimestamp(subscription.current_period_end).replace(tzinfo=datetime_tz.utc)
                 if should_autoapply_voucher:
@@ -259,7 +262,7 @@ def stripe_webhook(request):
                     if subscription_activated:
                         # Check for auto-applied promo codes
                         if should_autoapply_voucher:
-                            client.add_discount_to_subscription(settings.AUTO_APPLY_MEMBERSHIP_PROMO_ID)
+                            client.add_discount_to_subscription(subscription_id=subscription.id, promo_code_id=settings.AUTO_APPLY_MEMBERSHIP_PROMO_ID)
                         # A new subscription was just activated
                         send_subscription_created_email(user_membership)
 

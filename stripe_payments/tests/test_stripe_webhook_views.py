@@ -399,6 +399,7 @@ def test_webhook_subscription_deleted(
     mock_webhook.construct_event.return_value = get_mock_webhook_event(
         webhook_event_type="customer.subscription.deleted", 
         canceled_at=datetime(2024, 3, 1).timestamp(),
+        cancel_at=None,
         status="canceled",
         cancellation_details=Mock(reason="")
     )
@@ -408,6 +409,34 @@ def test_webhook_subscription_deleted(
     assert user_membership.subscription_status == "canceled"
     assert user_membership.subscription_end_date == datetime(2024, 3, 1, tzinfo=datetime_tz.utc)
     assert user_membership.end_date == datetime(2024, 4, 1, tzinfo=datetime_tz.utc)
+    # No emails sent
+    assert len(mail.outbox) == 0
+
+
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+@patch("stripe_payments.views.webhook.stripe.Webhook")
+def test_webhook_subscription_deleted_after_25th(
+    mock_webhook, get_mock_webhook_event, client, configured_stripe_user
+):
+    membership = baker.make(Membership, name="membership1")
+    user_membership = baker.make(
+        UserMembership, membership=membership, user=configured_stripe_user, subscription_id="id"
+    )
+    # cancelled on or after 25th (the billiing cycle date), subscription end date should be one
+    # month on
+    mock_webhook.construct_event.return_value = get_mock_webhook_event(
+        webhook_event_type="customer.subscription.deleted", 
+        canceled_at=datetime(2024, 3, 29, tzinfo=datetime_tz.utc).timestamp(),
+        cancel_at=datetime(2024, 4, 25, tzinfo=datetime_tz.utc).timestamp(),
+        status="canceled",
+        cancellation_details=Mock(reason="")
+    )
+    resp = client.post(webhook_url, data={}, HTTP_STRIPE_SIGNATURE="foo")
+    assert resp.status_code == 200, resp.content
+    user_membership.refresh_from_db()
+    assert user_membership.subscription_status == "canceled"
+    assert user_membership.subscription_end_date == datetime(2024, 4, 25, tzinfo=datetime_tz.utc)
+    assert user_membership.end_date == datetime(2024, 5, 1, tzinfo=datetime_tz.utc)
     # No emails sent
     assert len(mail.outbox) == 0
 
