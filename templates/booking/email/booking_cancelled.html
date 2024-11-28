@@ -16,10 +16,13 @@
     {% else %}
         {% if booking.membership %}
             You used your membership to make this booking; your membership has been updated.
-        {% elif booking.block %}
+        {% elif booking.block and not booking.block.expired %}
             You used a block to make this booking; your block has been updated. Please note that your block 
             expires on <strong>{{ booking.block.expiry_date|date:"d M Y" }}</strong>.  Please ensure you use your returned
             credit by this date.
+        {% elif booking.block and booking.block.expired and booking.block.is_transfer_block %}
+            You used a transfer credit to make this booking, which has now expired. This booking is not eligible for any 
+            refunds or further transfer credit.
         {% elif booking.paid %}
             {% if event.event_type.event_type == 'CL' %}
                 This booking is not refundable; a transfer credit has been created for you and can be used for your next booking for the same class type. Transfer credit is valid for 2 weeks.
