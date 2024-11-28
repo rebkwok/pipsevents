@@ -1514,7 +1514,71 @@ class BookingDeleteViewTests(TestSetupMixin, TestCase):
         self.assertFalse(
             Block.objects.filter(block_type__identifier='transferred').exists()
         )
+    
+    @pytest.mark.freeze_time("2024-02-26")
+    def test_cancel_block_with_expired_block_creates_transfer_block(self):
+        """
+        unpaid, block paid, free (with block), deposit only paid do not
+        create transfers
+        """
+        self.assertFalse(Block.objects.exists())
+        event = baker.make_recipe('booking.future_PC', cost=10)
 
+        # block paidtest_cancel_unpaid_booking
+        block = baker.make_recipe(
+            'booking.block', block_type__event_type=event.event_type, paid=True,
+            user=self.user, extended_expiry_date=datetime(2024, 2, 20, tzinfo=dt_timezone.utc)
+        )
+        assert block.expired
+        block_booking = baker.make_recipe(
+            'booking.booking', user=self.user, event=event, block=block,
+        )
+        assert block_booking.paid
+        assert block_booking.payment_confirmed
+
+        url = reverse('booking:delete_booking', args=[block_booking.id])
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(url)
+
+        block_booking.refresh_from_db()
+        assert Block.objects.filter(block_type__identifier='transferred').exists()
+
+    @pytest.mark.freeze_time("2024-02-26")
+    def test_cancel_expired_block_transfer_credit_paid_does_not_create_transfer_block(self):
+        """
+        unpaid, block paid, free (with block), deposit only paid do not
+        create transfers
+        """
+        self.assertFalse(Block.objects.exists())
+        event = baker.make_recipe('booking.future_PC', cost=10)
+
+        transferred_block_type = BlockType.get_transfer_block_type(event_type=event.event_type)
+        # block paidtest_cancel_unpaid_booking
+        block = baker.make_recipe(
+            'booking.block', block_type=transferred_block_type, paid=True,
+            user=self.user, start_date=datetime(2024, 2, 10, tzinfo=dt_timezone.utc)
+        )
+        assert block.expired
+
+        assert Block.objects.filter(block_type__identifier='transferred').count() == 1
+
+        block_booking = baker.make_recipe(
+            'booking.booking', user=self.user, event=event, block=block,
+        )
+        assert block_booking.paid
+        assert block_booking.payment_confirmed
+
+        url = reverse('booking:delete_booking', args=[block_booking.id])
+        self.client.login(username=self.user.username, password='test')
+        self.client.post(url)
+
+        block_booking.refresh_from_db()
+        transfer_blocks = Block.objects.filter(block_type__identifier='transferred')
+        assert transfer_blocks.count() == 1
+        assert transfer_blocks.first().id == block.id
+        block.refresh_from_db()
+        assert block.expired
+    
     @patch("booking.models.membership_models.StripeConnector", MockConnector)
     def test_cancel_booking_with_membership(self):
         baker.make("stripe_payments.Seller", site=Site.objects.get_current())

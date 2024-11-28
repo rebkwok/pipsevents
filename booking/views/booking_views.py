@@ -482,15 +482,18 @@ class BookingDeleteView(
 
         if can_cancel_and_refund:
             transfer_block_created = False
-            if booking.paid and (not booking.block or booking.block.expired) and not booking.membership:
+            if booking.paid and (
+                not booking.block
+                or (booking.block.expired and not booking.block.block_type.identifier == "transferred")
+                ) and not booking.membership:
                 # booking was paid directly, either in cash or by paypal
                 # OR booking was free class but not made with free block
-                # OR booking was made with block (normal/free/transfer) but
+                # OR booking was made with block (normal/free) but
                 # block has now expired and we can't credit by reassigning
                 # space to block.
-                # NOTE: this does mean that potentially someone could defer
-                # a class indefinitely by cancelling and rebooking, but
-                # let's assume that would be a rare occurrence
+
+                # We do NOT allow credit if it's been booked with a transfer credit which has now
+                # expired
 
                 # If event is CL or RH, get or create transfer block type,
                 # create transfer block for user and set transferred_

@@ -18,6 +18,9 @@
                     {% if event.allow_booking_cancellation and event.can_cancel %}
                         {% if booked_with_block and not booking.block.expired %}
                         <p>You used a block for this booking; your block will be updated automatically.</p>
+                        {% elif booked_with_block and booking.block.expired and booking.block.is_transfer_block %}
+                        <p>You used a transfer credit for this booking which has now expired. If you cancel, you will
+                            not be eligible for refunds or additional transfer credit.</p>
                         {% elif event.event_type.event_type != 'EV' %}
                             <p>Please note that this booking is transferable but not refundable.
                                 If you cancel you will be assigned a transfer block which can be used to book for another
@@ -34,7 +37,7 @@
                         {% endif %}
                     {% endif %}
                 {% endif %}
-                <p>For further information, please email {{ event.contact_person }}
+                <p>For further information, please contact us
                 at <a href="mailto:{{ event.contact_email }}?Subject=Enquiry regarding booking for {{ event.name }}" target="_blank">{{ event.contact_email }}</a></p>
 
             <form action="" method="post">{% csrf_token %}

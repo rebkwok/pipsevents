@@ -547,6 +547,9 @@ class Block(models.Model):
         return Booking.objects.select_related('block', 'block__block_type')\
                    .filter(block__id=self.id).count() >= self.block_type.size
 
+    def is_transfer_block(self):
+        return self.block_type.identifier == "transferred"
+
     def active_block(self):
         """
         A block is active if its expiry date has not passed
