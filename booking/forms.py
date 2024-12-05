@@ -378,31 +378,35 @@ class ChooseMembershipForm(forms.Form):
 
         # if current date is <25th, give option to start membership from this month as well as next monht
         today = datetime.today()
+        if today.month == 12:
+                next_month = 1
+        else:
+            next_month = today.month + 1
         if today.day < 25 and not has_cancelled_current_membership: 
             # choice values refer to whether to backdate or not
-            choices = ((1, calendar.month_name[today.month]), (0, calendar.month_name[today.month + 1]))
+            choices = ((1, calendar.month_name[today.month]), (0, calendar.month_name[next_month]))
             initial = None
             help_text = (
                 f"Note that if you choose to start your membership in the current month ({calendar.month_name[today.month]}), "
                 f"payment will be taken immediately, and you will have the entire {calendar.month_name[today.month]} membership allowance to "
                 f"use until the end of the month. Payment will be taken again on the 25th {calendar.month_name[today.month]} "
-                f"for {calendar.month_name[today.month + 1]}'s membership, and on the 25th of each month thereafter."
+                f"for {calendar.month_name[next_month]}'s membership, and on the 25th of each month thereafter."
             )
         else:
             # no option to backdate if it's 25th or later in the month, only show option for next month
-            choices = ((0, calendar.month_name[today.month + 1]),)
+            choices = ((0, calendar.month_name[next_month]),)
             initial = 0
             if today.day >= 25:
                 help_text = (
-                    f"Payment will be taken immediately for {calendar.month_name[today.month + 1]}'s membership. You will be able to use this membership "
-                    f"immediately to book for classes scheduled in {calendar.month_name[today.month + 1]}. Payment will be taken on the 25th of each "
+                    f"Payment will be taken immediately for {calendar.month_name[next_month]}'s membership. You will be able to use this membership "
+                    f"immediately to book for classes scheduled in {calendar.month_name[next_month]}. Payment will be taken on the 25th of each "
                     "month thereafter, for the following month's membership."
                 )
             else:
                 help_text = (
-                    f"Payment will be taken on 25th {calendar.month_name[today.month]} for {calendar.month_name[today.month + 1]}'s membership. "
+                    f"Payment will be taken on 25th {calendar.month_name[today.month]} for {calendar.month_name[next_month]}'s membership. "
                     "You will be able to use this membership immediately to book for classes scheduled in "
-                    f"{calendar.month_name[today.month + 1]}. Payment will be taken on the 25th of each "
+                    f"{calendar.month_name[next_month]}. Payment will be taken on the 25th of each "
                     "month thereafter, for the following month's membership."
                 )
 

@@ -52,6 +52,23 @@ def test_membership_create_get(client, seller, configured_user):
     assert form.fields["backdate"].choices == [(1, "February"), (0, "March")]
 
 
+@pytest.mark.freeze_time("2024-12-10")
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+def test_membership_create_get_end_of_year(client, seller, configured_user):
+    client.force_login(configured_user)
+    m1 = baker.make(Membership, name="m1", active=True)
+    m2 = baker.make(Membership, name="m2", active=True)
+    m3 = baker.make(Membership, name="m3", active=False)
+    baker.make(Membership, name="m4", active=True)
+    for m in [m1, m2, m3]:
+        baker.make(MembershipItem, membership=m)
+    resp = client.get(create_url)
+    assert resp.status_code == 200
+    form = resp.context_data["form"]
+    assert set(form.fields["membership"].queryset) == {m1, m2}
+    assert form.fields["backdate"].choices == [(1, "December"), (0, "January")]
+
+
 @pytest.mark.freeze_time("2024-02-25 10:00")
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 def test_membership_create_after_25th_of_month(client, seller, configured_user):
