@@ -474,7 +474,10 @@ def events_links(context, event_type):
     if context["online_tutorials_exist"]:  # pragma: no cover
         event_types.update({"online_tutorials": ["booking:online_tutorials", "Online Tutorials"]})
 
-    del event_types[event_type]
+    if event_type in event_types:
+        # If we try to get the room hire page when no room hires exist
+        del event_types[event_type]
+
     links = [f"<a href='{reverse(url_ref)}'>{title}</a>" for url_ref, title in event_types.values()]
 
     return mark_safe(f"<h5> {' | '.join(links)}</h5>")
