@@ -8,10 +8,16 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.7/ref/settings/
 """
 import environ
+import logging
 import os
 import sys
 
 from datetime import datetime, UTC
+
+from .custom_logging import GroupWriteRotatingFileHandler, log_file_permissions
+
+logging.handlers.GroupWriteRotatingFileHandler = GroupWriteRotatingFileHandler
+
 
 root = environ.Path(__file__) - 2  # two folders back (/a/b/ - 3 = /)
 
@@ -270,6 +276,8 @@ SEND_ALL_STUDIO_EMAILS = env('SEND_ALL_STUDIO_EMAILS')
 
 if not TESTING and not LOCAL:  # pragma: no cover
     LOG_FOLDER = env('LOG_FOLDER')
+    LOG_FILE = os.path.join(LOG_FOLDER, 'pipsevents.log')
+    log_file_permissions(LOG_FILE)
     LOGGING = {
         'version': 1,
         'disable_existing_loggers': False,
@@ -283,9 +291,8 @@ if not TESTING and not LOCAL:  # pragma: no cover
         'handlers': {
             'file_app': {
                 'level': 'INFO',
-                'class': 'logging.handlers.RotatingFileHandler',
-                # 'filename': '/var/log/pipsevents/pipsevents.log',
-                'filename': os.path.join(LOG_FOLDER, 'pipsevents.log'),
+                'class': 'logging.handlers.GroupWriteRotatingFileHandler',
+                'filename': LOG_FILE,
                 'maxBytes': 1024*1024*5,  # 5 MB
                 'backupCount': 5,
                 'formatter': 'verbose'
