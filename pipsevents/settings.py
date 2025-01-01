@@ -36,7 +36,8 @@ env = environ.Env(DEBUG=(bool, False),
                   SHOW_VAT=(bool, True),
                   TESTING=(bool, False),
                   PAYMENT_METHOD=(str, "stripe"),
-                  ENFORCE_AUTO_CANCELLATION=(bool, False)       
+                  ENFORCE_AUTO_CANCELLATION=(bool, False),  
+                  LOG_FOLDER=(str, "logs") 
                   )
 
 environ.Env.read_env(root('pipsevents/.env'))  # reading .env file
@@ -46,6 +47,7 @@ TESTING = env("TESTING")
 if not TESTING:  # pragma: no cover
     TESTING = any([test_str in arg for arg in sys.argv for test_str in ["test", "pytest"]])
 
+LOG_FOLDER = env("LOG_FOLDER")
 BASE_DIR = root()
 #
 # Quick-start development settings - unsuitable for production
@@ -275,7 +277,6 @@ SEND_ALL_STUDIO_EMAILS = env('SEND_ALL_STUDIO_EMAILS')
 # #####LOGGING######
 
 if not TESTING and not LOCAL:  # pragma: no cover
-    LOG_FOLDER = env('LOG_FOLDER')
     LOG_FILE = os.path.join(LOG_FOLDER, 'pipsevents.log')
     log_file_permissions(LOG_FILE)
     LOGGING = {

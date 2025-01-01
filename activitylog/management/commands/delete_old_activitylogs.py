@@ -1,5 +1,6 @@
 import csv
 import os
+from pathlib import Path
 import subprocess
 
 from dateutil.relativedelta import relativedelta
@@ -31,6 +32,8 @@ class Command(BaseCommand):
         # set cutoff to beginning of this day <age> years ago
         cutoff = (now-relativedelta(years=age)).replace(hour=0, minute=0, second=0, microsecond=0)
         filename = f"{settings.S3_LOG_BACKUP_ROOT_FILENAME}_{cutoff.strftime('%Y-%m-%d')}_{now.strftime('%Y%m%d%H%M%S')}.csv"
+        local_filepath = Path(settings.LOG_FOLDER) / "activitylogs_backup" / filename
+        local_filepath.parent.mkdir(exist_ok=True)
         s3_upload_path = os.path.join(settings.S3_LOG_BACKUP_PATH, filename)
         # Delete the empty logs first
         management.call_command('delete_empty_job_logs', cutoff.strftime('%Y%m%d'))
@@ -38,7 +41,7 @@ class Command(BaseCommand):
         old_logs = ActivityLog.objects.filter(timestamp__lt=cutoff)
         old_logs_count = old_logs.count()
         if old_logs_count > 0:
-            with open(filename, "w") as outfile:
+            with open(local_filepath, "w") as outfile:
                 wr = csv.writer(outfile)
                 wr.writerow([
                     smart_str(u"Timestamp"),
@@ -50,8 +53,8 @@ class Command(BaseCommand):
                         smart_str(activitylog.log)
                     ])
 
-            subprocess.run(["aws", "s3", "cp", filename, s3_upload_path], check=True)
-            os.unlink(filename)
+            subprocess.run(["aws", "s3", "cp", str(local_filepath), s3_upload_path], check=True)
+            os.unlink(local_filepath)
 
             old_logs.delete()
             message = f"{old_logs_count} activitylogs older than {cutoff.strftime('%Y-%m-%d')} backed up to s3 and deleted"
