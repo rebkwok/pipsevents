@@ -13,6 +13,7 @@
     hx-post="{% url 'membership_voucher_validate' %}" 
     hx-trigger="input from:#id_voucher_code delay:1s"
     hx-target="#membership-voucher-form"
+    onkeydown="return event.key != 'Enter';"
     >
     {% csrf_token %}
     <div class="form-group">
