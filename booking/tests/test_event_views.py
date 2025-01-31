@@ -15,14 +15,14 @@ from django.test import TestCase
 from django.contrib.auth.models import Permission
 from django.utils import timezone
 
-from accounts.models import PrintDisclaimer, OnlineDisclaimer, \
+from accounts.models import OnlineDisclaimer, \
     DataPrivacyPolicy, DisclaimerContent
 from accounts.models import has_active_data_privacy_agreement
 
 from booking.models import Event, FilterCategory, Booking
 from booking.views import EventListView, EventDetailView
 from common.tests.helpers import TestSetupMixin, format_content, \
-    make_data_privacy_agreement
+    make_data_privacy_agreement, make_online_disclaimer
 
 
 class EventListViewTests(TestSetupMixin, TestCase):
@@ -71,7 +71,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         user = User.objects.create_user(
             username='testnodp', email='testnodp@test.com', password='test'
         )
-        baker.make(PrintDisclaimer, user=user)
+        make_online_disclaimer(user)
         self.assertFalse(has_active_data_privacy_agreement(user))
 
         self.assertTrue(
@@ -261,7 +261,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         baker.make_recipe('booking.future_PP')
 
         user = User.objects.create_user(username='test1', password='test1')
-        baker.make(PrintDisclaimer, user=user)
+        make_online_disclaimer(user)
         make_data_privacy_agreement(user)
         self.client.login(username='test1', password='test1')
         response = self.client.get(self.lessons_url)
@@ -278,7 +278,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         user = User.objects.create_user(username='test1', password='test1')
         make_data_privacy_agreement(user)
         event.event_type.add_permission_to_book(user)
-        baker.make(PrintDisclaimer, user=user)
+        make_online_disclaimer(user)
         self.client.login(username='test1', password='test1')
         response = self.client.get(self.lessons_url)
         response.render()
@@ -338,7 +338,7 @@ class EventListViewTests(TestSetupMixin, TestCase):
         )
 
         OnlineDisclaimer.objects.all().delete()
-        baker.make(PrintDisclaimer, user=user)
+        make_online_disclaimer(user)
         resp = self.client.get(self.url)
         self.assertTrue(resp.context_data.get('disclaimer'))
         self.assertNotIn(
@@ -737,7 +737,7 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
         pole_practice = baker.make_recipe('booking.future_PP')
         user = baker.make_recipe('booking.user')
         make_data_privacy_agreement(user)
-        baker.make(PrintDisclaimer, user=user)
+        make_online_disclaimer(user)
 
         response = self._get_response(user, pole_practice, 'lesson')
         response.render()
@@ -755,7 +755,7 @@ class EventDetailViewTests(TestSetupMixin, TestCase):
         user = baker.make_recipe('booking.user')
         make_data_privacy_agreement(user)
         pole_practice.event_type.add_permission_to_book(user)
-        baker.make(PrintDisclaimer, user=user)
+        make_online_disclaimer(user)
 
         response = self._get_response(user, pole_practice, 'lesson')
         response.render()

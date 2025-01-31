@@ -20,11 +20,13 @@ class ActivityLogListViewTests(TestPermissionMixin, TestCase):
         
     def setUp(self):
         super(ActivityLogListViewTests, self).setUp()
-        # 15 logs
+        # 17 logs
         # 1 for DP creation
         # 6 logs when self.user, self.instructor_user and self.staff_user
         # are created in setUp (create user and sign DP agreement)
         # 1 for disclaimer content creation
+        # 1 for online disclaimer creation for self.user
+        
         # 2 for empty cron jobs
         # 3 with log messages to test search text
         # 2 with fixed dates to test search date
@@ -90,12 +92,12 @@ class ActivityLogListViewTests(TestPermissionMixin, TestCase):
     def test_empty_cron_job_logs_filtered_by_default(self):
         self.client.force_login(self.staff_user)
         resp = self.client.get(self.url)
-        self.assertEqual(len(resp.context_data['logs']), 13)
+        self.assertEqual(len(resp.context_data['logs']), 15)
 
     def test_filter_out_empty_cron_job_logs(self):
         self.client.force_login(self.staff_user)
         resp = self.client.get(self.url + "?hide_empty_cronjobs=True")
-        self.assertEqual(len(resp.context_data['logs']), 13)
+        self.assertEqual(len(resp.context_data['logs']), 15)
 
     def test_search_text(self):
         self.client.force_login(self.staff_user)
@@ -122,7 +124,7 @@ class ActivityLogListViewTests(TestPermissionMixin, TestCase):
         """
         self.client.force_login(self.staff_user)
         resp = self.client.get(self.url + "?search_submitted=Search&search_date=01-34-2015")
-        self.assertEqual(len(resp.context_data['logs']), 15)
+        self.assertEqual(len(resp.context_data['logs']), 17)
 
     def test_search_date_and_text(self):
         self.client.force_login(self.staff_user)
@@ -141,7 +143,10 @@ class ActivityLogListViewTests(TestPermissionMixin, TestCase):
         assert len(resp.context_data['logs']) == 20
 
         resp = self.client.get(url + "&page=2")
-        assert len(resp.context_data['logs']) == ActivityLog.objects.count() - 20
+        assert len(resp.context_data['logs']) == 20
+
+        resp = self.client.get(url + "&page=3")
+        assert len(resp.context_data['logs']) == ActivityLog.objects.count() - 40
 
     def test_search_multiple_terms(self):
         """
@@ -166,4 +171,4 @@ class ActivityLogListViewTests(TestPermissionMixin, TestCase):
         resp = self.client.get(self.url + "?search_submitted=Search&search_date=01-Jan-2015&search=test date for search")
         self.assertEqual(len(resp.context_data['logs']), 1)
         resp = self.client.get(self.url + "?search_date=01-Jan-2015&search=test date for search&reset=Reset")
-        self.assertEqual(len(resp.context_data['logs']), 13)
+        self.assertEqual(len(resp.context_data['logs']), 15)

@@ -10,7 +10,7 @@ from django.conf import settings
 from django.test import RequestFactory
 from django.utils.html import strip_tags
 
-from accounts.models import DisclaimerContent, PrintDisclaimer, \
+from accounts.models import DisclaimerContent, has_active_disclaimer, \
     SignedDataPrivacy, DataPrivacyPolicy, has_active_data_privacy_agreement
 
 
@@ -61,6 +61,14 @@ def make_data_privacy_agreement(user):
         )
 
 
+def make_online_disclaimer(user):
+    if not DisclaimerContent.objects.exists():
+        # Make sure we have a current disclaimer content
+        DisclaimerContent.objects.create(version=None)
+    if not has_active_disclaimer(user):
+        baker.make("accounts.OnlineDisclaimer", user=user, version= DisclaimerContent.current_version())
+
+
 class TestSetupMixin(object):
 
     @classmethod
@@ -73,11 +81,11 @@ class TestSetupMixin(object):
         mockresponse.status_code = 200
         self.patcher = patch('requests.request', return_value = mockresponse)
         self.mock_request = self.patcher.start()
+        
         self.user = create_configured_user(
             username='test', email='test@test.com', password='test'
         )
-        # Make sure we have a current disclaimer content
-        DisclaimerContent.objects.create(version=None)
+        
 
     def tearDown(self):
         self.patcher.stop()
@@ -87,7 +95,7 @@ def create_configured_user(username, email, password, staff=False, instructor=Fa
     user = User.objects.create_user(
         username=username, email=email, password=password
     )
-    baker.make(PrintDisclaimer, user=user)
+    make_online_disclaimer(user)
     make_data_privacy_agreement(user)
 
     if staff:

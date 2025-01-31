@@ -20,7 +20,7 @@ from django.utils import timezone
 from accounts.management.commands.import_disclaimer_data import logger as \
     import_disclaimer_data_logger
 from accounts.management.commands.export_encrypted_disclaimers import EmailMessage
-from accounts.models import ArchivedDisclaimer, DisclaimerContent, NonRegisteredDisclaimer, PrintDisclaimer, OnlineDisclaimer
+from accounts.models import ArchivedDisclaimer, DisclaimerContent, NonRegisteredDisclaimer, OnlineDisclaimer
 from activitylog.models import ActivityLog
 from booking.models import Booking
 from common.tests.helpers import TestSetupMixin, PatchRequestMixin
@@ -32,15 +32,9 @@ class DeleteExpiredDisclaimersTests(PatchRequestMixin, TestCase):
         super(DeleteExpiredDisclaimersTests, self).setUp()
         self.user_online_only = baker.make_recipe(
             'booking.user', first_name='Test', last_name='User')
+        
         baker.make(
             OnlineDisclaimer, user=self.user_online_only,
-            date=timezone.now()-timedelta(2200)  # > 6 yrs
-        )
-        self.user_print_only = baker.make_recipe(
-            'booking.user', first_name='Test', last_name='User1'
-        )
-        baker.make(
-            PrintDisclaimer, user=self.user_print_only,
             date=timezone.now()-timedelta(2200)  # > 6 yrs
         )
         self.user_both = baker.make_recipe(
@@ -48,10 +42,6 @@ class DeleteExpiredDisclaimersTests(PatchRequestMixin, TestCase):
         )
         baker.make(
             OnlineDisclaimer, user=self.user_both,
-            date=timezone.now()-timedelta(2200)  # > 6 yrs
-        )
-        baker.make(
-            PrintDisclaimer, user=self.user_both,
             date=timezone.now()-timedelta(2200)  # > 6 yrs
         )
 
@@ -66,24 +56,11 @@ class DeleteExpiredDisclaimersTests(PatchRequestMixin, TestCase):
 
     def test_disclaimers_deleted_if_more_than_6_years_old(self):
         self.assertEqual(OnlineDisclaimer.objects.count(), 2)
-        self.assertEqual(PrintDisclaimer.objects.count(), 2)
 
         management.call_command('delete_expired_disclaimers')
         self.assertEqual(OnlineDisclaimer.objects.count(), 0)
-        self.assertEqual(PrintDisclaimer.objects.count(), 0)
 
         activitylogs = ActivityLog.objects.values_list('log', flat=True)
-        print_users = [
-            '{} {}'.format(user.first_name, user.last_name)
-            for user in [self.user_print_only, self.user_both]
-        ]
-
-        self.assertIn(
-            'Print disclaimers more than 6 yrs old deleted for users: {}'.format(
-                ', '.join(print_users)
-            ),
-            activitylogs
-        )
 
         online_users = [
             '{} {}'.format(user.first_name, user.last_name)
@@ -117,13 +94,11 @@ class DeleteExpiredDisclaimersTests(PatchRequestMixin, TestCase):
         self.assertEqual(OnlineDisclaimer.objects.count(), 3)
         self.assertEqual(NonRegisteredDisclaimer.objects.count(), 2)
         self.assertEqual(ArchivedDisclaimer.objects.count(), 2)
-        self.assertEqual(PrintDisclaimer.objects.count(), 2)
 
         # disclaimer should not be deleted because it was created < 3 yrs ago.
         # All others will be.
         management.call_command('delete_expired_disclaimers')
         self.assertEqual(OnlineDisclaimer.objects.count(), 1)
-        self.assertEqual(PrintDisclaimer.objects.count(), 0)
 
     def test_disclaimers_not_deleted_if_updated_in_past_6_years(self):
         # make a user with a disclaimer created > yr ago but updated in past yr
@@ -133,16 +108,13 @@ class DeleteExpiredDisclaimersTests(PatchRequestMixin, TestCase):
             date_updated=timezone.now() - timedelta(2000),
         )
         self.assertEqual(OnlineDisclaimer.objects.count(), 3)
-        self.assertEqual(PrintDisclaimer.objects.count(), 2)
 
         management.call_command('delete_expired_disclaimers')
         self.assertEqual(OnlineDisclaimer.objects.count(), 1)
-        self.assertEqual(PrintDisclaimer.objects.count(), 0)
 
     def test_no_disclaimers_to_delete(self):
         for disclaimer_list in [
-            OnlineDisclaimer.objects.all(), PrintDisclaimer.objects.all(),
-            ArchivedDisclaimer.objects.all(), NonRegisteredDisclaimer.objects.all()
+            OnlineDisclaimer.objects.all(), ArchivedDisclaimer.objects.all(), NonRegisteredDisclaimer.objects.all()
         ]:
             for disclaimer in disclaimer_list:
                 if hasattr(disclaimer, 'date_updated'):
@@ -153,7 +125,6 @@ class DeleteExpiredDisclaimersTests(PatchRequestMixin, TestCase):
 
         management.call_command('delete_expired_disclaimers')
         self.assertEqual(OnlineDisclaimer.objects.count(), 2)
-        self.assertEqual(PrintDisclaimer.objects.count(), 0)
         self.assertEqual(ArchivedDisclaimer.objects.count(), 1)
         self.assertEqual(NonRegisteredDisclaimer.objects.count(), 0)
 

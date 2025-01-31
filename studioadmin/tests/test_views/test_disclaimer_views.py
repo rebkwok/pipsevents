@@ -18,19 +18,20 @@ from studioadmin.utils import int_str, chaffify
 from studioadmin.tests.test_views.helpers import TestPermissionMixin
 
 
-class UserDisclamersTests(TestPermissionMixin, TestCase):
+class UserDisclaimersTests(TestPermissionMixin, TestCase):
 
     def setUp(self):
         super().setUp()
         self.user.set_password('password')
         self.user.save()
-        self.disclaimer = baker.make(
-            OnlineDisclaimer, user=self.user,
+        
+        self.user.online_disclaimer.update(
             medical_conditions=False, allergies=False, joint_problems=False,
             medical_treatment_permission=True, terms_accepted=True,
             age_over_18_confirmed=True, dob=datetime.date(1990, 1, 1),
             version=DisclaimerContent.current_version()
         )
+        self.disclaimer = self.user.online_disclaimer.latest('id')
         self.post_data = {
             'id': self.disclaimer.id,
             'name': 'test',
@@ -224,33 +225,35 @@ class UserDisclamersTests(TestPermissionMixin, TestCase):
         self.assertEqual(resp.context_data['user'], self.user)
 
     def test_delete_disclaimer(self):
-        self.assertEqual(OnlineDisclaimer.objects.count(), 1)
+        assert OnlineDisclaimer.objects.count() == 3
         encoded_user_id = int_str(chaffify(self.user.id))
         delete_url = reverse(
             'studioadmin:delete_user_disclaimer', args=[encoded_user_id]
         )
         resp = self.client.post(delete_url, self.post_data)
-        self.assertEqual(OnlineDisclaimer.objects.count(), 0)
+        assert OnlineDisclaimer.objects.count() == 2
 
     def test_no_changes_made(self):
+        disclaimer = self.user.online_disclaimer.latest('id')
         post_data = {
-            'id': self.disclaimer.id,
-            'name': self.disclaimer.name,
-            'dob': self.disclaimer.dob.strftime('%d %b %Y'),
-            'address': self.disclaimer.address,
-            'postcode': self.disclaimer.postcode,
-            'mobile_phone': self.disclaimer.mobile_phone,
-            'emergency_contact1_name': self.disclaimer.emergency_contact1_name,
-            'emergency_contact1_relationship': self.disclaimer.emergency_contact1_relationship,
-            'emergency_contact1_phone': self.disclaimer.emergency_contact1_phone,
-            'emergency_contact2_name': self.disclaimer.emergency_contact2_name,
-            'emergency_contact2_relationship': self.disclaimer.emergency_contact2_relationship,
-            'emergency_contact2_phone': self.disclaimer.emergency_contact2_phone,
-            'medical_conditions': False,
-            'medical_conditions_details': '',
-            'joint_problems': False,
-            'joint_problems_details': '',
-            'allergies': False, 'allergies_details': '',
+            'id': disclaimer.id,
+            'name': disclaimer.name,
+            'dob': disclaimer.dob.strftime('%d %b %Y'),
+            'address': disclaimer.address,
+            'postcode': disclaimer.postcode,
+            'mobile_phone': disclaimer.mobile_phone,
+            'emergency_contact1_name': disclaimer.emergency_contact1_name,
+            'emergency_contact1_relationship': disclaimer.emergency_contact1_relationship,
+            'emergency_contact1_phone': disclaimer.emergency_contact1_phone,
+            'emergency_contact2_name': disclaimer.emergency_contact2_name,
+            'emergency_contact2_relationship': disclaimer.emergency_contact2_relationship,
+            'emergency_contact2_phone': disclaimer.emergency_contact2_phone,
+            'medical_conditions': disclaimer.medical_conditions,
+            'medical_conditions_details': disclaimer.medical_conditions_details or "",
+            'joint_problems': disclaimer.joint_problems,
+            'joint_problems_details': disclaimer.joint_problems_details or "",
+            'allergies': disclaimer.allergies, 
+            'allergies_details': disclaimer.allergies_details or "",
             'medical_treatment_permission': True,
             'terms_accepted': True,
             'age_over_18_confirmed': True,
@@ -271,31 +274,32 @@ class UserDisclamersTests(TestPermissionMixin, TestCase):
         )
 
     def test_toggle_dislaimer_expiry(self):
-        assert self.disclaimer.can_toggle_expiry()
+        disclaimer = self.user.online_disclaimer.latest('id')
+        assert disclaimer.can_toggle_expiry()
         self.client.login(username=self.staff_user.username, password="test")
         encoded_user_id = int_str(chaffify(self.user.id))
         url = reverse(
-            'studioadmin:expire_user_disclaimer', args=[encoded_user_id, self.disclaimer.id]
+            'studioadmin:expire_user_disclaimer', args=[encoded_user_id, disclaimer.id]
         )
         self.client.get(url)
-        self.disclaimer.refresh_from_db()
-        assert self.disclaimer.expired
+        disclaimer.refresh_from_db()
+        assert disclaimer.expired
 
         self.client.get(url)
-        self.disclaimer.refresh_from_db()
-        assert self.disclaimer.expired is False
+        disclaimer.refresh_from_db()
+        assert disclaimer.expired is False
 
         # can't toggle if already expired
         baker.make(DisclaimerContent, version=None)
-        assert self.disclaimer.is_active is False
-        assert self.disclaimer.expired is False
-        assert self.disclaimer.can_toggle_expiry() is False
+        assert disclaimer.is_active is False
+        assert disclaimer.expired is False
+        assert disclaimer.can_toggle_expiry() is False
         self.client.get(url)
-        self.disclaimer.refresh_from_db()
-        assert self.disclaimer.expired is False
+        disclaimer.refresh_from_db()
+        assert disclaimer.expired is False
 
 
-class NonRegisteredDisclamerViewsTests(TestPermissionMixin, TestCase):
+class NonRegistereddisclaimerViewsTests(TestPermissionMixin, TestCase):
 
     def setUp(self):
         super().setUp()
@@ -454,7 +458,7 @@ class NonRegisteredDisclamerViewsTests(TestPermissionMixin, TestCase):
         self.assertEqual(resp.status_code, 200)
 
 
-class DisclamerContentListViewTests(TestPermissionMixin, TestCase):
+class DisclaimerContentListViewTests(TestPermissionMixin, TestCase):
 
     def setUp(self):
         super().setUp()
@@ -498,7 +502,7 @@ class DisclamerContentListViewTests(TestPermissionMixin, TestCase):
         assert resp.context_data['current_version'] == content.version
 
 
-class DisclamerContentViewTests(TestPermissionMixin, TestCase):
+class DisclaimerContentViewTests(TestPermissionMixin, TestCase):
 
     def setUp(self):
         super().setUp()
@@ -531,7 +535,7 @@ class DisclamerContentViewTests(TestPermissionMixin, TestCase):
         self.assertEqual(resp.status_code, 200)
 
 
-class DisclamerContentCreateViewTests(TestPermissionMixin, TestCase):
+class DisclaimerContentCreateViewTests(TestPermissionMixin, TestCase):
 
     def setUp(self):
         super().setUp()
@@ -602,7 +606,7 @@ class DisclamerContentCreateViewTests(TestPermissionMixin, TestCase):
             self.client.post(self.url, data)
 
 
-class DisclamerContentUpdateViewTests(TestPermissionMixin, TestCase):
+class DisclaimerContentUpdateViewTests(TestPermissionMixin, TestCase):
 
     def setUp(self):
         super().setUp()

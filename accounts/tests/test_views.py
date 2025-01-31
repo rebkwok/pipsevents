@@ -16,7 +16,7 @@ from allauth.account.models import EmailAddress
 from allauth.socialaccount.models import SocialApp, SocialAccount
 
 from ..models import DataPrivacyPolicy, DisclaimerContent, OnlineDisclaimer, \
-    NonRegisteredDisclaimer, has_active_data_privacy_agreement
+    NonRegisteredDisclaimer, has_active_data_privacy_agreement, has_active_disclaimer
 from ..views import ProfileUpdateView, DisclaimerCreateView
 from common.tests.helpers import _create_session, Any, \
     assert_mailchimp_post_data, TestSetupMixin, set_up_fb
@@ -407,12 +407,6 @@ class ProfileTests(TestSetupMixin, TestCase):
         self.assertEqual(resp.status_code, 200)
 
     def test_profile_view_shows_disclaimer_info(self):
-        self.client.login(username=self.user.username, password="test")
-        resp = self.client.get(self.url)
-        self.assertIn("Completed", str(resp.content))
-        self.assertNotIn("Not completed", str(resp.content))
-        self.assertNotIn("/accounts/disclaimer", str(resp.content))
-
         self.client.login(username=self.user_with_online_disclaimer.username, password="test")
         resp = self.client.get(self.url)
         self.assertIn("Completed", str(resp.content))
@@ -563,7 +557,7 @@ class DisclaimerCreateViewTests(TestSetupMixin, TestCase):
 
 
     def test_submitting_form_without_valid_password(self):
-        self.assertEqual(OnlineDisclaimer.objects.count(), 0)
+        assert OnlineDisclaimer.objects.count() == 1  # self.user
         self.user_no_disclaimer.set_password('test_password')
         self.user_no_disclaimer.save()
 
@@ -579,10 +573,10 @@ class DisclaimerCreateViewTests(TestSetupMixin, TestCase):
         )
 
     def test_submitting_form_creates_disclaimer(self):
-        self.assertEqual(OnlineDisclaimer.objects.count(), 0)
+        assert OnlineDisclaimer.objects.count() == 1
         self.user_no_disclaimer.set_password('password')
         self._post_response(self.user_no_disclaimer, self.form_data)
-        self.assertEqual(OnlineDisclaimer.objects.count(), 1)
+        assert OnlineDisclaimer.objects.count() == 2
 
         # user now has disclaimer and can't re-access
         resp = self._get_response(self.user_no_disclaimer)
@@ -598,7 +592,7 @@ class DisclaimerCreateViewTests(TestSetupMixin, TestCase):
         resp = self._post_response(self.user_no_disclaimer, self.form_data)
         self.assertEqual(resp.status_code, 302)
         # no new disclaimer created
-        self.assertEqual(OnlineDisclaimer.objects.count(), 1)
+        assert OnlineDisclaimer.objects.count() == 2
 
     def test_message_shown_if_no_usable_password(self):
         user = baker.make_recipe('booking.user')
@@ -613,7 +607,7 @@ class DisclaimerCreateViewTests(TestSetupMixin, TestCase):
         )
 
     def test_cannot_complete_disclaimer_without_usable_password(self):
-        self.assertEqual(OnlineDisclaimer.objects.count(), 0)
+        assert OnlineDisclaimer.objects.count() == 1  # self.user
         user = baker.make_recipe('booking.user')
         user.set_unusable_password()
         user.save()
@@ -623,12 +617,13 @@ class DisclaimerCreateViewTests(TestSetupMixin, TestCase):
             "No password set on account.",
             str(resp.content)
         )
-        self.assertEqual(OnlineDisclaimer.objects.count(), 0)
+        self.assertEqual(OnlineDisclaimer.objects.count(), 1)
+        assert user.online_disclaimer.count() == 0
 
         user.set_password('password')
         user.save()
         self._post_response(user, self.form_data)
-        self.assertEqual(OnlineDisclaimer.objects.count(), 1)
+        assert user.online_disclaimer.count() == 1
 
 
 class NonRegisteredDisclaimerCreateViewTests(TestSetupMixin, TestCase):

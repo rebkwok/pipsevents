@@ -12,7 +12,7 @@ from django.contrib.auth.models import Group, User
 from django.core import mail
 from django.utils import timezone
 
-from accounts.models import DisclaimerContent, OnlineDisclaimer, PrintDisclaimer
+from accounts.models import DisclaimerContent, OnlineDisclaimer
 from common.tests.helpers import assert_mailchimp_post_data
 from studioadmin.utils import int_str, chaffify
 from studioadmin.views.users import NAME_FILTERS
@@ -365,8 +365,6 @@ class UserListViewTests(TestPermissionMixin, TestCase):
             username='super', email='super@test.com', password='test'
         )
 
-        user_with_print_disclaimer = baker.make_recipe('booking.user')
-        baker.make(PrintDisclaimer, user=user_with_print_disclaimer)
         user_with_online_disclaimer = baker.make_recipe('booking.user')
         baker.make(OnlineDisclaimer, user=user_with_online_disclaimer, version=DisclaimerContent.current_version())
         user_with_no_disclaimer = baker.make_recipe('booking.user')

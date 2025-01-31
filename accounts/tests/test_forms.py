@@ -10,7 +10,7 @@ from django.urls import reverse
 
 from accounts.admin import CookiePolicyAdminForm, DataPrivacyPolicyAdminForm
 from accounts.forms import DataPrivacyAgreementForm, SignupForm, DisclaimerForm, NonRegisteredDisclaimerForm
-from accounts.models import CookiePolicy, DataPrivacyPolicy, OnlineDisclaimer, PrintDisclaimer, has_expired_disclaimer
+from accounts.models import CookiePolicy, DataPrivacyPolicy, OnlineDisclaimer, has_expired_disclaimer
 from common.tests.helpers import assert_mailchimp_post_data, TestSetupMixin
 
 
@@ -239,7 +239,6 @@ class DisclaimerFormTests(TestSetupMixin, TestCase):
     def test_with_expired_disclaimer(self):
         # Make sure user has no disclaimers already
         self.user.online_disclaimer.all().delete()
-        self.user.print_disclaimer = None
         self.user.save()      
         cache.clear()
         disclaimer = baker.make(

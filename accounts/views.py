@@ -32,14 +32,7 @@ from studioadmin.views.disclaimers import user_disclaimer_view_context
 def profile(request):
     # don't use the cache here as sometimes just after completing a disclaimer
     # we seem to miss the cache
-    disclaimer = any(
-        [
-            True for od in list(request.user.online_disclaimer.all())
-            if od.is_active
-        ]
-    )
-    if not disclaimer and hasattr(request.user, "print_disclaimer"):
-        disclaimer = request.user.print_disclaimer.is_active
+    disclaimer = has_active_disclaimer(request.user)
     expired_disclaimer = has_expired_disclaimer(request.user)
 
     return render(

@@ -13,7 +13,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 from accounts.models import AccountBan, CookiePolicy, DataPrivacyPolicy, DisclaimerContent, SignedDataPrivacy, \
-    PrintDisclaimer, OnlineDisclaimer, NonRegisteredDisclaimer, ArchivedDisclaimer, has_active_data_privacy_agreement, \
+    OnlineDisclaimer, NonRegisteredDisclaimer, ArchivedDisclaimer, has_active_data_privacy_agreement, \
     active_data_privacy_cache_key
 from common.tests.helpers import make_data_privacy_agreement
 
@@ -123,15 +123,6 @@ class DisclaimerModelTests(TestCase):
         content = baker.make(DisclaimerContent, version=5.0)
         disclaimer = baker.make(OnlineDisclaimer, user=user, version=content.version)
         self.assertEqual(str(disclaimer), 'testuser - V5.0 - {}'.format(
-            disclaimer.date.astimezone(
-                pytz.timezone('Europe/London')
-            ).strftime('%d %b %Y, %H:%M')
-        ))
-
-    def test_print_disclaimer_str(self):
-        user = baker.make_recipe('booking.user', username='testuser')
-        disclaimer = baker.make(PrintDisclaimer, user=user)
-        self.assertEqual(str(disclaimer), 'testuser - {}'.format(
             disclaimer.date.astimezone(
                 pytz.timezone('Europe/London')
             ).strftime('%d %b %Y, %H:%M')
@@ -367,7 +358,6 @@ class SignedDataPrivacyModelTests(TestCase):
     def setUp(self):
         self.user = baker.make_recipe('booking.user')
 
-    @pytest.mark.skip("expected fail due to cache")
     def test_cache_deleted_on_save(self):
         make_data_privacy_agreement(self.user)
         assert cache.get(active_data_privacy_cache_key(self.user)) is None

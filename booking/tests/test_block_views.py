@@ -354,7 +354,7 @@ class BlockListViewTests(TestSetupMixin, TestCase):
             format_content(resp.rendered_content)
         )
 
-        # self.user has a PrintDisclaimer
+        # self.user has a disclaimer
         self.client.login(username=self.user.username, password='test')
         resp = self.client.get(reverse('booking:block_list'))
         self.assertIn(

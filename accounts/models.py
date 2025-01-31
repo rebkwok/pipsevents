@@ -336,9 +336,10 @@ class OnlineDisclaimer(BaseOnlineDisclaimer):
             ActivityLog.objects.create(
                 log="Online disclaimer created: {self}"
             )
-        ActivityLog.objects.create(
-                log="Online disclaimer updated: {self}"
-            )
+        else:
+            ActivityLog.objects.create(
+                    log="Online disclaimer updated: {self}"
+                )
         # delete the cache keys again to force re-cache on next retrieval
         cache.delete(active_disclaimer_cache_key(self.user))
         cache.delete(active_online_disclaimer_cache_key(self.user))
@@ -360,30 +361,6 @@ class OnlineDisclaimer(BaseOnlineDisclaimer):
                     self.user.first_name, self.user.last_name
                 )
             )
-        super().delete(using, keep_parents)
-
-
-class PrintDisclaimer(models.Model):
-    user = models.OneToOneField(
-        User, related_name='print_disclaimer', on_delete=models.CASCADE
-    )
-    date = models.DateTimeField(default=timezone.now)
-
-    def __str__(self):
-        return '{} - {}'.format(self.user.username, self.date.astimezone(
-                pytz.timezone('Europe/London')
-            ).strftime('%d %b %Y, %H:%M'))
-
-    @property
-    def is_active(self):
-        # Disclaimer is active if it was created <1 yr ago
-        return (self.date + timedelta(days=365)) > timezone.now()
-
-    def delete(self, using=None, keep_parents=False):
-        # clear active cache if there is any
-        cache.delete(active_disclaimer_cache_key(self.user))
-        cache.delete(active_print_disclaimer_cache_key(self.user))
-        cache.delete(expired_disclaimer_cache_key(self.user))
         super().delete(using, keep_parents)
 
 
@@ -483,10 +460,6 @@ def active_online_disclaimer_cache_key(user):
     return f'user_{user.id}_active_online_disclaimer_v{DisclaimerContent.current_version()}'
 
 
-def active_print_disclaimer_cache_key(user):
-    return 'user_{}_active_print_disclaimer'.format(user.id)
-
-
 def expired_disclaimer_cache_key(user):
     return 'user_{}_expired_disclaimer'.format(user.id)
 
@@ -496,8 +469,6 @@ def has_active_disclaimer(user):
     has_disclaimer = cache.get(key)
     if has_disclaimer is None:
         has_disclaimer = has_active_online_disclaimer(user)
-        if not has_disclaimer:
-            has_disclaimer = has_active_print_disclaimer(user)
         cache.set(key, has_disclaimer, timeout=600)
     else:
         has_disclaimer = bool(cache.get(key))
@@ -511,21 +482,6 @@ def has_active_online_disclaimer(user):
             od.is_active for od in user.online_disclaimer.all()
         )
         cache.set(key, has_disclaimer, timeout=600)
-    else:
-        has_disclaimer = bool(cache.get(key))
-    return has_disclaimer
-
-
-def has_active_print_disclaimer(user):
-    key = active_print_disclaimer_cache_key(user)
-    if cache.get(key) is None:
-        try:
-            pd = user.print_disclaimer
-            has_disclaimer = pd.is_active
-            cache.set(key, has_disclaimer, timeout=600)
-        except ObjectDoesNotExist:
-            cache.set(key, False, timeout=600)
-            has_disclaimer = False
     else:
         has_disclaimer = bool(cache.get(key))
     return has_disclaimer

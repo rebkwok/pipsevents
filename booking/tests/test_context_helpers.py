@@ -9,7 +9,7 @@ from django.urls import reverse
 from django.test import TestCase
 from django.utils import timezone
 
-from accounts.models import PrintDisclaimer, DisclaimerContent
+from accounts.models import  DisclaimerContent
 
 from booking.models import Booking
 from booking.views import EventDetailView, BlockListView
@@ -342,15 +342,12 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
         )
         user_no_disclaimer = baker.make_recipe('booking.user')
         make_data_privacy_agreement(user_no_disclaimer)
-        user_print_disclaimer = baker.make_recipe('booking.user')
-        make_data_privacy_agreement(user_print_disclaimer)
         user_online_disclaimer = baker.make_recipe('booking.user')
         make_data_privacy_agreement(user_online_disclaimer)
         baker.make_recipe(
             'booking.online_disclaimer', user=user_online_disclaimer,
             version=DisclaimerContent.current_version()
         )
-        PrintDisclaimer.objects.create(user=user_print_disclaimer)
 
         resp = self._get_response(user_no_disclaimer, event, 'lesson')
         self.assertFalse(resp.context_data['disclaimer'])
@@ -367,14 +364,6 @@ class EventDetailContextTests(TestSetupMixin, TestCase):
         )
 
         resp = self._get_response(user_online_disclaimer, event, 'lesson')
-        self.assertTrue(resp.context_data['disclaimer'])
-        self.assertNotIn(
-            'Please note that you will need to complete a disclaimer form '
-            'before booking',
-            format_content(resp.rendered_content)
-        )
-
-        resp = self._get_response(user_print_disclaimer, event, 'lesson')
         self.assertTrue(resp.context_data['disclaimer'])
         self.assertNotIn(
             'Please note that you will need to complete a disclaimer form '

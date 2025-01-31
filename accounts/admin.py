@@ -13,7 +13,7 @@ from django.template.loader import get_template
 
 from ckeditor.widgets import CKEditorWidget
 
-from accounts.models import OnlineDisclaimer, PrintDisclaimer, DisclaimerContent, \
+from accounts.models import OnlineDisclaimer, DisclaimerContent, \
     CookiePolicy, DataPrivacyPolicy, SignedDataPrivacy, NonRegisteredDisclaimer, AccountBan
 
 
@@ -33,11 +33,6 @@ class OnlineDisclaimerAdmin(admin.ModelAdmin):
         'version'
     ]
     fields = readonly_fields + ["expired"]
-
-
-class PrintDisclaimerAdmin(admin.ModelAdmin):
-
-    readonly_fields = ('user', 'date')
 
 
 class NonRegisteredDisclaimerAdmin(admin.ModelAdmin):
@@ -273,7 +268,6 @@ admin.site.register(User, CustomUserAdmin)
 
 admin.site.register(AccountBan, AccountBanAdmin)
 admin.site.register(OnlineDisclaimer, OnlineDisclaimerAdmin)
-admin.site.register(PrintDisclaimer, PrintDisclaimerAdmin)
 admin.site.register(DataPrivacyPolicy, DataPrivacyPolicyAdmin)
 admin.site.register(CookiePolicy, CookiePolicyAdmin)
 admin.site.register(SignedDataPrivacy, SignedDataPrivacyAdmin)

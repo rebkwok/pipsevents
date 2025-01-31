@@ -10,7 +10,7 @@ from django.db.models import Q
 
 from dateutil.relativedelta import relativedelta
 
-from accounts.models import ArchivedDisclaimer, NonRegisteredDisclaimer, OnlineDisclaimer, PrintDisclaimer
+from accounts.models import ArchivedDisclaimer, NonRegisteredDisclaimer, OnlineDisclaimer
 from activitylog.models import ActivityLog
 
 
@@ -24,13 +24,6 @@ class Command(BaseCommand):
 
         # get relevant users
         expire_date = timezone.now() - relativedelta(years=6)
-
-        old_print_disclaimers_to_delete = PrintDisclaimer.objects\
-            .select_related('user').filter(date__lt=expire_date)
-        print_disclaimer_users = [
-            '{} {}'.format(disc.user.first_name, disc.user.last_name)
-            for disc in old_print_disclaimers_to_delete
-            ]
 
         old_online_disclaimers_to_delete = OnlineDisclaimer.objects\
             .select_related('user').filter(
@@ -55,18 +48,10 @@ class Command(BaseCommand):
         )
         archive_disclaimer_users = [disc.name for disc in old_archieved_disclaimers_to_delete]
 
-        old_print_disclaimers_to_delete.delete()
         old_online_disclaimers_to_delete.delete()
         old_non_registered_disclaimers_to_delete.delete()
         old_archieved_disclaimers_to_delete.delete()
 
-        if print_disclaimer_users:
-            ActivityLog.objects.create(
-                log='Print disclaimers more than 6 yrs old deleted for '
-                    'users: {}'.format(
-                    ', '.join(print_disclaimer_users)
-                )
-            )
         if online_disclaimer_users:
             ActivityLog.objects.create(
                 log='Online disclaimers more than 6 yrs old deleted for '
@@ -88,7 +73,7 @@ class Command(BaseCommand):
                         ', '.join(archive_disclaimer_users)
                     )
             )
-        if not (print_disclaimer_users or online_disclaimer_users or non_registered_disclaimer_users or archive_disclaimer_users):
+        if not (online_disclaimer_users or non_registered_disclaimer_users or archive_disclaimer_users):
             self.stdout.write('No disclaimers to delete')
             ActivityLog.objects.create(
                 log='Delete disclaimers job run; no expired disclaimers'
