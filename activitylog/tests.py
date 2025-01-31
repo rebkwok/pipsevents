@@ -197,6 +197,7 @@ class DeleteOldActivityLogsTests(TestCase):
                 mock_run.assert_called_once_with(
                     ['aws', 's3', 'cp', str(local_filepath), os.path.join(settings.S3_LOG_BACKUP_PATH, filename)], check=True
                 )
+                assert not os.path.exists(local_filepath)
 
     @patch('activitylog.management.commands.delete_old_activitylogs.subprocess.run')
     @patch('activitylog.management.commands.delete_old_activitylogs.timezone.now')
@@ -220,3 +221,4 @@ class DeleteOldActivityLogsTests(TestCase):
                 mock_run.assert_called_once_with(
                     ['aws', 's3', 'cp', str(local_filepath), os.path.join(settings.S3_LOG_BACKUP_PATH, filename)], check=True
                 )
+                assert not os.path.exists(local_filepath)

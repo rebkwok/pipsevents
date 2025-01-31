@@ -327,22 +327,22 @@ class OnlineDisclaimer(BaseOnlineDisclaimer):
         return self._signed_version_active()
 
     def save(self, **kwargs):
-        # delete the cache keys to force re-cache
+        if not self.id:
+            # Can't create a new disclaimer if an active one already exists (we can end up here when
+            # a user double-clicks the save button)
+            if has_active_disclaimer(self.user):
+                logger.info(f"{self.user} aleady has active disclaimer, not creating another")
+                return
+            ActivityLog.objects.create(
+                log="Online disclaimer created: {self}"
+            )
+        ActivityLog.objects.create(
+                log="Online disclaimer updated: {self}"
+            )
+        # delete the cache keys again to force re-cache on next retrieval
         cache.delete(active_disclaimer_cache_key(self.user))
         cache.delete(active_online_disclaimer_cache_key(self.user))
         cache.delete(expired_disclaimer_cache_key(self.user))
-        if not self.id:
-            existing_disclaimers = OnlineDisclaimer.objects.filter(
-                user=self.user
-            )
-            if existing_disclaimers and [
-                True for disc in existing_disclaimers if disc.is_active
-            ]:
-                raise ValidationError('Active disclaimer already exists')
-
-            ActivityLog.objects.create(
-                log="Online disclaimer created: {}".format(self.__str__())
-            )
         super().save(**kwargs)
 
     def delete(self, using=None, keep_parents=False):
@@ -383,6 +383,7 @@ class PrintDisclaimer(models.Model):
         # clear active cache if there is any
         cache.delete(active_disclaimer_cache_key(self.user))
         cache.delete(active_print_disclaimer_cache_key(self.user))
+        cache.delete(expired_disclaimer_cache_key(self.user))
         super().delete(using, keep_parents)
 
 
@@ -491,84 +492,56 @@ def expired_disclaimer_cache_key(user):
 
 
 def has_active_disclaimer(user):
-    # key = active_disclaimer_cache_key(user)
-    # has_disclaimer = cache.get(key)
-    # if has_disclaimer is None:
-    #     has_disclaimer = has_active_online_disclaimer(user)
-
-    #     if not has_disclaimer:
-    #         has_disclaimer = has_active_print_disclaimer(user)
-    #     cache.set(key, has_disclaimer, timeout=600)
-    # else:
-    #     has_disclaimer = bool(cache.get(key))
-    has_disclaimer = has_active_online_disclaimer(user)
-    if not has_disclaimer:
-        has_disclaimer = has_active_print_disclaimer(user)
+    key = active_disclaimer_cache_key(user)
+    has_disclaimer = cache.get(key)
+    if has_disclaimer is None:
+        has_disclaimer = has_active_online_disclaimer(user)
+        if not has_disclaimer:
+            has_disclaimer = has_active_print_disclaimer(user)
+        cache.set(key, has_disclaimer, timeout=600)
+    else:
+        has_disclaimer = bool(cache.get(key))
     return has_disclaimer
 
 
 def has_active_online_disclaimer(user):
-    # key = active_online_disclaimer_cache_key(user)
-    # if cache.get(key) is None:
-    #     has_disclaimer = bool(
-    #         [
-    #             True for od in user.online_disclaimer.all()
-    #             if od.is_active
-    #         ]
-    #     )
-    #     cache.set(key, has_disclaimer, timeout=600)
-    # else:
-    #     has_disclaimer = bool(cache.get(key))
-    has_disclaimer = bool(
-        [
-            True for od in user.online_disclaimer.all()
-            if od.is_active
-        ]
-    )
+    key = active_online_disclaimer_cache_key(user)
+    if cache.get(key) is None:
+        has_disclaimer = any(
+            od.is_active for od in user.online_disclaimer.all()
+        )
+        cache.set(key, has_disclaimer, timeout=600)
+    else:
+        has_disclaimer = bool(cache.get(key))
     return has_disclaimer
 
 
 def has_active_print_disclaimer(user):
-    # key = active_print_disclaimer_cache_key(user)
-    # if cache.get(key) is None:
-    #     try:
-    #         pd = user.print_disclaimer
-    #         has_disclaimer = pd.is_active
-    #         cache.set(key, has_disclaimer, timeout=600)
-    #     except ObjectDoesNotExist:
-    #         cache.set(key, False, timeout=600)
-    #         has_disclaimer = False
-    # else:
-    #     has_disclaimer = bool(cache.get(key))
-    try:
-        pd = user.print_disclaimer
-        has_disclaimer = pd.is_active
-    except ObjectDoesNotExist:
-        has_disclaimer = False
+    key = active_print_disclaimer_cache_key(user)
+    if cache.get(key) is None:
+        try:
+            pd = user.print_disclaimer
+            has_disclaimer = pd.is_active
+            cache.set(key, has_disclaimer, timeout=600)
+        except ObjectDoesNotExist:
+            cache.set(key, False, timeout=600)
+            has_disclaimer = False
+    else:
+        has_disclaimer = bool(cache.get(key))
     return has_disclaimer
 
 
 def has_expired_disclaimer(user):
-    # key = expired_disclaimer_cache_key(user)
-    # has_disclaimer = cache.get(key)
-    # if has_disclaimer is None:
-    #     if not has_disclaimer:
-    #         has_disclaimer = bool(
-    #             [
-    #                 True for od in user.online_disclaimer.all()
-    #                 if not od.is_active
-    #             ]
-    #         )
-
-    #         cache.set(key, has_disclaimer, timeout=600)
-    # else:
-    #     has_disclaimer = bool(cache.get(key))
-    has_disclaimer = bool(
-        [
-            True for od in user.online_disclaimer.all()
-            if not od.is_active
-        ]
-    )
+    key = expired_disclaimer_cache_key(user)
+    has_disclaimer = cache.get(key)
+    if has_disclaimer is None:
+        if not has_disclaimer:
+            has_disclaimer = any(
+                (not od.is_active) for od in user.online_disclaimer.all()
+            )
+            cache.set(key, has_disclaimer, timeout=600)
+    else:
+        has_disclaimer = bool(cache.get(key))
     return has_disclaimer
 
 
@@ -580,15 +553,10 @@ def active_data_privacy_cache_key(user):
 
 
 def has_active_data_privacy_agreement(user):
-    # key = active_data_privacy_cache_key(user)
-    # if cache.get(key) is None:
-    #     has_active_agreement = bool(
-    #         [
-    #             True for dp in user.data_privacy_agreement.all()
-    #             if dp.is_active
-    #         ]
-    #     )
-    #     cache.set(key, has_active_agreement, timeout=600)
-    # else:
-    #     has_active_agreement = bool(cache.get(key))
-    return user.data_privacy_agreement.filter(version=DataPrivacyPolicy.current_version()).exists()
+    key = active_data_privacy_cache_key(user)
+    if cache.get(key) is None:
+        has_active_agreement = user.data_privacy_agreement.filter(version=DataPrivacyPolicy.current_version()).exists()
+        cache.set(key, has_active_agreement, timeout=600)
+    else:
+        has_active_agreement = bool(cache.get(key))
+    return has_active_agreement

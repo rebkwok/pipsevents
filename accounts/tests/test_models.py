@@ -190,13 +190,14 @@ class DisclaimerModelTests(TestCase):
             OnlineDisclaimer, user=user,
             date=datetime(2015, 2, 10, 19, 0, tzinfo=dt_timezone.utc), version=disclaimer_content.version
         )
-
+        assert OnlineDisclaimer.objects.count() == 1
         self.assertFalse(disclaimer.is_active)
         # can make a new disclaimer
         baker.make(OnlineDisclaimer, user=user, version=disclaimer_content.version)
+        assert OnlineDisclaimer.objects.count() == 2
         # can't make new disclaimer when one is already active
-        with self.assertRaises(ValidationError):
-            baker.make(OnlineDisclaimer, user=user, version=disclaimer_content.version)
+        baker.make(OnlineDisclaimer, user=user, version=disclaimer_content.version)
+        assert OnlineDisclaimer.objects.count() == 2
 
     def test_expired_disclaimer(self):
         user = baker.make_recipe('booking.user', username='testuser')

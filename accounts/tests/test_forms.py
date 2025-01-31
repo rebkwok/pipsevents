@@ -3,13 +3,14 @@ from datetime import timezone as dt_timezone
 from model_bakery import baker
 import pytest
 
+from django.core.cache import cache
 from django.test import TestCase
 from django.contrib.auth.models import User
 from django.urls import reverse
 
 from accounts.admin import CookiePolicyAdminForm, DataPrivacyPolicyAdminForm
 from accounts.forms import DataPrivacyAgreementForm, SignupForm, DisclaimerForm, NonRegisteredDisclaimerForm
-from accounts.models import CookiePolicy, DataPrivacyPolicy, OnlineDisclaimer
+from accounts.models import CookiePolicy, DataPrivacyPolicy, OnlineDisclaimer, PrintDisclaimer, has_expired_disclaimer
 from common.tests.helpers import assert_mailchimp_post_data, TestSetupMixin
 
 
@@ -236,6 +237,11 @@ class DisclaimerFormTests(TestSetupMixin, TestCase):
         )
 
     def test_with_expired_disclaimer(self):
+        # Make sure user has no disclaimers already
+        self.user.online_disclaimer.all().delete()
+        self.user.print_disclaimer = None
+        self.user.save()      
+        cache.clear()
         disclaimer = baker.make(
             OnlineDisclaimer, user=self.user, name='Donald Duck',
             dob=date(2000, 10, 5), address='1 Main St',
@@ -243,6 +249,7 @@ class DisclaimerFormTests(TestSetupMixin, TestCase):
             date=datetime(2015, 2, 10, 19, 0, tzinfo=dt_timezone.utc)
         )
         self.assertFalse(disclaimer.is_active)
+        assert has_expired_disclaimer(self.user)
 
         form = DisclaimerForm(user=self.user)
         # initial fields set to expired disclaimer
