@@ -1,6 +1,7 @@
+import os
 import stat
 from logging import handlers
-import os
+from pathlib import Path
 
 class GroupWriteRotatingFileHandler(handlers.RotatingFileHandler):  
 
@@ -37,8 +38,9 @@ class GroupWriteRotatingFileHandler(handlers.RotatingFileHandler):
 
 
 def log_file_permissions(log_file):
-    currMode = os.stat(log_file).st_mode
-    try:
-        os.chmod(log_file, currMode | stat.S_IWGRP)
-    except PermissionError:
-        ...
+    if Path(log_file).exists():
+        currMode = os.stat(log_file).st_mode
+        try:
+            os.chmod(log_file, currMode | stat.S_IWGRP)
+        except PermissionError:
+            ...
