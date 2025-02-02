@@ -334,11 +334,11 @@ class OnlineDisclaimer(BaseOnlineDisclaimer):
                 logger.info(f"{self.user} aleady has active disclaimer, not creating another")
                 return
             ActivityLog.objects.create(
-                log="Online disclaimer created: {self}"
+                log=f"Online disclaimer created: {self}"
             )
         else:
             ActivityLog.objects.create(
-                    log="Online disclaimer updated: {self}"
+                    log=f"Online disclaimer updated: {self}"
                 )
         # delete the cache keys again to force re-cache on next retrieval
         cache.delete(active_disclaimer_cache_key(self.user))
