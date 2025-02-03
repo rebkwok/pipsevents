@@ -19,6 +19,7 @@ from booking.models import UserMembership
 from booking.views.membership_views import ensure_subscription_up_to_date
 from activitylog.models import ActivityLog
 from stripe_payments.utils import StripeConnector
+from common.management import write_command_name
 
 
 logger = logging.getLogger(__name__)
@@ -28,6 +29,7 @@ class Command(BaseCommand):
     help = 'Cancel past due subscriptions on 28th each month'
 
     def handle(self, *args, **options):
+        write_command_name(self, __file__)
         client = StripeConnector()
         past_due = UserMembership.objects.filter(subscription_status="past_due")
         for user_membership in past_due:

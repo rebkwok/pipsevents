@@ -2313,7 +2313,7 @@ class CancelUnpaidTicketBookingsTests(TestCase):
 
         self.assertEqual(
             self.output.getvalue(),
-            'No unconfirmed ticket bookings to delete\n',
+            'Running delete_unconfirmed_ticket_bookings\nNo unconfirmed ticket bookings to delete\n',
             self.output.getvalue()
         )
 

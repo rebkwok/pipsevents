@@ -8,15 +8,10 @@ import logging
 from datetime import timedelta
 
 from django.utils import timezone
-from django.conf import settings
-from django.core.mail import send_mail
-from django.template.loader import get_template
-from django.template import Context
 from django.core.management.base import BaseCommand
-from django.core import management
 
-from booking.models import TicketBooking, TicketedEvent
-from booking.email_helpers import send_support_email, send_waiting_list_email
+from booking.models import TicketBooking
+from common.management import write_command_name
 from activitylog.models import ActivityLog
 
 
@@ -30,7 +25,7 @@ class Command(BaseCommand):
            'button'
 
     def handle(self, *args, **options):
-
+        write_command_name(self, __file__)
         # get relevant ticket_bookings
         bookings_to_delete = TicketBooking.objects.filter(
             purchase_confirmed=False,

@@ -8,17 +8,20 @@ Add permissions for students who have booked and attended at least 10 classes
 from dateutil.relativedelta import relativedelta
 
 from django.conf import settings
-from django.contrib.auth.models import User, Group
+from django.contrib.auth.models import User
 from django.utils import timezone
 from django.core.management.base import BaseCommand
 
 from activitylog.models import ActivityLog
 from booking.models import AllowedGroup, Booking
+from common.management import write_command_name
+
 
 class Command(BaseCommand):
     help = "deactivate permissions for students who have not booked classes in past 8 months"
 
     def handle(self, *args, **options):
+        write_command_name(self, __file__)
         cutoff_date = timezone.now() - relativedelta(months=8)
         allowed_groups = AllowedGroup.objects.all()
         

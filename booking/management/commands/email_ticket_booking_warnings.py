@@ -4,7 +4,7 @@ Email warnings for unpaid bookings booked > 2 hrs ago
 BUT excluding bookings with a checkout_time in the past 5 mins
 (checkout_time is set when user clicks button to pay with stripe)
 '''
-from datetime import datetime, timedelta
+from datetime import timedelta
 from django.utils import timezone
 from django.conf import settings
 from django.core.mail import send_mail
@@ -13,12 +13,14 @@ from django.core.management.base import BaseCommand
 
 from booking.models import TicketedEvent, TicketBooking
 from activitylog.models import ActivityLog
+from common.management import write_command_name
 
 
 class Command(BaseCommand):
     help = 'email warnings for unpaid ticket bookings'
 
     def handle(self, *args, **options):
+        write_command_name(self, __file__)
         # only send warnings between 7am and 10pm
         warnings_start_time = 7
         warnings_end_time = 22
@@ -26,6 +28,8 @@ class Command(BaseCommand):
         if warnings_start_time <= now.hour < warnings_end_time:
             warning_bookings = get_bookings()
             send_warning_email(self, warning_bookings)
+        else:
+            self.stdout.write(f"Outside of valid auto-cancel time (09:00 - 22:00)")
 
 
 def get_bookings():

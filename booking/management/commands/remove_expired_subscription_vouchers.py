@@ -4,19 +4,13 @@ Check if discount voucher code expires before next payment date
 Remove discount if necessary
 '''
 import logging
-from datetime import timedelta
-import stripe
 
-from django.utils import timezone
-from django.conf import settings
-from django.core.mail import send_mail
-from django.template.loader import get_template
+
 from django.core.management.base import BaseCommand
 
 from booking.models import UserMembership, StripeSubscriptionVoucher
-from booking.views.membership_views import ensure_subscription_up_to_date
-from activitylog.models import ActivityLog
 from stripe_payments.utils import StripeConnector
+from common.management import write_command_name
 
 
 logger = logging.getLogger(__name__)
@@ -26,6 +20,8 @@ class Command(BaseCommand):
     help = 'Remove expired discounts'
 
     def handle(self, *args, **options):
+        write_command_name(self, __file__)
+
         client = StripeConnector()
         active = UserMembership.objects.filter(subscription_status="active")
         for user_membership in active:

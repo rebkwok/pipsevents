@@ -27,7 +27,8 @@ from django.template.loader import get_template
 from django.core.management.base import BaseCommand
 
 from booking.models import Booking, WaitingListUser
-from booking.email_helpers import send_support_email, send_waiting_list_email
+from booking.email_helpers import send_waiting_list_email
+from common.management import write_command_name
 from activitylog.models import ActivityLog
 
 
@@ -41,11 +42,14 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         # only cancel between 9am and 10pm; warnings are sent from 7 so this allows a minimum of 2 hrs after warning
         # for payment before the next cancel job is run
+        write_command_name(self, __file__)
         cancel_start_time = 9
         cancel_end_time = 22
         now = timezone.now().astimezone(pytz.timezone("Europe/London"))
         if cancel_start_time <= now.hour < cancel_end_time:
             self.cancel_bookings(now)
+        else:
+            self.stdout.write(f"Outside of valid auto-cancel time (09:00 - 22:00)")
 
     def get_bookings_to_cancel(self, now):
         checkout_buffer_seconds = 60 * 5
@@ -86,6 +90,7 @@ class Command(BaseCommand):
 
     def cancel_bookings(self, now):
         bookings_for_studio_email = []
+        cancelled_count = 0
         send_waiting_list = set()
         for booking in self.get_bookings_to_cancel(now):
             ctx = {
@@ -117,6 +122,7 @@ class Command(BaseCommand):
                         booking.id, booking.event, booking.user
                 )
             )
+            cancelled_count += 1
             if settings.SEND_ALL_STUDIO_EMAILS:
                 bookings_for_studio_email.append(booking)
             send_waiting_list.add(booking.event)
@@ -136,6 +142,8 @@ class Command(BaseCommand):
                         event
                     )
                 )
+
+        self.stdout.write(f"{cancelled_count} bookings cancelled")
 
         if bookings_for_studio_email:
             # send single mail to Studio

@@ -12,15 +12,13 @@ from datetime import timedelta
 import pytz
 
 from django.utils import timezone
-from django.conf import settings
-from django.core.mail import send_mail
-from django.template.loader import get_template
 from django.core.management.base import BaseCommand
 
 from booking.models import UserMembership
 from booking.views.membership_views import ensure_subscription_up_to_date
 from activitylog.models import ActivityLog
 from stripe_payments.utils import StripeConnector
+from common.management import write_command_name
 
 
 logger = logging.getLogger(__name__)
@@ -30,6 +28,7 @@ class Command(BaseCommand):
     help = 'Cancel and delete setup pending subscriptions 23 hrs after creation'
 
     def handle(self, *args, **options):
+        write_command_name(self, __file__)
         client = StripeConnector()
         setup_pending = UserMembership.objects.filter(subscription_status="setup_pending")
         for user_membership in setup_pending:

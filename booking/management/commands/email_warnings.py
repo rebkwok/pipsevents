@@ -26,12 +26,14 @@ from paypal.standard.models import ST_PP_COMPLETED
 from booking.models import Booking, Event
 from activitylog.models import ActivityLog
 from payments.models import PaypalBookingTransaction
+from common.management import write_command_name
 
 
 class Command(BaseCommand):
     help = 'email warnings for unpaid bookings'
 
     def handle(self, *args, **options):
+        write_command_name(self, __file__)
         # only send warnings between 7am and 10pm
         warnings_start_time = 7
         warnings_end_time = 22
@@ -40,6 +42,8 @@ class Command(BaseCommand):
         if warnings_start_time <= now.hour < warnings_end_time:
             warning_bookings = get_bookings()
             send_warning_email(self, warning_bookings)
+        else:
+            self.stdout.write(f"Outside of valid auto-cancel time (09:00 - 22:00)")
 
 
 def get_bookings():

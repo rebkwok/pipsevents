@@ -6,8 +6,6 @@ import calendar
 import datetime
 from datetime import timezone as dt_timezone
 
-import re
-
 from django.contrib.auth.models import Group
 from django.conf import settings
 from django.core.mail import send_mail
@@ -18,12 +16,14 @@ from django.template.loader import get_template
 from booking.models import Block, BlockType, EventType
 
 from activitylog.models import ActivityLog
+from common.management import write_command_name
 
 
 class Command(BaseCommand):
     help = 'create free monthly blocks for instructors'
 
     def handle(self, *args, **options):
+        write_command_name(self, __file__)
         event_type = EventType.objects.get(subtype='Pole level class')
         created_users = []
         already_active_users = []
