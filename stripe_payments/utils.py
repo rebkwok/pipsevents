@@ -140,6 +140,12 @@ class StripeConnector:
         else:
             raise Seller.DoesNotExist
 
+    def get_test_clocks(self):  # pragma: no cover
+        return stripe.test_helpers.TestClock.list(limit=3, stripe_account=self.connected_account_id)
+    
+    def delete_test_clock(self, clock_id):  # pragma: no cover
+        return stripe.test_helpers.TestClock.delete(clock_id, stripe_account=self.connected_account_id)
+
     def create_stripe_product(self, product_id, name, description, price):
         price_in_p = int(price * 100)
         try:
