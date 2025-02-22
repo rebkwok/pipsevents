@@ -288,7 +288,7 @@ class UserMembership(models.Model):
         return f"{self.user} - {self.membership.name}"
 
     def clean(self):
-        if self.override_subscription_status not in self.HR_STATUS:
+        if self.override_subscription_status and self.override_subscription_status not in self.HR_STATUS:
             raise ValidationError(f"Invalid status '{self.override_subscription_status}'")
         return super().clean()
 
