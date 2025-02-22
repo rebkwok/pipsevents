@@ -1,5 +1,6 @@
 import json
 
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from datetime import datetime, timedelta
@@ -429,6 +430,26 @@ def test_user_membership_str(seller):
         user__username="test",
     )
     assert str(user_membership) == "test - Test membership"
+
+
+@patch("booking.models.membership_models.StripeConnector", MockConnector)
+def test_user_membership_invalid_override_status(seller):
+    membership = baker.make(
+        Membership, name="Test membership", description="a membership", price=10
+    )
+    with pytest.raises(ValidationError):
+        um = baker.make(
+            UserMembership,
+            membership=membership,
+            override_subscription_status="test",
+        )
+        um.clean()
+    um = baker.make(
+        UserMembership,
+        membership=membership,
+        override_subscription_status="paused",
+    )
+    um.clean()
 
 
 @pytest.mark.parametrize(

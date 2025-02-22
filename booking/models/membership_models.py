@@ -6,6 +6,7 @@ import re
 
 from django.core.validators import RegexValidator
 from django.db import models
+from django.core.exceptions import ValidationError
 from django.utils.text import slugify
 from django.utils import timezone
 
@@ -218,7 +219,7 @@ class UserMembership(models.Model):
 
     # Membership dates (always the 1st). End date is None for ongoing memberships.
     start_date = models.DateTimeField()
-    end_date = models.DateTimeField(null=True)
+    end_date = models.DateTimeField(null=True, blank=True)
 
     # stripe data
     # https://docs.stripe.com/api/subscriptions/object
@@ -238,12 +239,35 @@ class UserMembership(models.Model):
     # start date may be < 25th if a subscription was set up to start in the future
     # in this case the billing_cycle_anchor is the start date for payment purposes
     subscription_start_date = models.DateTimeField()
-    subscription_end_date = models.DateTimeField(null=True)
+    subscription_end_date = models.DateTimeField(null=True, blank=True)
     subscription_billing_cycle_anchor = models.DateTimeField()
+
+    # Allow manual overrides of local start date/subscription; this will prevent the local subscription
+    # being updated to stripes version of events
+    # E.g. user accidentally starts in Feb instead of March; we apply a discount for the full amount to
+    # March to compensate, and manually update the start date so they can't book Feb classes
+    # OR manually set status to paused; apply X months full vouchers to allow membership to be free while
+    # paused
+    override_start_date = models.DateTimeField(
+        null=True, blank=True,
+        help_text=(
+            "Set a manual start date; must be the 1st of a month. Actual start date from Stripe will be ignored. "
+            "Note that this affects users' ability to book classes ONLY, not payments. "
+            "Changing this date will not update any bookings that have already been made."
+        )
+    )
+    override_subscription_status = models.TextField(
+        null=True, blank=True,
+        help_text=(
+            "Set a manual subscription status; usually this will be used only to manually make a subscription"
+            "paused. Note that this affects users' ability to book classes ONLY, not payments. To also pause"
+            "payment, you need to add a 100% discount to the subscription for the relevant number of months."
+        )
+    )
 
     # Use to store setup intent for subscriptions set to start in the future so we can retrieve
     # them in the stripe webhook and move the subscription to active
-    pending_setup_intent = models.TextField(null=True)
+    pending_setup_intent = models.TextField(null=True, blank=True)
 
     # stripe status to user-friendly format
     HR_STATUS = {
@@ -254,6 +278,7 @@ class UserMembership(models.Model):
         "canceled": "Cancelled",
         "unpaid": "Unpaid",
         "setup_pending": "Incomplete",
+        "paused": "Paused",
     }
 
     class Meta:
@@ -261,6 +286,11 @@ class UserMembership(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user} - {self.membership.name}"
+
+    def clean(self):
+        if self.override_subscription_status not in self.HR_STATUS:
+            raise ValidationError(f"Invalid status '{self.override_subscription_status}'")
+        return super().clean()
 
     @classmethod
     def active_member_ids(cls):

@@ -502,20 +502,36 @@ def ensure_subscription_up_to_date(user_membership, subscription, subscription_i
             status = "setup_pending"
 
     if status == "active" and user_membership.subscription_status == "incomplete":
+        # prevent status being updated to active (the stripe subscription status) if
+        # the payment intent is not either succeeded or processing
         payment_intent_status = subscription.latest_invoice.payment_intent.status
         if payment_intent_status not in ["succeeded", "processing"]:
             status = "incomplete"
 
-    subscription_data = {
+    if user_membership.override_subscription_status:
+        # prevent status being updated to the actual stripe subscription status if
+        # it's been manually overridden
+        status = user_membership.override_subscription_status
+    
+    # prevent start date being updated if we've manually overridden it
+    if user_membership.override_start_date:
+        start_date = user_membership.override_start_date
+    else:
+        start_date = get_first_of_next_month_from_timestamp(subscription.start_date)
+        
+    # collate the actual membership data we expect to have; note this may not be the
+    # same as the stripe subscription data
+    expected_subscription_data = {
         "subscription_start_date": get_utcdate_from_timestamp(subscription.start_date),
         "subscription_end_date": sub_end,
-        "start_date": get_first_of_next_month_from_timestamp(subscription.start_date),
+        "start_date": start_date,
         "end_date": user_membership.calculate_membership_end_date(sub_end),
         "subscription_status": status,
         "subscription_billing_cycle_anchor": get_utcdate_from_timestamp(subscription.billing_cycle_anchor),
     }
     needs_update = False
-    for attribute, value in subscription_data.items():
+
+    for attribute, value in expected_subscription_data.items():
         if getattr(user_membership, attribute) != value:
             needs_update = True
             setattr(user_membership, attribute, value)
@@ -618,6 +634,14 @@ class MembershipListView(DataPolicyAgreementRequiredMixin, LoginRequiredMixin, L
                     ensure_subscription_up_to_date(user_membership, subscriptions.get(user_membership.subscription_id), user_membership.subscription_id)
 
         return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        this_month = datetime.now().month
+        next_month = (this_month + 1 - 12) % 12
+        context["this_month"] = calendar.month_abbr[this_month]
+        context["next_month"] = calendar.month_abbr[next_month]
+        return context
 
 
 @login_required

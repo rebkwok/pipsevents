@@ -1155,10 +1155,10 @@ def test_membership_list_get_subscription(mock_conn, client, seller, configured_
 
 
 @pytest.mark.parametrize(
-    "user_membership_status,subscription,expected",
+    "user_membership_attrs,subscription,expected",
     [
         (
-            "active",
+            {"subscription_status": "active"},
             MockEventObject(
                 canceled_at=None,
                 cancel_at=None,
@@ -1178,7 +1178,7 @@ def test_membership_list_get_subscription(mock_conn, client, seller, configured_
             )
         ),
         (
-            "canceled",
+            {"subscription_status": "canceled"},
             MockEventObject(
                 canceled_at=None,
                 cancel_at=None,
@@ -1198,7 +1198,7 @@ def test_membership_list_get_subscription(mock_conn, client, seller, configured_
             )
         ),
         (
-            "active",
+            {"subscription_status": "active"},
             MockEventObject(
                 canceled_at=datetime(2024, 2, 10, tzinfo=datetime_tz.utc).timestamp(),
                 cancel_at=None,
@@ -1218,7 +1218,7 @@ def test_membership_list_get_subscription(mock_conn, client, seller, configured_
             )
         ),
         (
-            "active",
+            {"subscription_status": "active"},
             MockEventObject(
                 canceled_at=None,
                 cancel_at=datetime(2024, 2, 10, tzinfo=datetime_tz.utc).timestamp(),
@@ -1239,7 +1239,7 @@ def test_membership_list_get_subscription(mock_conn, client, seller, configured_
         ),
         # payment intent status not succeeded/processing
         (
-            "incomplete",
+            {"subscription_status": "incomplete"},
             MockEventObject(
                 canceled_at=None,
                 cancel_at=datetime(2024, 2, 10, tzinfo=datetime_tz.utc).timestamp(),
@@ -1261,7 +1261,7 @@ def test_membership_list_get_subscription(mock_conn, client, seller, configured_
         ),
         # with non-expiring discount
         (
-            "active",
+            {"subscription_status": "active"},
             MockEventObject(
                 canceled_at=None,
                 cancel_at=datetime(2024, 2, 10, tzinfo=datetime_tz.utc).timestamp(),
@@ -1282,7 +1282,7 @@ def test_membership_list_get_subscription(mock_conn, client, seller, configured_
         ),
         # with expiring discount
         (
-            "active",
+            {"subscription_status": "active"},
             MockEventObject(
                 canceled_at=None,
                 cancel_at=datetime(2024, 2, 10, tzinfo=datetime_tz.utc).timestamp(),
@@ -1303,7 +1303,7 @@ def test_membership_list_get_subscription(mock_conn, client, seller, configured_
         ),
         # setup_pending stays as is if pending setup intent not complete
         (
-            "setup_pending",
+            {"subscription_status": "setup_pending"},
             MockEventObject(
                 canceled_at=None,
                 cancel_at=None,
@@ -1326,7 +1326,7 @@ def test_membership_list_get_subscription(mock_conn, client, seller, configured_
         ),
         # setup_pending updated if default payment method
         (
-            "setup_pending",
+            {"subscription_status": "setup_pending"},
             MockEventObject(
                 canceled_at=None,
                 cancel_at=None,
@@ -1349,7 +1349,7 @@ def test_membership_list_get_subscription(mock_conn, client, seller, configured_
         ),
         # setup_pending updated if setup succeeded
         (
-            "setup_pending",
+            {"subscription_status": "setup_pending"},
             MockEventObject(
                 canceled_at=None,
                 cancel_at=None,
@@ -1369,14 +1369,84 @@ def test_membership_list_get_subscription(mock_conn, client, seller, configured_
                 subscription_end_date=None,
                 subscription_billing_cycle_anchor=datetime(2024, 1, 25, tzinfo=datetime_tz.utc)
             )
-        )
+        ),
+        # with different start date, no override
+        (
+            {"subscription_status": "active", "start_date": datetime(2024, 2, 1, tzinfo=datetime_tz.utc)},
+            MockEventObject(
+                canceled_at=None,
+                cancel_at=None,
+                status="active",
+                start_date=datetime(2024, 1, 12, tzinfo=datetime_tz.utc).timestamp(),
+                billing_cycle_anchor=datetime(2024, 1, 25, tzinfo=datetime_tz.utc).timestamp(),
+                discount=None, 
+                discounts=[]
+            ),
+            dict(
+                subscription_status="active",
+                start_date=datetime(2024, 2, 1, tzinfo=datetime_tz.utc),
+                subscription_start_date=datetime(2024, 1, 12, tzinfo=datetime_tz.utc),
+                end_date=None,
+                subscription_end_date=None,
+                subscription_billing_cycle_anchor=datetime(2024, 1, 25, tzinfo=datetime_tz.utc)
+            ),
+        ),
+        # with override start date
+        (
+            {
+                "subscription_status": "active", 
+                "start_date": datetime(2024, 1, 1, tzinfo=datetime_tz.utc),
+                "override_start_date": datetime(2024, 3, 1, tzinfo=datetime_tz.utc)
+            },
+            MockEventObject(
+                canceled_at=None,
+                cancel_at=None,
+                status="active",
+                start_date=datetime(2024, 1, 12, tzinfo=datetime_tz.utc).timestamp(),
+                billing_cycle_anchor=datetime(2024, 1, 25, tzinfo=datetime_tz.utc).timestamp(),
+                discount=None, 
+                discounts=[]
+            ),
+            dict(
+                subscription_status="active",
+                start_date=datetime(2024, 3, 1, tzinfo=datetime_tz.utc),
+                subscription_start_date=datetime(2024, 1, 12, tzinfo=datetime_tz.utc),
+                end_date=None,
+                subscription_end_date=None,
+                subscription_billing_cycle_anchor=datetime(2024, 1, 25, tzinfo=datetime_tz.utc)
+            ),
+        ),
+        # paused status is not updated
+        (
+            {
+                "subscription_status": "active",
+                "override_subscription_status": "paused" 
+            },
+            MockEventObject(
+                canceled_at=None,
+                cancel_at=None,
+                status="active",
+                start_date=datetime(2024, 1, 12, tzinfo=datetime_tz.utc).timestamp(),
+                billing_cycle_anchor=datetime(2024, 1, 25, tzinfo=datetime_tz.utc).timestamp(),
+                discount=None, 
+                discounts=[]
+            ),
+            dict(
+                subscription_status="paused",
+                start_date=datetime(2024, 2, 1, tzinfo=datetime_tz.utc),
+                subscription_start_date=datetime(2024, 1, 12, tzinfo=datetime_tz.utc),
+                end_date=None,
+                subscription_end_date=None,
+                subscription_billing_cycle_anchor=datetime(2024, 1, 25, tzinfo=datetime_tz.utc)
+            ),
+        ),
     ]
 )
 @patch("booking.models.membership_models.StripeConnector", MockConnector)
 @patch("booking.views.membership_views.StripeConnector")
 def test_ensure_subscription_up_to_date(
-    mock_view_connector, seller, configured_stripe_user, user_membership_status, subscription, purchasable_membership,
-    expected
+    mock_view_connector, seller, configured_stripe_user, purchasable_membership, 
+    user_membership_attrs, subscription, expected
 ):
     view_connector = MockConnector()
     mock_view_connector.return_value = view_connector
@@ -1391,7 +1461,7 @@ def test_ensure_subscription_up_to_date(
         user=configured_stripe_user, 
         membership=purchasable_membership, 
         subscription_id="sub-1",
-        subscription_status=user_membership_status,
+        **user_membership_attrs,
     )
 
     ensure_subscription_up_to_date(user_membership, subscription, "sub-1")
