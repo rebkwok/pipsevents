@@ -60,7 +60,7 @@
             {% block left-nav-items %}
             <li class="nav-item"><a class="nav-link" href="{% url 'booking:lessons' %}">Classes</a></li>
             <li class="nav-item"><a class="nav-link" href="{% url 'booking:events' %}">Workshops</a></li>
-            {% if room_hires %}
+            {% if room_hires_exist %}
             <li class="nav-item"><a class="nav-link" href="{% url 'booking:room_hires' %}">Room Hire</a></li>
             {% endif %}
             {% if show_memberships %}
