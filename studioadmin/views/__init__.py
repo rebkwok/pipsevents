@@ -49,7 +49,7 @@ __all__ = [
     'DisclaimerUpdateView', 'NonRegisteredDisclaimersListView', 'nonregistered_disclaimer',
     'DisclaimerContentCreateView', 'DisclaimerContentListView', 'disclaimer_content_view',
     'DisclaimerContentUpdateView', 'expire_user_disclaimer',
-    'email_users_view', 'event_admin_list',
+    'email_users_view', 'event_admin_list', 'event_admin_list',
     'EventAdminCreateView', 'EventAdminUpdateView',
     'EventRegisterListView', 'EventVoucherDetailView',
     'event_waiting_list_view', 'MailingListView',

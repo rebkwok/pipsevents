@@ -16,30 +16,6 @@ from booking.models import AllowedGroup, Event, EventType, FilterCategory
 from studioadmin.forms.utils import cancel_choices
 
 
-class EventBaseFormSet(BaseModelFormSet):
-
-    def add_fields(self, form, index):
-        super(EventBaseFormSet, self).add_fields(form, index)
-
-        form.fields['visible_on_site'] = forms.BooleanField(
-            label="Visible"
-        )
-
-        for field in form.fields.values():
-            field.required = False
-
-
-EventFormSet = modelformset_factory(
-    Event,
-    fields=(
-        'visible_on_site', 'booking_open', 'payment_open', 'advance_payment_required'
-    ),
-    formset=EventBaseFormSet,
-    extra=0,
-    can_delete=True
-)
-
-
 dateoptions = {
         'format': 'dd/mm/yyyy hh:ii',
         'autoclose': True,

@@ -8,78 +8,7 @@ from django.conf import settings
 from django.test import TestCase
 
 from booking.models import Event, EventType, FilterCategory
-from studioadmin.forms import EventFormSet, EventAdminForm, OnlineTutorialAdminForm
-
-
-class EventFormSetTests(TestCase):
-
-    def setUp(self):
-        self.event = baker.make_recipe('booking.future_EV')
-        self.event1 = baker.make_recipe('booking.future_EV')
-        self.tutorial = baker.make_recipe('booking.future_OT')
-
-    def formset_data(self, extra_data={}):
-
-        data = {
-            'form-TOTAL_FORMS': 1,
-            'form-INITIAL_FORMS': 1,
-            'form-0-id': str(self.event.id),
-            'form-0-max-participants': '10',
-            'form-0-booking_open': 'on',
-            'form-0-payment_open': 'on',
-            'form-0-advance_payment_required': 'on',
-            }
-
-        for key, value in extra_data.items():
-            data[key] = value
-
-        return data
-
-    def test_event_formset_valid(self):
-        formset = EventFormSet(data=self.formset_data())
-        self.assertTrue(formset.is_valid())
-
-    def test_event_formset_delete(self):
-        extra_data = {
-            'form-TOTAL_FORMS': 2,
-            'form-INITIAL_FORMS': 2,
-            'form-0-DELETE': 'on',
-            'form-1-id': self.event1.id,
-            'form-1-cost': '7',
-            'form-1-max-participants': '10',
-            'form-1-booking_open': 'on',
-            'form-1-payment_open': 'on',
-            }
-        formset = EventFormSet(data=self.formset_data(extra_data))
-        self.assertEqual(len(formset.deleted_forms), 1)
-        deleted_form = formset.deleted_forms[0]
-        self.assertEqual(deleted_form.cleaned_data['id'], self.event)
-
-    def test_event_formset_delete_with_bookings(self):
-        """
-        Test delete widget is formatted if bookings made against event
-        (will be hidden in template and Cancel button will be displayed instead)
-        """
-        extra_data = {
-            'form-TOTAL_FORMS': 2,
-            'form-INITIAL_FORMS': 2,
-            'form-0-DELETE': 'on',
-            'form-1-id': str(self.event1.id),
-            'form-1-cost': '7',
-            'form-1-max-participants': '10',
-            'form-1-booking_open': 'on',
-            'form-1-payment_open': 'on',
-            'form-1-DELETE': 'on',
-            }
-        formset = EventFormSet(data=self.formset_data(extra_data))
-        deleted_form_no_bookings = formset.deleted_forms[0]
-        deleted_form_with_bookings = formset.deleted_forms[1]
-        self.assertEqual(
-            deleted_form_no_bookings.cleaned_data['id'], self.event
-        )
-        self.assertEqual(
-            deleted_form_with_bookings.cleaned_data['id'], self.event1
-        )
+from studioadmin.forms import EventAdminForm, OnlineTutorialAdminForm
 
 
 class EventAdminFormTests(TestCase):

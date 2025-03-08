@@ -20,7 +20,7 @@ from dateutil.relativedelta import relativedelta
 
 from booking.models import Block, BlockType, Booking, Event, FilterCategory
 from booking.email_helpers import send_support_email
-from studioadmin.forms import EventFormSet,  EventAdminForm, OnlineTutorialAdminForm
+from studioadmin.forms import EventAdminForm, OnlineTutorialAdminForm
 from studioadmin.views.email_helpers import send_new_classes_email_to_members
 from studioadmin.views.helpers import staff_required, StaffUserMixin, set_cloned_name, get_page
 from activitylog.models import ActivityLog
@@ -56,8 +56,7 @@ def _get_events(ev_type, request, past, page=None):
     paginator = Paginator(nonpag_events, 30)
     event_page = get_page(request, paginator, page)
     events = event_page.object_list
-    eventformset = EventFormSet(queryset=events)
-    return events, event_page, eventformset
+    return events, event_page
 
 
 @login_required
@@ -70,121 +69,29 @@ def event_admin_list(request, ev_type):
         show_past = "past" in request.POST
         if "past" in request.POST or "upcoming" in request.POST:
             # clear the page number if we're switching btwn past and upcoming
-            events, ev_page, eventformset = _get_events(
+            events, ev_page = _get_events(
                 ev_type, request, show_past, page=1
             )
         else:
-            eventformset = EventFormSet(request.POST)
-
-            if eventformset.is_valid():
-                if not eventformset.has_changed():
-                    messages.info(request, "No changes were made")
-                else:
-                    newly_visible = []
-                    for form in eventformset:
-                        if form.has_changed():
-                            if 'DELETE' in form.changed_data:
-                                messages.success(
-                                    request, mark_safe(
-                                        '{} <strong>{}</strong> has been deleted!'.format(
-                                            ev_type_text.title(), form.instance,
-                                        )
-                                    )
-                                )
-                                ActivityLog.objects.create(
-                                    log='{} {} (id {}) deleted by admin user {}'.format(
-                                        ev_type_text.title(), form.instance,
-                                        form.instance.id, request.user.username
-                                    )
-                                )
-                            else:
-                                event = form.save()
-                                if "visible_on_site" in form.changed_data and event.visible_on_site:
-                                    newly_visible.append(event)
-                                changed_fields = []
-                                unchanged_fields = []
-                                for field in form.changed_data:
-                                    if getattr(event, field) == form.cleaned_data[field]:
-                                        changed_fields.append(field)
-                                    else:
-                                        unchanged_fields.append(field)
-                                
-                                if changed_fields:
-                                    fields_str = ", ".join(
-                                        [field.title().replace("_", " ") for field in changed_fields]
-                                    )
-                                    messages.success(
-                                        request, mark_safe(
-                                            f"<strong>{fields_str}</strong> updated for "
-                                            f"<strong>{event}</strong>"
-                                        )
-                                    )
-                                    ActivityLog.objects.create(
-                                        log=f"{ev_type_text.title()} {event} (id {event.id}) updated by "
-                                            f"admin user {request.user.username}: fields changed: {fields_str}"
-                                    )
-                                    
-                                if unchanged_fields:
-                                    fields_str = ", ".join(
-                                        [field.title().replace("_", " ") for field in unchanged_fields]
-                                    )
-                                    messages.error(
-                                        request, mark_safe(
-                                            f"<strong>{fields_str}</strong> could not be updated for "
-                                            f"<strong>{event}</strong>"
-                                        )
-                                    )
-
-                    eventformset.save()
-
-                    if newly_visible:
-                        send_new_classes_email_to_members(request, newly_visible)
-
-                return HttpResponseRedirect(
-                    reverse('studioadmin:{}'.format(ev_type))
-                )
-            else:  # pragma: no cover
-                # currently only boolean fields, this is left here in case of
-                # future additional fields
-                messages.error(
-                    request,
-                    mark_safe(
-                        "There were errors in the following fields:\n{}".format(
-                            '\n'.join(
-                                [
-                                    "{}".format(error)
-                                    for error in eventformset.errors
-                                    ]
-                            )
-                        )
-                    )
-                )
-                #  get events and page, keep existing queryset
-                events, ev_page, _ = _get_events(
-                    ev_type, request, show_past, page
-                )
+            #  get events and page, keep existing queryset
+            events, ev_page = _get_events(
+                ev_type, request, show_past, page
+            )
 
     else:  # GET; default to upcoming
         show_past = request.GET.get('past', False)
-        events, ev_page, eventformset = _get_events(
+        events, ev_page = _get_events(
             ev_type, request, show_past, page
         )
-        eventformset = EventFormSet(queryset=events)
-
-    non_deletable_events = Booking.objects.select_related('event')\
-        .filter(event__in=events)\
-        .distinct().values_list('event__id', flat=True)
 
     return TemplateResponse(
         request, 'studioadmin/admin_events.html', {
-            'eventformset': eventformset,
             'type': ev_type,
             'events': events,
             'event_page': ev_page,
             'paginator_range': ev_page.paginator.get_elided_page_range(ev_page.number),
             'sidenav_selection': ev_type,
             'show_past': show_past,
-            'non_deletable_events': non_deletable_events
             }
     )
 

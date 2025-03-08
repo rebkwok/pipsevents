@@ -24,24 +24,21 @@
             </div>
     {% endif %}
 
+    <div class="row">
+        <form class="form dirty-check" method="post" action="">
+            {% csrf_token %}
+            <div class="top-button-row float-right">
+                {% if show_past %}
+                <input class="btn btn-info table-btn filter-btn float-right" name="upcoming" type="submit" value="Show upcoming {% if type == 'events' %}events{% elif type == 'lessons' %}classes{% elif type == 'online_tutorials' %}tutorials{% endif %}" />
+                {% else %}
+                <input class="btn btn-info table-btn filter-btn float-right" name="past" type="submit" value="Show past {% if type == 'events' %}events{% elif type == 'lessons' %}classes{% elif type == 'online_tutorials' %}tutorials{% endif %}" />
+                {% endif %}
+            </div>
+        </form>
+    </div>
         <div class="row">
-            <form class="form dirty-check" method="post" action="">
-                    {% csrf_token %}
-                    {{ eventformset.management_form }}
-                    {% if type == 'lessons' %}
-                    {% endif %}
-
-                    <div class="top-button-row">
-                    {% if events %}
-                        <input class="btn btn-wm table-btn" name="formset_submitted" type="submit" value="Save changes" />
-                    {% endif %}
-                        {% if show_past %}
-                        <input class="btn btn-info table-btn filter-btn float-right" name="upcoming" type="submit" value="Show upcoming {% if type == 'events' %}events{% elif type == 'lessons' %}classes{% elif type == 'online_tutorials' %}tutorials{% endif %}" />
-                        {% else %}
-                        <input class="btn btn-info table-btn filter-btn float-right" name="past" type="submit" value="Show past {% if type == 'events' %}events{% elif type == 'lessons' %}classes{% elif type == 'online_tutorials' %}tutorials{% endif %}" />
-                        {% endif %}
-                    </div>
-                {% if events %}
+            
+            {% if events %}
                 <div class="card card-wm">
                     <div class="table-responsive">
                         <table class="table">
@@ -57,8 +54,8 @@
                                 <th class="text-center">
                                     {% if type == "online_tutorials" %}Purchases{% else %}
                                     Bookings</br>
-                                    <span class="studioadmin-help">Click for waiting list</span>{% endif %}</th>
-                                <th class="text-center smaller"><small>Visible on site</small></th>
+                                    <span class="studioadmin-help">(waiting list)</span>{% endif %}</th>
+                                <th class="text-center smaller"><small>Visible</small></th>
                                 <th class="text-center"><small>Booking open</small></th>
                                 <th class="text-center"><small>Payment open</small></th>
                                 {% if type != "online_tutorials" %}
@@ -69,64 +66,62 @@
                                 <th class="text-center">Delete</th>
                             </tr>
 
-                            {% for event in eventformset %}
-                            <tr {% if event.instance.cancelled %}class="cancelled-event"{% endif %}>
+                            {% for event in events %}
+                            <tr {% if event.cancelled %}class="cancelled-event"{% endif %}>
                                 <span class="hide">{{ event.id }}</span>
                                 <td class="text-center studioadmin-tbl">
                                     {% if type == 'events' %}
-                                    <a href="{% url 'studioadmin:edit_event' event.instance.slug %}?from_page={{ event_page.number }}"><span class="fas fa-edit"></span>
+                                    <a href="{% url 'studioadmin:edit_event' event.slug %}?from_page={{ event_page.number }}"><span class="fas fa-edit"></span>
                                     {% elif type == 'lessons' %}</a>
-                                    <a href="{% url 'studioadmin:edit_lesson' event.instance.slug %}?from_page={{ event_page.number }}"><span class="fas fa-edit"></span>
+                                    <a href="{% url 'studioadmin:edit_lesson' event.slug %}?from_page={{ event_page.number }}"><span class="fas fa-edit"></span>
                                     {% elif type == 'room_hires' %}</a>
-                                        <a href="{% url 'studioadmin:edit_room_hire' event.instance.slug %}?from_page={{ event_page.number }}"><span class="fas fa-edit"></span>
+                                        <a href="{% url 'studioadmin:edit_room_hire' event.slug %}?from_page={{ event_page.number }}"><span class="fas fa-edit"></span>
                                     {% elif type == 'online_tutorials' %}</a>
-                                    <a href="{% url 'studioadmin:edit_online_tutorial' event.instance.slug %}?from_page={{ event_page.number }}"><span class="fas fa-edit"></span>
+                                    <a href="{% url 'studioadmin:edit_online_tutorial' event.slug %}?from_page={{ event_page.number }}"><span class="fas fa-edit"></span>
 
                                     {% endif %}</a>
                                 </td>
-                                <td class="studioadmin-tbl">{{ event.instance.date | date:"D d M Y, H:i" }}</td>
+                                <td class="studioadmin-tbl">{{ event.date | date:"D d M Y, H:i" }}</td>
                                 <td class="studioadmin-tbl">
-                                    <a href="{% url 'studioadmin:event_register' event.instance.slug %}">{{ event.instance.name }}</a>
-                                     <span class="studioadmin-help">({{ event.instance.event_type.subtype }})</span>
-                                    {% if event.instance.is_online and not event.instance.video_link %}
+                                    <a href="{% url 'studioadmin:event_register' event.slug %}">{{ event.name }}</a>
+                                        <span class="studioadmin-help">({{ event.event_type.subtype }})</span>
+                                    {% if event.is_online and not event.video_link %}
                                         <span class="cancel-warning"> <i class="fas fa-exclamation-circle"></i> Video link missing <i class="fas fa-exclamation-circle"></i><span class="error">
                                     {% endif %}
                                 </td>
-                                <td class="studioadmin-tbl text-center"><small>{{ event.instance.allowed_group_for_event }}</small></td>
+                                <td class="studioadmin-tbl text-center"><small>{{ event.allowed_group_for_event }}</small></td>
                                 {% if type == 'lessons' or type == "room_hires" %}
-                                <td class="studioadmin-tbl"><small>{{ event.instance|format_categories }}</small></td>
+                                <td class="studioadmin-tbl"><small>{{ event |format_categories }}</small></td>
                                 {% endif %}
                                 {% if location_count > 1 %}
-                                    <td class="text-center studioadmin-tbl"><span class="badge badge-pill badge-location badge-location-{{ event.instance.location_index }}">{{ event.instance.location }}</span></td>
+                                    <td class="text-center studioadmin-tbl"><span class="badge badge-pill badge-location badge-location-{{ event.location_index }}">{{ event.location }}</span></td>
                                 {% endif %}
                                 <td class="text-center studioadmin-tbl">
-                                    {% if event.instance.max_participants %}{{ event.instance.max_participants }}{% else %}N/A{% endif %}</td>
+                                    {% if event.max_participants %}{{ event.max_participants }}{% else %}N/A{% endif %}</td>
                                 <td class="text-center studioadmin-tbl">
-                                    {% if event.instance.waitinglistusers.count > 0 %}
-                                        <a href="{% url 'studioadmin:event_waiting_list' event.instance.id %}">{{ event.instance|bookings_count }}</a>
+                                    {% if event.waitinglistusers.count > 0 %}
+                                        <a href="{% url 'studioadmin:event_waiting_list' event.id %}">{{ event |bookings_count }}</a>
                                     {% else %}
-                                        {{ event.instance|bookings_count }}
+                                        {{ event |bookings_count }}
                                     {% endif %}
                                 </td>
-                                <td class="text-center studioadmin-tbl">{{ event.visible_on_site }}</td>
-                                <td class="text-center studioadmin-tbl">{{ event.booking_open }}</td>
-                                <td class="text-center studioadmin-tbl">{{ event.payment_open }}</td>
+                                <td class="text-center studioadmin-tbl">{% if event.visible_on_site %}<i class="text-success fas fa-check-circle"></i>{% else %}<i class="text-danger fas fa-times-circle"></i>{% endif %}</td>
+                                <td class="text-center studioadmin-tbl">{% if event.booking_open %}<i class="text-success fas fa-check-circle"></i>{% else %}<i class="text-danger fas fa-times-circle"></i>{% endif %}</td>
+                                <td class="text-center studioadmin-tbl">{% if event.payment_open %}<i class="text-success fas fa-check-circle"></i>{% else %}<i class="text-danger fas fa-times-circle"></i>{% endif %}</td>
                                 {% if type != "online_tutorials" %}
-                                    <td class="text-center studioadmin-tbl">{{ event.advance_payment_required }}</td>
-                                <td class="text-center studioadmin-tbl">{{ event.instance.allow_booking_cancellation|yesno:"Yes,No" }}</td>
+                                    <td class="text-center studioadmin-tbl">{% if event.advance_payment_required %}<i class="text-success fas fa-check-circle"></i>{% else %}<i class="text-danger fas fa-times-circle"></i>{% endif %}</td>
+                                <td class="text-center studioadmin-tbl">{% if event.allow_booking_cancellation %} <i class="text-success fas fa-check-circle"></i>{% else %}<i class="text-danger fas fa-times-circle"></i>{% endif %}</td>
                                 {% else %}
-                                    <span class="hide">{{ event.advance_payment_required }}</span>
+                                    <span class="hide">{% if event.advance_payment_required %}<i class="text-success fas fa-check-circle"></i>{% else %}<i class="text-danger fas fa-times-circle"></i>{% endif %}</span>
                                 {% endif %}
-                                <td class="text-center studioadmin-tbl"><a href="{% url 'studioadmin:clone_event' event.instance.slug %}"><i class="far fa-clone"></i></a></td>
+                                <td class="text-center studioadmin-tbl"><a href="{% url 'studioadmin:clone_event' event.slug %}"><i class="far fa-clone"></i></a></td>
                                 <td class="text-center studioadmin-tbl">
-                                    {% if event.instance.cancelled %}
+                                    {% if event.cancelled %}
                                         CANCELLED
-                                    {% elif event.instance.id in non_deletable_events %}
-                                        <a href="{% url 'studioadmin:cancel_event' event.instance.slug %}">
+                                    {% else %}
+                                        <a href="{% url 'studioadmin:cancel_event' event.slug %}">
                                             <div id="cancel_button" class="btn btn-danger table-btn">Cancel {% if type == 'events' %}Event{% elif type == 'lessons' %}Class{% elif type == 'room_hires' %}Room Hire{% endif %}</div>
                                         </a>
-                                    {% else %}
-                                        {{ event.DELETE }}
                                     {% endif %}
                                 </td>
                             </tr>
@@ -154,7 +149,6 @@
                     </div>
                 </div>
             {% endif %}
-            </form>
         </div>
 
 {% endblock studioadmincontent %}

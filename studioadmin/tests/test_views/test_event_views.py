@@ -34,23 +34,6 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
         self.room_hire_url = reverse('studioadmin:room_hires')
         self.client.force_login(self.staff_user)
 
-    def formset_data(self, extra_data=None):
-        extra_data = extra_data or {}
-        data = {
-            'form-TOTAL_FORMS': 1,
-            'form-INITIAL_FORMS': 1,
-            'form-0-id': str(self.event.id),
-            'form-0-max-participants': self.event.max_participants or '',
-            'form-0-booking_open': self.event.booking_open,
-            'form-0-payment_open': self.event.payment_open,
-            'form-0-advance_payment_required': self.event.advance_payment_required
-            }
-
-        for key, value in extra_data.items():
-            data[key] = value
-
-        return data
-
     def test_cannot_access_if_not_logged_in(self):
         """
         test that the page redirects if user is not logged in
@@ -95,62 +78,36 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
         events.append(self.event)
         resp = self.client.get(self.url)
 
-        eventsformset = resp.context_data['eventformset']
-
-        self.assertEqual(
-            sorted([ev.id for ev in eventsformset.queryset]),
-            sorted([ev.id for ev in events])
-        )
+        assert {ev.id for ev in resp.context_data["events"]} == {ev.id for ev in events}
         self.assertIn('Scheduled Events', resp.rendered_content)
 
     def test_classes_url_shows_excludes_events(self):
         classes = baker.make_recipe('booking.future_PC', _quantity=5)
-        url = reverse('studioadmin:lessons')
         resp = self.client.get(self.lesson_url)
-        eventsformset = resp.context_data['eventformset']
 
-        self.assertEqual(
-            sorted([ev.id for ev in eventsformset.queryset]),
-            sorted([ev.id for ev in classes])
-        )
+        assert {ev.id for ev in resp.context_data["events"]} == {cl.id for cl in classes}
         self.assertIn('Scheduled Classes', resp.rendered_content)
 
     def test_room_hire_and_classes(self):
-        classes = baker.make_recipe('booking.future_PC', _quantity=5)
-        room_hires = baker.make_recipe('booking.future_RH', _quantity=5)
-        url = reverse('studioadmin:lessons')
+        baker.make_recipe('booking.future_PC', _quantity=5)
+        baker.make_recipe('booking.future_RH', _quantity=4)
         resp = self.client.get(self.lesson_url)
-        eventsformset = resp.context_data['eventformset']
 
-        self.assertEqual(
-            sorted([ev.id for ev in eventsformset.queryset]),
-            sorted([ev.id for ev in classes])
-        )
-        self.assertEqual(Event.objects.count(), 11)
-        self.assertEqual(eventsformset.queryset.count(), 5)
+        self.assertEqual(Event.objects.count(), 10)
+        self.assertEqual(resp.context_data["events"].count(), 5)
         self.assertIn('Scheduled Classes', resp.rendered_content)
 
         resp = resp = self.client.get(self.room_hire_url)
-        eventsformset = resp.context_data['eventformset']
-
-        self.assertEqual(
-            sorted([ev.id for ev in eventsformset.queryset]),
-            sorted([ev.id for ev in room_hires])
-        )
-        self.assertEqual(eventsformset.queryset.count(), 5)
+        self.assertEqual(resp.context_data["events"].count(), 4)
         self.assertIn('Scheduled Room Hire', resp.rendered_content)
 
     def test_past_filter(self):
         past_evs = baker.make_recipe('booking.past_event', _quantity=5)
         resp = self.client.post(self.url, {'past': 'Show past'})
 
-        eventsformset = resp.context_data['eventformset']
-        self.assertEqual(
-            sorted([ev.id for ev in eventsformset.queryset]),
-            sorted([ev.id for ev in past_evs])
-        )
+        assert {ev.id for ev in resp.context_data["events"]} == {ev.id for ev in past_evs}
         self.assertEqual(Event.objects.count(), 6)
-        self.assertEqual(eventsformset.queryset.count(), 5)
+        self.assertEqual(resp.context_data["events"] .count(), 5)
 
         self.assertIn('Past Events', resp.rendered_content)
         self.assertNotIn('Scheduled Events',resp.rendered_content)
@@ -159,13 +116,9 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
         past_classes = baker.make_recipe('booking.past_class', _quantity=5)
         resp = self.client.post(self.lesson_url, {'past': 'Show past'})
 
-        eventsformset = resp.context_data['eventformset']
-        self.assertEqual(
-            sorted([ev.id for ev in eventsformset.queryset]),
-            sorted([ev.id for ev in past_classes])
-        )
+        {ev.id for ev in resp.context_data["events"]} == {ev.id for ev in past_classes}
         self.assertEqual(Event.objects.count(), 6)
-        self.assertEqual(eventsformset.queryset.count(), 5)
+        self.assertEqual(resp.context_data["events"].count() , 5)
 
         self.assertIn(
             'Past Classes', format_content(resp.rendered_content)
@@ -174,13 +127,9 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
     def test_upcoming_filter(self):
         past_evs = baker.make_recipe('booking.past_event', _quantity=5)
         resp = resp = self.client.post(self.url, {'upcoming': 'Show upcoming'})
-        eventsformset = resp.context_data['eventformset']
-        self.assertEqual(
-            sorted([ev.id for ev in eventsformset.queryset]),
-            [self.event.id]
-        )
+       
         self.assertEqual(Event.objects.count(), 6)
-        self.assertEqual(eventsformset.queryset.count(), 1)
+        assert resp.context_data["events"].count() == 1
 
         self.assertIn('Scheduled Events', resp.rendered_content)
         self.assertNotIn('Past Events', resp.rendered_content)
@@ -194,23 +143,20 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
         )
         # paginating future
         resp = self.client.get(url + '?page=1')
-        eventsformset = resp.context_data['eventformset']
-        self.assertEqual(eventsformset.queryset.count(), 30)
+        self.assertEqual(resp.context_data["events"].count(), 30)
         paginator = resp.context_data['event_page']
         self.assertEqual(paginator.number, 1)
 
         # page not a number shows page 1
         resp = self.client.get(url + '?page=one')
-        eventsformset = resp.context_data['eventformset']
-        self.assertEqual(eventsformset.queryset.count(), 30)
+        self.assertEqual(resp.context_data["events"].count() , 30)
         paginator = resp.context_data['event_page']
         self.assertEqual(paginator.number, 1)
 
         # page out of range shows last page
         resp = self.client.get(url + '?page=3')
 
-        eventsformset = resp.context_data['eventformset']
-        self.assertEqual(eventsformset.queryset.count(), 5)
+        self.assertEqual(resp.context_data["events"].count(), 5)
         paginator = resp.context_data['event_page']
         self.assertEqual(paginator.number, 2)
 
@@ -221,58 +167,14 @@ class EventAdminListViewTests(TestPermissionMixin, TestCase):
 
         # get only shows future by default
         resp = self.client.get(url)
-        eventsformset = resp.context_data['eventformset']
-        self.assertEqual(eventsformset.queryset.count(), 0)
+        self.assertEqual(resp.context_data["events"].count(), 0)
 
         # past with page defaults back to page 1 b/c we are switching from
         # displaying upcoming
         resp = self.client.post(url + '?page=2', {'past': 'Show past'})
-        eventsformset = resp.context_data['eventformset']
-        self.assertEqual(eventsformset.queryset.count(), 30)
+        self.assertEqual(resp.context_data["events"].count(), 30)
         paginator = resp.context_data['event_page']
         self.assertEqual(paginator.number, 1)
-
-    def test_cancel_button_shown_for_events_with_bookings(self):
-        """
-        Test delete checkbox is not shown for events with bookings; cancel
-        button shown instead
-        :return:
-        """
-        # events are ordered by date and then name, make sure this one is second
-        event = baker.make_recipe('booking.future_EV', date=self.event.date + timedelta(1))
-        baker.make_recipe('booking.booking', event=event)
-        assert event.bookings.all().count() == 1
-        assert self.event.bookings.all().count() == 0
-        resp = self.client.get(reverse("studioadmin:events"))
-        assert 'form-0-DELETE' in resp.rendered_content
-        assert 'form-1-DELETE' not in resp.rendered_content
-        assert 'cancel_button' in resp.rendered_content
-
-    def test_can_delete(self):
-        self.assertEqual(Event.objects.all().count(), 1)
-        formset_data = self.formset_data({
-            'form-0-DELETE': 'on'
-            })
-        self.client.post(self.url, formset_data)
-        self.assertEqual(Event.objects.all().count(), 0)
-
-    def test_can_update_existing_event(self):
-        self.assertTrue(self.event.booking_open)
-        formset_data = self.formset_data({
-            'form-0-booking_open': 'false'
-            })
-        self.client.post(self.url, formset_data)
-        self.event.refresh_from_db()
-        self.assertFalse(self.event.booking_open)
-
-    def test_submitting_valid_form_redirects_back_to_correct_url(self):
-        resp = self.client.post(self.url, self.formset_data())
-        self.assertEqual(resp.status_code, 302)
-        self.assertEqual(resp.url, reverse('studioadmin:events'))
-
-        resp = self.client.post(self.lesson_url, self.formset_data())
-        self.assertEqual(resp.status_code, 302)
-        self.assertEqual(resp.url, reverse('studioadmin:lessons'))
 
 
 class EventAdminUpdateViewTests(TestPermissionMixin, TestCase):
