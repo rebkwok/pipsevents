@@ -3,6 +3,7 @@
 {% load bookingtags %}
 
 {% block studioadmincontent %}
+    
     <div class="row">
         <div class="col-12">
         <h2>{% if show_past %}Past{% else %}Scheduled{% endif %} {% if type == 'events' %}Events{% elif type == 'lessons' %}Classes{% elif type == 'room_hires' %}Room Hires{% elif type == 'online_tutorials' %}Online Tutorials{% endif %}</h2>
@@ -55,7 +56,7 @@
                                     {% if type == "online_tutorials" %}Purchases{% else %}
                                     Bookings</br>
                                     <span class="studioadmin-help">(waiting list)</span>{% endif %}</th>
-                                <th class="text-center smaller"><small>Visible</small></th>
+                                <th class="text-center"><small>Visible</small></th>
                                 <th class="text-center"><small>Booking open</small></th>
                                 <th class="text-center"><small>Payment open</small></th>
                                 {% if type != "online_tutorials" %}
@@ -105,12 +106,56 @@
                                         {{ event |bookings_count }}
                                     {% endif %}
                                 </td>
-                                <td class="text-center studioadmin-tbl">{% if event.visible_on_site %}<i class="text-success fas fa-check-circle"></i>{% else %}<i class="text-danger fas fa-times-circle"></i>{% endif %}</td>
-                                <td class="text-center studioadmin-tbl">{% if event.booking_open %}<i class="text-success fas fa-check-circle"></i>{% else %}<i class="text-danger fas fa-times-circle"></i>{% endif %}</td>
-                                <td class="text-center studioadmin-tbl">{% if event.payment_open %}<i class="text-success fas fa-check-circle"></i>{% else %}<i class="text-danger fas fa-times-circle"></i>{% endif %}</td>
+                                <td class="text-center studioadmin-tbl">
+                                    {% if event.cancelled %}
+                                        {% if event.visible_on_site %}<i class="text-secondary fas fa-check-circle"></i>{% else %}<i class="text-secondary fas fa-times-circle"></i>{% endif %}
+                                    {% else %}
+                                        <button 
+                                            class="btn btn-wm-outline round btn-sm no-shrink pl-1 pr-1 pt-0 pb-0" 
+                                            hx-get="{% url 'studioadmin:eventedit' event.id %}" 
+                                            hx-target="#dialog">
+                                            {% if event.visible_on_site %}<i class="text-success fas fa-check-circle"></i>{% else %}<i class="text-danger fas fa-times-circle"></i>{% endif %}
+                                        </button>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center studioadmin-tbl">
+                                    {% if event.cancelled %}
+                                        {% if event.booking_open %}<i class="text-secondary fas fa-check-circle"></i>{% else %}<i class="text-secondary fas fa-times-circle"></i>{% endif %}
+                                    {% else %}
+                                        <button 
+                                            class="btn btn-wm-outline round btn-sm no-shrink pl-1 pr-1 pt-0 pb-0" 
+                                            hx-get="{% url 'studioadmin:eventedit' event.id %}" 
+                                            hx-target="#dialog">                                    
+                                            {% if event.booking_open %}<i class="text-success fas fa-check-circle"></i>{% else %}<i class="text-danger fas fa-times-circle"></i>{% endif %}
+                                        </button>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center studioadmin-tbl">
+                                    {% if event.cancelled %}
+                                        {% if event.payment_open %}<i class="text-secondary fas fa-check-circle"></i>{% else %}<i class="text-secondary fas fa-times-circle"></i>{% endif %}
+                                    {% else %}
+                                        <button 
+                                            class="btn btn-wm-outline  round btn-sm no-shrink pl-1 pr-1 pt-0 pb-0" 
+                                            hx-get="{% url 'studioadmin:eventedit' event.id %}" 
+                                            hx-target="#dialog">                                    
+                                            {% if event.payment_open %}<i class="text-success fas fa-check-circle"></i>{% else %}<i class="text-danger fas fa-times-circle"></i>{% endif %}
+                                        </button>
+                                    {% endif %}
+                                </td>
                                 {% if type != "online_tutorials" %}
-                                    <td class="text-center studioadmin-tbl">{% if event.advance_payment_required %}<i class="text-success fas fa-check-circle"></i>{% else %}<i class="text-danger fas fa-times-circle"></i>{% endif %}</td>
-                                <td class="text-center studioadmin-tbl">{% if event.allow_booking_cancellation %} <i class="text-success fas fa-check-circle"></i>{% else %}<i class="text-danger fas fa-times-circle"></i>{% endif %}</td>
+                                    <td class="text-center studioadmin-tbl">
+                                        {% if event.cancelled %}
+                                            {% if event.advance_payment_required %}<i class="text-secondary fas fa-check-circle"></i>{% else %}<i class="text-secondary fas fa-times-circle"></i>{% endif %}
+                                        {% else %}  
+                                            {% if event.advance_payment_required %}<i class="text-success fas fa-check-circle"></i>{% else %}<i class="text-danger fas fa-times-circle"></i>{% endif %}</td>
+                                        {% endif %}
+                                    <td class="text-center studioadmin-tbl">
+                                        {% if event.cancelled %}
+                                            {% if event.allow_booking_cancellation %}<i class="text-secondary fas fa-check-circle"></i>{% else %}<i class="text-secondary fas fa-times-circle"></i>{% endif %}
+                                        {% else %} 
+                                            {% if event.allow_booking_cancellation %} <i class="text-success fas fa-check-circle"></i>{% else %}<i class="text-danger fas fa-times-circle"></i>{% endif %}
+                                        {% endif %}    
+                                    </td>
                                 {% else %}
                                     <span class="hide">{% if event.advance_payment_required %}<i class="text-success fas fa-check-circle"></i>{% else %}<i class="text-danger fas fa-times-circle"></i>{% endif %}</span>
                                 {% endif %}
@@ -151,4 +196,14 @@
             {% endif %}
         </div>
 
+            <!-- Placeholder for the modal -->
+            <div id="edit-event-modal" class="modal fade">
+                <div id="dialog" class="modal-dialog" hx-target="this"></div>
+              </div>
+
 {% endblock studioadmincontent %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/htmx.org@1.6.1/dist/htmx.min.js"></script>
+<script type='text/javascript' src="{% static 'studioadmin/js/editevent.js' %}"></script>
+{% endblock %}

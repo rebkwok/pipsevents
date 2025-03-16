@@ -9,7 +9,7 @@ from studioadmin.views.disclaimers import DisclaimerUpdateView, \
 from studioadmin.views.email_users import choose_users_to_email, \
     email_users_view, export_mailing_list
 from studioadmin.views.events import cancel_event_view, event_admin_list, \
-    EventAdminCreateView, EventAdminUpdateView, open_all_events, clone_event
+    EventAdminCreateView, EventAdminUpdateView, open_all_events, clone_event, eventedit
 from studioadmin.views.misc import ConfirmPaymentView, ConfirmRefundView, \
     test_paypal_view, reactivated_block_status, InvoiceListView, stripe_test, SubscriptionInvoiceListView
 from studioadmin.views.register import EventRegisterListView, \
@@ -49,7 +49,7 @@ __all__ = [
     'DisclaimerUpdateView', 'NonRegisteredDisclaimersListView', 'nonregistered_disclaimer',
     'DisclaimerContentCreateView', 'DisclaimerContentListView', 'disclaimer_content_view',
     'DisclaimerContentUpdateView', 'expire_user_disclaimer',
-    'email_users_view', 'event_admin_list', 'event_admin_list',
+    'email_users_view', 'event_admin_list', 'event_admin_list', 'eventedit',
     'EventAdminCreateView', 'EventAdminUpdateView',
     'EventRegisterListView', 'EventVoucherDetailView',
     'event_waiting_list_view', 'MailingListView',

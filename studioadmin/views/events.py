@@ -1,4 +1,5 @@
 import logging
+import json
 
 from datetime import timedelta
 
@@ -9,7 +10,7 @@ from django.core.paginator import Paginator
 from django.urls import reverse
 from django.template.loader import get_template
 from django.template.response import TemplateResponse
-from django.shortcuts import HttpResponseRedirect, get_object_or_404
+from django.shortcuts import HttpResponseRedirect, get_object_or_404, HttpResponse, render
 from django.views.generic import CreateView, UpdateView
 from django.utils import timezone
 from django.utils.safestring import mark_safe
@@ -20,7 +21,7 @@ from dateutil.relativedelta import relativedelta
 
 from booking.models import Block, BlockType, Booking, Event, FilterCategory
 from booking.email_helpers import send_support_email
-from studioadmin.forms import EventAdminForm, OnlineTutorialAdminForm
+from studioadmin.forms import EventAdminForm, OnlineTutorialAdminForm, EventQuickEditForm
 from studioadmin.views.email_helpers import send_new_classes_email_to_members
 from studioadmin.views.helpers import staff_required, StaffUserMixin, set_cloned_name, get_page
 from activitylog.models import ActivityLog
@@ -515,3 +516,33 @@ def open_all_events(request, event_type):
         send_new_classes_email_to_members(request, newly_visible)
 
     return HttpResponseRedirect(reverse(f"studioadmin:{event_type}"))
+
+
+@login_required
+@staff_required
+def eventedit(request, pk):
+    event = get_object_or_404(Event, pk=pk)
+    
+    if request.method == "POST":
+        form = EventQuickEditForm(request.POST, instance=event)
+        if form.is_valid():
+            if form.changed_data:
+                changed = ", ".join([f"{field} to {form.cleaned_data[field]}" for field in form.changed_data])
+                ActivityLog.objects.create(
+                    log=f"{event} updated by admin user {request.user}: changed {changed}"
+                )
+                form.save()
+                headers={'HX-Refresh': 'true'}
+            else:
+                headers = {}
+
+            return HttpResponse(
+                status=204,
+                headers=headers
+            )
+    else:
+        form = EventQuickEditForm(instance=event)
+    return render(request, 'studioadmin/includes/event_edit_modal_htmx.html', {
+        'form': form,
+        'event': event,
+    })

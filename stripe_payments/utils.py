@@ -469,6 +469,18 @@ class StripeConnector:
         )
         return schedule.subscription
             
+    def pause_subscription(self, subscription_id, months, pause_from):
+        # Create a one-time promo code for 100% off this subscription's membership, lasting for <months>
+        # Apply to subscription
+        # Set pause_from/pause_to date
+        # TODO In checks for whether membership is valid for booking, also check pause_from/pause_to date
+        
+        # TODO in ensure_subscription_up_to_date, and booking checks check for active subscriptions
+        # that are currently between pause_from/pause_to dates and change subscription_status and
+        # override_subscription_status to paused
+        # TODO Needs model field for pause_from/pause_to
+        ...
+
     def create_promo_code(
             self, 
             code, 

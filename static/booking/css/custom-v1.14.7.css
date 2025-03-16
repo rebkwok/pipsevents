@@ -505,6 +505,9 @@ td {
   .table-btn, .btn, .btn-wm, .table-btn, .btn-group-sm > .btn-info-link, .btn-new-block{
     font-size: 75%;
   }
+  .btn.no-shrink {
+    font-size: 100%;
+  }
 }
 
 td.table-btns {
@@ -1302,7 +1305,7 @@ a.btn-wm-outline {
   color: rgb(240, 139, 165);
 }
 
-a.btn-wm-outline:hover, .btn-wm:hover, .btn-wm:hover button, .btn-wm:hover input {
+a.btn-wm-outline:hover, .btn-wm-outline:hover, .btn-wm:hover, .btn-wm:hover button, .btn-wm:hover input {
   background-color: rgba(240, 139, 165, 0.8);
   border-color: rgba(240, 139, 165, 0.8);
   color: white;
@@ -1317,6 +1320,11 @@ a.btn-wm-outline:hover, .btn-wm:hover, .btn-wm:hover button, .btn-wm:hover input
 .btn-wm:focus,.btn-wm:active {
    background-color: rgba(240, 139, 165, 0.8);
   border-color: rgba(240, 139, 165, 0.8);
+}
+
+.btn.btn-wm-outline.round {
+  border-radius: 50%;
+  box-shadow: 0 0 3px rgba(240, 139, 165, 0.5);
 }
 
 
@@ -1905,3 +1913,4 @@ div.message.alert > p {
   background-color: white;
   color: #625afa;
 }
+

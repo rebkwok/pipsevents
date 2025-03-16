@@ -2123,3 +2123,74 @@ class CloneEventTests(TestPermissionMixin, TestCase):
         cloned = Event.objects.latest("id")
         
         assert set(cloned.categories.values_list("category", flat=True)) == {"foo", "bar"}
+
+
+@pytest.mark.django_db
+def test_edit_event_get(client):
+    user = create_configured_user("staff", "staff@example.com", "test", staff=True)
+    event = baker.make_recipe(
+            'booking.future_EV',
+            date=timezone.now().replace(second=0, microsecond=0) + timedelta(2)
+        )
+    url = reverse(
+            'studioadmin:eventedit', kwargs={'pk': event.pk}
+        )
+    client.force_login(user)
+    resp = client.get(url)
+    assert resp.status_code == 200
+    form = resp.context["form"]
+    assert form.initial == {
+        'booking_open': event.booking_open, 
+        'payment_open': event.payment_open, 
+        'visible_on_site': event.visible_on_site
+    }
+
+@pytest.mark.django_db
+def test_edit_event_post_no_change(client):
+    user = create_configured_user("staff", "staff@example.com", "test", staff=True)
+    event = baker.make_recipe(
+            'booking.future_EV',
+            date=timezone.now().replace(second=0, microsecond=0) + timedelta(2)
+        )
+    url = reverse(
+            'studioadmin:eventedit', kwargs={'pk': event.pk}
+        )
+    client.force_login(user)
+    resp = client.post(
+        url,
+        {
+            'id': event.id,
+            'booking_open': event.booking_open, 
+            'payment_open': event.payment_open, 
+            'visible_on_site': event.visible_on_site
+        }
+    )
+    assert resp.status_code == 204
+    assert not resp.has_header('HX-Refresh')
+
+
+@pytest.mark.django_db
+def test_edit_event_post_with_change(client):
+    user = create_configured_user("staff", "staff@example.com", "test", staff=True)
+    event = baker.make_recipe(
+            'booking.future_EV',
+            date=timezone.now().replace(second=0, microsecond=0) + timedelta(2),
+            visible_on_site=True
+        )
+    url = reverse(
+            'studioadmin:eventedit', kwargs={'pk': event.pk}
+        )
+    client.force_login(user)
+    resp = client.post(
+        url,
+        {
+            'id': event.id,
+            'booking_open': event.booking_open, 
+            'payment_open': event.payment_open, 
+            'visible_on_site': False
+        }
+    )
+    assert resp.status_code == 204
+    assert resp.has_header('HX-Refresh')
+    event.refresh_from_db()
+    assert not event.visible_on_site

@@ -384,6 +384,20 @@ class EventAdminForm(forms.ModelForm):
         }
 
 
+
+class EventQuickEditForm(forms.ModelForm):
+
+    required_css_class = 'form-error'
+
+    class Meta:
+        model = Event
+        fields = (
+         'visible_on_site','booking_open', 'payment_open',
+        )
+       
+
+
+
 class OnlineTutorialAdminForm(EventAdminForm):
 
     def __init__(self, *args, **kwargs):
