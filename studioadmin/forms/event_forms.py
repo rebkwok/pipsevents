@@ -60,7 +60,7 @@ class EventAdminForm(forms.ModelForm):
         cat_field.required = False
 
         ev_type_qset = EventType.objects.visible().filter(event_type=ev_type)
-        if self.instance.id and self.instance.event_type not in ev_type_qset:
+        if ev_type not in ev_type_qset:
             ev_type_qset = EventType.objects.filter(event_type=ev_type)
         
         if ev_type in ["CL", "RH"]:
@@ -405,7 +405,7 @@ class OnlineTutorialAdminForm(EventAdminForm):
         self.hidden_fields = [
             'external_instructor', 'video_link_available_after_class', 'allow_booking_cancellation',
             'cancellation_period', 'advance_payment_required', 'email_studio_when_booked', 'payment_due_date',
-            'max_participants', "location"
+            'max_participants', "location",
         ]
         if not self.instance.id:
             self.hidden_fields.append("cancelled")
