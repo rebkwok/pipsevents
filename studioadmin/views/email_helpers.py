@@ -34,4 +34,4 @@ def send_new_classes_email_to_members(request, new_classes):
     )
     msg.send(fail_silently=False)
     if members:
-        messages.success(request, f"{len(members)} have been notified by email")
+        messages.success(request, f"{len(members)} member(s) have been notified by email")
