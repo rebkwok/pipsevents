@@ -97,6 +97,12 @@ class EventType(models.Model):
         ('RH', 'Room hire')
     )
     TYPE_VERBOSE_NAME = dict(TYPE_CHOICE)
+    TYPE_URL_PARAM = {
+        "CL": "lesson",
+        "EV": "event",
+        "RH": "room_hire",
+        "OT": "online_tutorial"
+    }
     event_type = models.CharField(max_length=2, choices=TYPE_CHOICE,
                                   help_text="This determines whether events "
                                             "of this type are listed on the "
@@ -136,6 +142,12 @@ class EventType(models.Model):
     @property
     def allowed_group_description(self):
         return self.allowed_group.description
+
+    def get_list_url(self):
+        return reverse(f"booking:{self.TYPE_URL_PARAM[self.event_type]}s")
+    
+    def get_admin_list_url(self):
+        return reverse(f"studioadmin:{self.TYPE_URL_PARAM[self.event_type]}s")
 
     class Meta:
         unique_together = ('event_type', 'subtype')

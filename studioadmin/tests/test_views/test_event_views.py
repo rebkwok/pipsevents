@@ -2194,3 +2194,42 @@ def test_edit_event_post_with_change(client):
     assert resp.has_header('HX-Refresh')
     event.refresh_from_db()
     assert not event.visible_on_site
+
+
+@pytest.mark.django_db
+def test_delete_event_view(client):
+    user = create_configured_user("staff", "staff@example.com", "test", staff=True)
+    event = baker.make_recipe(
+            'booking.future_EV',
+            date=timezone.now().replace(second=0, microsecond=0) + timedelta(2),
+            visible_on_site=True
+        )
+    url = reverse(
+            'studioadmin:delete_event', kwargs={'slug': event.slug}
+        )
+    client.force_login(user)
+    resp = client.post(url)
+    assert resp.status_code == 302
+    assert resp.url == event.event_type.get_admin_list_url()
+    assert not Event.objects.exists()
+
+
+@pytest.mark.django_db
+def test_delete_event_view_with_bookings(client):
+    user = create_configured_user("staff", "staff@example.com", "test", staff=True)
+    event = baker.make_recipe(
+            'booking.future_EV',
+            date=timezone.now().replace(second=0, microsecond=0) + timedelta(2),
+            visible_on_site=True
+        )
+    baker.make(Booking, event=event)
+    assert Event.objects.count() == 1
+    url = reverse(
+            'studioadmin:delete_event', kwargs={'slug': event.slug}
+        )
+    client.force_login(user)
+    resp = client.post(url)
+    assert resp.status_code == 302
+    assert resp.url == reverse("studioadmin:cancel_event", args=(event.slug,))
+
+    assert Event.objects.count() == 1

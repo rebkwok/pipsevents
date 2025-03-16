@@ -10,8 +10,9 @@ from django.core.paginator import Paginator
 from django.urls import reverse
 from django.template.loader import get_template
 from django.template.response import TemplateResponse
-from django.shortcuts import HttpResponseRedirect, get_object_or_404, HttpResponse, render
+from django.shortcuts import HttpResponseRedirect, get_object_or_404, HttpResponse, render, redirect
 from django.views.generic import CreateView, UpdateView
+from django.views.decorators.http import require_POST
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.core.mail import send_mail
@@ -19,7 +20,7 @@ from django.core.mail import send_mail
 from braces.views import LoginRequiredMixin
 from dateutil.relativedelta import relativedelta
 
-from booking.models import Block, BlockType, Booking, Event, FilterCategory
+from booking.models import Block, BlockType, EventType, Event, FilterCategory
 from booking.email_helpers import send_support_email
 from studioadmin.forms import EventAdminForm, OnlineTutorialAdminForm, EventQuickEditForm
 from studioadmin.views.email_helpers import send_new_classes_email_to_members
@@ -63,8 +64,6 @@ def _get_events(ev_type, request, past, page=None):
 @login_required
 @staff_required
 def event_admin_list(request, ev_type):
-    ev_type_text = EVENT_TYPE_PARAM_MAPPING[ev_type]["name"]
-
     page = request.GET.get('page', None) or request.POST.get('page', None)
     if request.method == 'POST':
         show_past = "past" in request.POST
@@ -170,7 +169,7 @@ class EventAdminUpdateView(LoginRequiredMixin, StaffUserMixin, EventAdminMixin, 
         return HttpResponseRedirect(url)
 
     def get_success_url(self):
-        return reverse(f'studioadmin:{EVENT_TYPE_PARAM_MAPPING[self.kwargs["ev_type"]]["sidenav_plural"]}')
+        return self.get_object().event_type.get_admin_list_url()
 
 
 class EventAdminCreateView(LoginRequiredMixin, StaffUserMixin, EventAdminMixin, CreateView):
@@ -431,17 +430,9 @@ def cancel_event_view(request, slug):
                 )
             )
 
-            return HttpResponseRedirect(
-                reverse('studioadmin:{}'.format(
-                    'events' if ev_type == 'event' else 'lessons'
-                ))
-            )
+            return HttpResponseRedirect(event.event_type.get_admin_list_url())
         elif 'cancel' in request.POST:
-            return HttpResponseRedirect(
-                reverse('studioadmin:{}'.format(
-                    'events' if ev_type == 'event' else 'lessons'
-                ))
-            )
+            return HttpResponseRedirect(event.event_type.get_admin_list_url())
 
     context = {
         'event': event,
@@ -461,6 +452,20 @@ def cancel_event_view(request, slug):
     return TemplateResponse(
         request, 'studioadmin/cancel_event.html', context
     )
+
+
+@require_POST
+@login_required
+@staff_required
+def delete_event(request, slug):
+    event = get_object_or_404(Event, slug=slug)
+    if event.bookings.exists():
+        return redirect(reverse("studioadmin:cancel_event", args=(slug,)))
+    ev_ref = str(event)
+    return_url = event.event_type.get_admin_list_url()
+    event.delete()
+    messages.success(request, f"{ev_ref} was deleted.")
+    return redirect(return_url)
 
 
 @login_required
@@ -492,9 +497,8 @@ def clone_event(request, slug):
 
     original_event = Event.objects.get(id=original_id)
     cloned_event.categories.add(*original_event.categories.all())
-    event_type_string, = {event_type["sidenav_plural"] for event_type in EVENT_TYPE_PARAM_MAPPING.values() if event_type["abbr"] == event.event_type.event_type}
     messages.success(request, f"{original_event.name} cloned to {cloned_event.name}; booking/payment not open yet")
-    return HttpResponseRedirect(reverse(f"studioadmin:{event_type_string}"))
+    return HttpResponseRedirect(event.event_type.get_admin_list_url())
 
 
 @login_required
@@ -515,7 +519,7 @@ def open_all_events(request, event_type):
     if newly_visible:
         send_new_classes_email_to_members(request, newly_visible)
 
-    return HttpResponseRedirect(reverse(f"studioadmin:{event_type}"))
+    return HttpResponseRedirect(reverse(f"studioadmin:{EventType.TYPE_URL_PARAM[event_type_abbr]}s"))
 
 
 @login_required

@@ -64,7 +64,7 @@
                                     <th class="text-center"><small>Cancel allowed</small></th>
                                 {% endif %}
                                 <th class="text-center">Clone</th>
-                                <th class="text-center">Delete</th>
+                                <th class="text-center"></th>
                             </tr>
 
                             {% for event in events %}
@@ -164,15 +164,22 @@
                                     {% if event.cancelled %}
                                         CANCELLED
                                     {% else %}
-                                        <a href="{% url 'studioadmin:cancel_event' event.slug %}">
-                                            <div id="cancel_button" class="btn btn-danger table-btn">Cancel {% if type == 'events' %}Event{% elif type == 'lessons' %}Class{% elif type == 'room_hires' %}Room Hire{% endif %}</div>
-                                        </a>
+                                        {% if event.bookings.exists %}
+                                            <a href="{% url 'studioadmin:cancel_event' event.slug %}">
+                                                <div id="cancel_button" class="btn btn-sm btn-danger table-btn">Cancel</div>
+                                            </a>
+                                        {% else %}
+                                            <form action="{% url 'studioadmin:delete_event' event.slug %}" method="post">
+                                                {% csrf_token %}
+                                                <button class="btn no-shrink text-danger" type="submit" value="Delete"><i class="fas fa-trash"></i></button>
+                                            </form>
+                                        {% endif %}
                                     {% endif %}
                                 </td>
                             </tr>
                         {% endfor %}
                             <tr>
-                                <td class="studioadmin-tbl" {% if type == "lessons" or type == "room_hires" %}colspan=15{% else %}colspan="13"{% endif %}>
+                                <td class="studioadmin-tbl" {% if type == "lessons" or type == "room_hires" %}colspan=15{% else %}colspan="14"{% endif %}>
                                     {% get_pagination_params "admin_events" as pagination_params %}
                                     {% with page_obj=event_page %}
                                         {% include 'booking/includes/pagination.html' %}
@@ -188,7 +195,6 @@
                                 {% else %}
                                     {% if location_count > 1 %}colspan="14"{% else %}colspan="13"{% endif %}
                                 {% endif %}>
-                                <input class="btn btn-wm" name="formset_submitted" type="submit" value="Save changes" /></td>
                         </tr>
                     </table>
                     </div>
