@@ -8,15 +8,15 @@ asgiref==3.8.1
     # via
     #   django
     #   django-allauth
-beautifulsoup4==4.12.3
+beautifulsoup4==4.13.3
     # via -r requirements.in
-certifi==2024.12.14
+certifi==2025.1.31
     # via requests
 cffi==1.17.1
     # via cryptography
-charset-normalizer==3.4.0
+charset-normalizer==3.4.1
     # via requests
-coverage[toml]==7.6.9
+coverage[toml]==7.7.1
     # via
     #   -r requirements.in
     #   coveralls
@@ -25,13 +25,13 @@ coveralls==4.0.1
     # via -r requirements.in
 crispy-bootstrap4==2024.10
     # via -r requirements.in
-cryptography==44.0.0
+cryptography==44.0.2
     # via pyjwt
 dj-database-url==2.3.0
     # via -r requirements.in
 dj-static==0.0.6
     # via -r requirements.in
-django==5.1.4
+django==5.1.7
     # via
     #   -r requirements.in
     #   crispy-bootstrap4
@@ -53,11 +53,11 @@ django==5.1.4
     #   django-select2
     #   djangorestframework
     #   model-bakery
-django-allauth[socialaccount]==65.3.0
+django-allauth[socialaccount]==65.5.0
     # via -r requirements.in
-django-appconf==1.0.6
+django-appconf==1.1.0
     # via django-select2
-django-braces==1.16.0
+django-braces==1.17.0
     # via -r requirements.in
 django-ckeditor==6.7.2
     # via -r requirements.in
@@ -74,15 +74,15 @@ django-crispy-forms==2.3
     #   crispy-bootstrap4
 django-datetime-widget @ git+https://github.com/rebkwok/django-datetime-widget.git@e6167f187f99ea201380337ddf54297ef908a0d5
     # via -r requirements.in
-django-debug-toolbar==4.4.6
+django-debug-toolbar==5.1.0
     # via -r requirements.in
 django-email-obfuscator==0.1.5
     # via -r requirements.in
-django-environ==0.11.2
+django-environ==0.12.0
     # via -r requirements.in
 django-extensions==3.2.3
     # via -r requirements.in
-django-js-asset==3.0.1
+django-js-asset==3.1.2
     # via django-ckeditor
 django-migration-testcase==0.0.15
     # via -r requirements.in
@@ -90,7 +90,7 @@ django-one-time-notices==1.0.0
     # via -r requirements.in
 django-paypal==2.1
     # via -r requirements.in
-django-select2==8.2.3
+django-select2==8.4.0
     # via -r requirements.in
 djangorestframework==3.15.2
     # via -r requirements.in
@@ -104,11 +104,11 @@ gunicorn==23.0.0
     # via -r requirements.in
 idna==3.10
     # via requests
-iniconfig==2.0.0
+iniconfig==2.1.0
     # via pytest
 mailchimp3==3.0.21
     # via -r requirements.in
-model-bakery==1.20.0
+model-bakery==1.20.4
     # via -r requirements.in
 oauthlib==3.2.2
     # via requests-oauthlib
@@ -116,7 +116,7 @@ packaging==24.2
     # via
     #   gunicorn
     #   pytest
-pillow==11.0.0
+pillow==11.1.0
     # via -r requirements.in
 pluggy==1.5.0
     # via pytest
@@ -124,13 +124,13 @@ psycopg2==2.9.10
     # via -r requirements.in
 pycparser==2.22
     # via cffi
-pycryptodome==3.21.0
+pycryptodome==3.22.0
     # via simple-crypt
 pyjwt[crypto]==2.10.1
     # via django-allauth
 pymemcache==4.0.0
     # via -r requirements.in
-pytest==8.3.4
+pytest==8.3.5
     # via
     #   -r requirements.in
     #   pytest-cov
@@ -140,7 +140,7 @@ pytest==8.3.4
     #   pytest-xdist
 pytest-cov==6.0.0
     # via -r requirements.in
-pytest-django==4.9.0
+pytest-django==4.10.0
     # via -r requirements.in
 pytest-env==1.1.5
     # via -r requirements.in
@@ -152,7 +152,7 @@ python-dateutil==2.9.0.post0
     # via
     #   -r requirements.in
     #   freezegun
-pytz==2024.2
+pytz==2025.1
     # via
     #   django-datetime-widget
     #   django-paypal
@@ -171,7 +171,7 @@ requests==2.32.3
     #   stripe
 requests-oauthlib==2.0.0
     # via django-allauth
-responses==0.25.3
+responses==0.25.7
     # via -r requirements.in
 shortuuid==1.0.13
     # via -r requirements.in
@@ -189,10 +189,11 @@ static3==0.7.0
     # via
     #   -r requirements.in
     #   dj-static
-stripe==11.4.1
+stripe==11.6.0
     # via -r requirements.in
 typing-extensions==4.12.2
     # via
+    #   beautifulsoup4
     #   dj-database-url
     #   stripe
 urllib3==2.3.0
