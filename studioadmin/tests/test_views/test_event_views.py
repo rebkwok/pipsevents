@@ -204,6 +204,7 @@ class EventAdminUpdateViewTests(TestPermissionMixin, TestCase):
             'location': event.location,
             'allow_booking_cancellation': True,
             'paypal_email': settings.DEFAULT_PAYPAL_EMAIL,
+            'cost': 5
         }
 
         for key, value in extra_data.items():
@@ -436,6 +437,7 @@ class EventAdminCreateViewTests(TestPermissionMixin, TestCase):
             'location': Event.LOCATION_CHOICES[0][0],
             'allow_booking_cancellation': True,
             'paypal_email': settings.DEFAULT_PAYPAL_EMAIL,
+            'cost': 5
         }
         for key, value in extra_data.items():
             data[key] = value

@@ -32,7 +32,8 @@ class EventAdminForm(forms.ModelForm):
             'class': 'form-control',
             'aria-describedby': 'sizing-addon2',
         }),
-        required=False
+        required=True,
+        initial=0
     )
 
     paypal_email_check = forms.CharField(

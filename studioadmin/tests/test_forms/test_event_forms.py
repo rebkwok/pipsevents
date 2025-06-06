@@ -31,6 +31,7 @@ class EventAdminFormTests(TestCase):
             'location': Event.LOCATION_CHOICES[0][0],
             'allow_booking_cancellation': True,
             'paypal_email': settings.DEFAULT_PAYPAL_EMAIL,
+            "cost": 5,
         }
 
         for key, value in extra_data.items():
@@ -72,6 +73,7 @@ class EventAdminFormTests(TestCase):
             'location': event.location,
             'allow_booking_cancellation': True,
             'paypal_email': event.paypal_email,
+            "cost": 5,
         }
         form = EventAdminForm(data=data, instance=event, ev_type='CL')
         self.assertTrue(form.is_valid())
@@ -398,7 +400,7 @@ class EventAdminFormTests(TestCase):
     def test_disallow_booking_cancellation_requires_cost(self):
         form = EventAdminForm(
             data=self.form_data(
-                {'allow_booking_cancellation': False}
+                {'allow_booking_cancellation': False, 'cost': 0}
             ),
             ev_type='CL'
         )
