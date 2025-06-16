@@ -1,0 +1,215 @@
+{% extends "studioadmin/base_v1.html" %}
+{% load static %}
+{% load bookingtags %}
+
+{% block studioadmincontent %}
+    
+    <div class="row pt-2">
+        <div class="col-12">
+        <h2>{% if show_past %}Past{% else %}Scheduled{% endif %} {% if type == 'events' %}Events{% elif type == 'lessons' %}Classes{% elif type == 'room_hires' %}Room Hires{% elif type == 'online_tutorials' %}Online Tutorials{% endif %}</h2>
+        <p class="studioadmin-help">Note: only {% if type == 'events' %}events{% elif type == 'lessons' %}
+            classes{% elif type == 'room_hires' %}room hires{% elif type == 'online_tutorials' %}tutorials{% endif %} that have not yet been booked can be completely deleted. If an event has bookings it can be cancelled.</p>
+        </div>
+    </div>
+    {% if events %}
+        <div class="row">
+            <div class="top-button-row col-12">
+                <a class="btn btn-wm open-all-btn" href="{% url 'studioadmin:open_all_events' type %}" >Open all {% if type == 'events' %}events{% elif type == 'lessons' %}
+            classes{% elif type == 'room_hires' %}room hires{% elif type == 'online_tutorials' %}tutorials{% endif %}</a><br/>
+            <span class="studioadmin-help">Make all visible and open booking and payment</span>
+            </div>
+        </div>
+    {% else %}
+        <div>There are no {% if show_past %}past{% else %}upcoming{% endif %}
+                {% if type == 'events' %}events{% elif type == 'lessons' %}classes{% elif type == 'room_hires' %}room hires{% elif type == 'online_tutorials' %}tutorials{% endif %} to display.
+            </div>
+    {% endif %}
+
+    <div class="row">
+        <form class="form dirty-check" method="post" action="">
+            {% csrf_token %}
+            <div class="top-button-row float-right">
+                {% if show_past %}
+                <input class="btn btn-info table-btn filter-btn float-right" name="upcoming" type="submit" value="Show upcoming {% if type == 'events' %}events{% elif type == 'lessons' %}classes{% elif type == 'online_tutorials' %}tutorials{% endif %}" />
+                {% else %}
+                <input class="btn btn-info table-btn filter-btn float-right" name="past" type="submit" value="Show past {% if type == 'events' %}events{% elif type == 'lessons' %}classes{% elif type == 'online_tutorials' %}tutorials{% endif %}" />
+                {% endif %}
+            </div>
+        </form>
+    </div>
+        <div class="row">
+            
+            {% if events %}
+                <div class="card card-wm">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <tr class="success">
+                                <th></th>
+                                <th>{% if type == "online_tutorials" %}Last Purchasable {% endif %}Date</th>
+                                <th>{% if type == 'events' %}Event{% elif type == 'lessons' %}Class{% elif type == 'room_hires' %}Room Hire{% elif type == 'online_tutorials' %}Tutorial{% endif %}</br>
+                                    <span class="studioadmin-help">Click for register</span></th>
+                                <th class="text-center">Allowed Group</th>
+                                {% if type == 'lessons' or type == "room_hires" %}<th class="text-center">Filters</th>{% endif %}
+                                {% if location_count > 1 %}<th class="text-center">Location</th>{% endif %}
+                                <th class="text-center">Max spaces</th>
+                                <th class="text-center">
+                                    {% if type == "online_tutorials" %}Purchases{% else %}
+                                    Bookings</br>
+                                    <span class="studioadmin-help">(waiting list)</span>{% endif %}</th>
+                                <th class="text-center"><small>Visible</small></th>
+                                <th class="text-center"><small>Booking open</small></th>
+                                <th class="text-center"><small>Payment open</small></th>
+                                {% if type != "online_tutorials" %}
+                                    <th class="text-center"><small>Adv. payment<br/>required</small></th>
+                                    <th class="text-center"><small>Cancel allowed</small></th>
+                                {% endif %}
+                                <th class="text-center">Clone</th>
+                                <th class="text-center"></th>
+                            </tr>
+
+                            {% for event in events %}
+                            <tr {% if event.cancelled %}class="cancelled-event"{% endif %}>
+                                <span class="hide">{{ event.id }}</span>
+                                <td class="text-center studioadmin-tbl">
+                                    {% if type == 'events' %}
+                                    <a href="{% url 'studioadmin:v1_edit_event' event.slug %}?from_page={{ event_page.number }}"><span class="fas fa-edit"></span>
+                                    {% elif type == 'lessons' %}</a>
+                                    <a href="{% url 'studioadmin:v1_edit_lesson' event.slug %}?from_page={{ event_page.number }}"><span class="fas fa-edit"></span>
+                                    {% elif type == 'room_hires' %}</a>
+                                        <a href="{% url 'studioadmin:v1_edit_room_hire' event.slug %}?from_page={{ event_page.number }}"><span class="fas fa-edit"></span>
+                                    {% elif type == 'online_tutorials' %}</a>
+                                    <a href="{% url 'studioadmin:v1_edit_online_tutorial' event.slug %}?from_page={{ event_page.number }}"><span class="fas fa-edit"></span>
+
+                                    {% endif %}</a>
+                                </td>
+                                <td class="studioadmin-tbl">{{ event.date | date:"D d M Y, H:i" }}</td>
+                                <td class="studioadmin-tbl">
+                                    <a href="{% url 'studioadmin:v1_event_register' event.slug %}">{{ event.name }}</a>
+                                        <span class="studioadmin-help">({{ event.event_type.subtype }})</span>
+                                    {% if event.is_online and not event.video_link %}
+                                        <span class="cancel-warning"> <i class="fas fa-exclamation-circle"></i> Video link missing <i class="fas fa-exclamation-circle"></i><span class="error">
+                                    {% endif %}
+                                </td>
+                                <td class="studioadmin-tbl text-center"><small>{{ event.allowed_group_for_event }}</small></td>
+                                {% if type == 'lessons' or type == "room_hires" %}
+                                <td class="studioadmin-tbl"><small>{{ event |format_categories }}</small></td>
+                                {% endif %}
+                                {% if location_count > 1 %}
+                                    <td class="text-center studioadmin-tbl"><span class="badge badge-pill badge-location badge-location-{{ event.location_index }}">{{ event.location }}</span></td>
+                                {% endif %}
+                                <td class="text-center studioadmin-tbl">
+                                    {% if event.max_participants %}{{ event.max_participants }}{% else %}N/A{% endif %}</td>
+                                <td class="text-center studioadmin-tbl">
+                                    {% if event.waitinglistusers.count > 0 %}
+                                        <a href="{% url 'studioadmin:v1_event_waiting_list' event.id %}">{{ event |bookings_count }}</a>
+                                    {% else %}
+                                        {{ event |bookings_count }}
+                                    {% endif %}
+                                </td>
+                                <td class="text-center studioadmin-tbl">
+                                    {% if event.cancelled %}
+                                        {% if event.visible_on_site %}<i class="text-secondary fas fa-check-circle"></i>{% else %}<i class="text-secondary fas fa-times-circle"></i>{% endif %}
+                                    {% else %}
+                                        <button 
+                                            class="btn btn-wm-outline round btn-sm no-shrink pl-1 pr-1 pt-0 pb-0" 
+                                            hx-get="{% url 'studioadmin:eventedit' event.id %}" 
+                                            hx-target="#dialog">
+                                            {% if event.visible_on_site %}<i class="text-success fas fa-check-circle"></i>{% else %}<i class="text-danger fas fa-times-circle"></i>{% endif %}
+                                        </button>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center studioadmin-tbl">
+                                    {% if event.cancelled %}
+                                        {% if event.booking_open %}<i class="text-secondary fas fa-check-circle"></i>{% else %}<i class="text-secondary fas fa-times-circle"></i>{% endif %}
+                                    {% else %}
+                                        <button 
+                                            class="btn btn-wm-outline round btn-sm no-shrink pl-1 pr-1 pt-0 pb-0" 
+                                            hx-get="{% url 'studioadmin:eventedit' event.id %}" 
+                                            hx-target="#dialog">                                    
+                                            {% if event.booking_open %}<i class="text-success fas fa-check-circle"></i>{% else %}<i class="text-danger fas fa-times-circle"></i>{% endif %}
+                                        </button>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center studioadmin-tbl">
+                                    {% if event.cancelled %}
+                                        {% if event.payment_open %}<i class="text-secondary fas fa-check-circle"></i>{% else %}<i class="text-secondary fas fa-times-circle"></i>{% endif %}
+                                    {% else %}
+                                        <button 
+                                            class="btn btn-wm-outline  round btn-sm no-shrink pl-1 pr-1 pt-0 pb-0" 
+                                            hx-get="{% url 'studioadmin:eventedit' event.id %}" 
+                                            hx-target="#dialog">                                    
+                                            {% if event.payment_open %}<i class="text-success fas fa-check-circle"></i>{% else %}<i class="text-danger fas fa-times-circle"></i>{% endif %}
+                                        </button>
+                                    {% endif %}
+                                </td>
+                                {% if type != "online_tutorials" %}
+                                    <td class="text-center studioadmin-tbl">
+                                        {% if event.cancelled %}
+                                            {% if event.advance_payment_required %}<i class="text-secondary fas fa-check-circle"></i>{% else %}<i class="text-secondary fas fa-times-circle"></i>{% endif %}
+                                        {% else %}  
+                                            {% if event.advance_payment_required %}<i class="text-success fas fa-check-circle"></i>{% else %}<i class="text-danger fas fa-times-circle"></i>{% endif %}</td>
+                                        {% endif %}
+                                    <td class="text-center studioadmin-tbl">
+                                        {% if event.cancelled %}
+                                            {% if event.allow_booking_cancellation %}<i class="text-secondary fas fa-check-circle"></i>{% else %}<i class="text-secondary fas fa-times-circle"></i>{% endif %}
+                                        {% else %} 
+                                            {% if event.allow_booking_cancellation %} <i class="text-success fas fa-check-circle"></i>{% else %}<i class="text-danger fas fa-times-circle"></i>{% endif %}
+                                        {% endif %}    
+                                    </td>
+                                {% else %}
+                                    <span class="hide">{% if event.advance_payment_required %}<i class="text-success fas fa-check-circle"></i>{% else %}<i class="text-danger fas fa-times-circle"></i>{% endif %}</span>
+                                {% endif %}
+                                <td class="text-center studioadmin-tbl"><a href="{% url 'studioadmin:clone_event' event.slug %}"><i class="far fa-clone"></i></a></td>
+                                <td class="text-center studioadmin-tbl">
+                                    {% if event.cancelled %}
+                                        CANCELLED
+                                    {% else %}
+                                        {% if event.bookings.exists %}
+                                            <a href="{% url 'studioadmin:v1_cancel_event' event.slug %}">
+                                                <div id="cancel_button" class="btn btn-sm btn-danger table-btn">Cancel</div>
+                                            </a>
+                                        {% else %}
+                                            <form action="{% url 'studioadmin:delete_event' event.slug %}" method="post">
+                                                {% csrf_token %}
+                                                <button class="btn no-shrink text-danger" type="submit" value="Delete"><i class="fas fa-trash"></i></button>
+                                            </form>
+                                        {% endif %}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                            <tr>
+                                <td class="studioadmin-tbl" {% if type == "lessons" or type == "room_hires" %}colspan=15{% else %}colspan="14"{% endif %}>
+                                    {% get_pagination_params "admin_events" as pagination_params %}
+                                    {% with page_obj=event_page %}
+                                        {% include 'booking/includes/pagination.html' %}
+                                    {% endwith %}
+                                </td>
+                            </tr>
+                        <tr>
+                            <td class="studioadmin-tbl"
+                                {% if type == "online_tutorials" %}
+                                    {% if location_count > 1 %}colspan="13"{% else %}colspan="11"{% endif %}
+                                {% elif type == "lessons" or type == "room_hires" %}
+                                    {% if location_count > 1 %}colspan="15"{% else %}colspan="14"{% endif %}
+                                {% else %}
+                                    {% if location_count > 1 %}colspan="14"{% else %}colspan="13"{% endif %}
+                                {% endif %}>
+                        </tr>
+                    </table>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+            <!-- Placeholder for the modal -->
+            <div id="edit-event-modal" class="modal fade">
+                <div id="dialog" class="modal-dialog" hx-target="this"></div>
+              </div>
+
+{% endblock studioadmincontent %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/htmx.org@1.6.1/dist/htmx.min.js"></script>
+<script type='text/javascript' src="{% static 'studioadmin/js/editevent.js' %}"></script>
+{% endblock %}

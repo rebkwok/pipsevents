@@ -1,0 +1,35 @@
+{% extends "studioadmin/base_v1.html" %}
+{% load static %}
+{% load bookingtags %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'booking/vanilla-notify.css' %}">
+{% endblock %}
+
+{% block studioadmincontent %}
+
+{% include "studioadmin/register_content.html" %}
+
+{% endblock studioadmincontent %}
+
+
+{% block extra_js %}
+<script type='text/javascript' src="{% static 'booking/vanilla-notify.min.js' %}"></script>
+<script type='text/javascript' src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
+<script type='text/javascript' src="{% static 'studioadmin/js/register_ajax-v1.2.js' %}"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.form/4.2.2/jquery.form.min.js" integrity="sha384-FzT3vTVGXqf7wRfy8k4BiyzvbNfeYjK+frTVqZeNDFl8woCbF0CYG6g2fMEFFo/i" crossorigin="anonymous"></script>
+
+<script>
+    $jq(".bookingadd").click(function(ev) { // for each add url
+        ev.preventDefault(); // prevent navigation
+        var url = $jq(this).data("form"); // get the form url
+        $jq("#RegisterBookingAddModal").load(url, function() { // load the url into the modal
+            $jq(this).modal('show'); // display the modal on url load
+        });
+
+        return false; // prevent the click propagation
+    });
+
+</script>
+{% endblock %}
