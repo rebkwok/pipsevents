@@ -1,0 +1,13 @@
+    <div class="container-fluid">
+          {% block extra_footer %}
+            <span class="mt-2 footer-credit float-left .no-print">
+                {% if show_vat %}All prices are inclusive of VAT (VAT number {{ vat_number }})<br/>{% endif %}
+                 <a href="http://www.thewatermelonstudio.co.uk/t&c.html" target="_blank">T&Cs</a> apply to all purchases, including sale items<br/>
+                 <a class="pt-0" href="{% url 'data_privacy_policy' %}">Data privacy and cookie policy</a>
+            </span>
+          {% endblock %}
+        <span class="text-muted">
+           <span class="footer-credit float-right mr-0 pr-0 mt-2 pt-0">&#169; <a href="https://github.com/rebkwok" target="_blank" style="color: #0B0B61">Becky Smith</a>
+        </span>
+      </span>
+    </div>

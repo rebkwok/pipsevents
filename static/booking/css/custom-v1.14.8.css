@@ -14,7 +14,7 @@ body {
   background-color: transparent;
   font-family: "Helvetica Neue", Arial, sans-serif;
 }
-.wrapper {
+.main-wrapper {
   min-height: 100%;
   /* top margin to allow for navbar */
   margin-top: 80px;
@@ -22,7 +22,7 @@ body {
   margin-bottom: 60px;
 }
 
-.footer {
+.main-footer {
   width: 100%;
   /* fixed height of the footer */
   height: 60px;
