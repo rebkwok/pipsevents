@@ -150,3 +150,9 @@ def get_page(request, paginator, page=None):
     except EmptyPage:
         # If page is out of range (e.g. 9999), deliver last page of results.
         return paginator.page(paginator.num_pages)
+
+
+def get_v1_template(request, template):
+    if request.path.startswith("/studioadmin/v1"):
+        template = template.replace("studioadmin/", "studioadmin/v1/")
+    return template

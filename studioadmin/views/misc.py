@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
-
 import logging
-from typing import Any
+import calendar
+from datetime import datetime, timedelta
 import shortuuid
 
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.contrib.sites.models import Site
 from django.urls import reverse
 from django.template.loader import get_template
@@ -20,9 +21,9 @@ from braces.views import LoginRequiredMixin
 
 from booking.context_helpers import get_paypal_dict
 from booking.management.commands.check_credits import reactivated_status
-from booking.models import Booking, UserMembership
+from booking.models import Booking, UserMembership, Event
 from studioadmin.forms import ConfirmPaymentForm
-from studioadmin.views.helpers import StaffUserMixin, staff_required
+from studioadmin.views.helpers import StaffUserMixin, staff_required, is_instructor_or_staff
 from activitylog.models import ActivityLog
 from payments.forms import PayPalPaymentsUpdateForm
 
@@ -30,6 +31,33 @@ from stripe_payments.models import Invoice, Seller, StripeSubscriptionInvoice
 
 
 logger = logging.getLogger(__name__)
+
+
+@is_instructor_or_staff
+def landing(request):
+    now = datetime.now()
+    today_start = now.replace(hour=0, minute=0)
+    today_end = now.replace(hour=23, minute=59)
+
+    today_weekday = now.weekday()
+    week_start = (now - timedelta(days=today_weekday)).replace(hour=0, minute=0)
+    week_end = (now + timedelta(days = 6 - today_weekday)).replace(hour=23, minute=59)
+
+    events_today = Event.objects.filter(date__gte=today_start, date__lte=today_end).order_by("date")
+    next_event = events_today.filter(date__gt=now).first()
+    bookings_this_week = Booking.objects.filter(
+        event__date__gte=week_start, event__date__lte=week_end, status="OPEN", no_show=False, event__cancelled=False
+    ).count()
+    context={
+        "sidenav_selection": "landing",
+        "events": events_today, 
+        "next_event": next_event,
+        "user_count": User.objects.count(),
+        "user_membership_count": len(UserMembership.active_member_ids()),
+        "bookings_this_week": bookings_this_week,
+    }
+
+    return TemplateResponse(request, template="studioadmin/landing.html", context=context)
 
 
 class ConfirmPaymentView(LoginRequiredMixin, StaffUserMixin, UpdateView):
