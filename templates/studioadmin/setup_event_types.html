@@ -1,4 +1,4 @@
-{% extends "studioadmin/base.html" %}
+{% extends "studioadmin/base_v1.html" %}
 {% load static %}
 {% load bookingtags %}
 
@@ -9,30 +9,31 @@
         {% if event_types %}
 
             <div class="row">
-                    <div class="col-sm-12">
-                            <div class="table-responsive">
-                                <table class="table">
-                                    <thead>
-                                    <tr class="success">
-                                        <th class="text-center">Name (subtype)</th>
-                                        <th class="text-center">Event Type</th>
-                                        <th class="text-center">Allowed Group</th>
-                                        <th class="text-center">Purchaseable Blocks</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-                                    {% for event_type in event_types %}
-                                    <tr>
-                                        <td class="text-center studioadmin-tbl">{{ event_type.subtype }}</td>
-                                        <td class="text-center studioadmin-tbl">{{ event_type.readable_name }}</td>
-                                        <td class="text-center studioadmin-tbl">{% if event_type.allowed_group %}{{ event_type.allowed_group }}{% endif %}</td>
-                                        <td class="text-center studioadmin-tbl">{{ event_type|active_block_types }}</td>
-                                    </tr>
-                                    {% endfor %}
-                                    </tbody>
-                                </table>
-                        </div>
+                <div class="col-sm-12">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                            <tr class="success">
+                                <th class="text-center">Name (subtype)</th>
+                                <th class="text-center">Event Type</th>
+                                <th class="text-center">Allowed Group</th>
+                                <th class="text-center">Purchaseable Blocks</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for event_type in event_types %}
+                            <tr>
+                                <td class="text-center studioadmin-tbl">{{ event_type.subtype }}</td>
+                                <td class="text-center studioadmin-tbl">{{ event_type.readable_name }}</td>
+                                <td class="text-center studioadmin-tbl">{% if event_type.allowed_group %}{{ event_type.allowed_group }}{% endif %}</td>
+                                <td class="text-center studioadmin-tbl">{{ event_type|active_block_types }}</td>
+                            </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
+            </div>
 
         {% else %}
             <p>No event types currently configured</p>

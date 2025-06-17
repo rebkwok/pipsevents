@@ -75,7 +75,7 @@
   <!-- Main Sidebar Container -->
   <aside class="main-sidebar sidebar-light-danger elevation-2">
     <!-- Brand Logo -->
-    <a href="{% url 'studioadmin:v1_class_register_list' %}" class="brand-link text-sm ">
+    <a href="{% url 'studioadmin:class_register_list' %}" class="brand-link text-sm ">
         <img src="{% static 'booking/images/logo_brand_new.png' %}" alt="Logo" class="brand-image img-circle elevation-0"
              style="opacity: .8">
         <span class="brand-text font-weight-light">Admin</span>
@@ -113,13 +113,13 @@
 
                 <ul class="nav nav-treeview">
                     <li class="nav-item">
-                        <a href="{% url 'studioadmin:v1_setup_allowed_groups' %}" class="nav-link {% if sidenav_selection == 'allowed_groups' %}active{% endif %}">
+                        <a href="{% url 'studioadmin:setup_allowed_groups' %}" class="nav-link {% if sidenav_selection == 'allowed_groups' %}active{% endif %}">
                             <i class="fas fa-user-friends"></i>
                             <p>Allowed Groups</p>
                         </a>
                         </li>
                         <li class="nav-item">
-                        <a href="{% url 'studioadmin:v1_setup_event_types' %}" class="nav-link {% if sidenav_selection == 'event_types' %}active{% endif %}">
+                        <a href="{% url 'studioadmin:setup_event_types' %}" class="nav-link {% if sidenav_selection == 'event_types' %}active{% endif %}">
                             <i class="fas fa-flag"></i>
                             <p>Event types</p>
                         </a>
@@ -140,19 +140,19 @@
 
                 <ul class="nav nav-treeview">
                     <li class="nav-item">
-                        <a href="{% url 'studioadmin:v1_lessons' %}" class="nav-link {% if sidenav_selection == 'lessons' %}active{% endif %}">
+                        <a href="{% url 'studioadmin:lessons' %}" class="nav-link {% if sidenav_selection == 'lessons' %}active{% endif %}">
                             <i class="fas fa-pencil-alt"></i>
                             <p>View/edit</p>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="{% url 'studioadmin:v1_add_lesson' %}" class="nav-link {% if sidenav_selection == 'add_lesson' %}active{% endif %}">
+                        <a href="{% url 'studioadmin:add_lesson' %}" class="nav-link {% if sidenav_selection == 'add_lesson' %}active{% endif %}">
                             <i class="fas fa-plus"></i>
                             <p>Add new</p>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="{% url 'studioadmin:v1_class_register_list' %}" class="nav-link {% if sidenav_selection == 'lessons_register' %}active{% endif %}">
+                        <a href="{% url 'studioadmin:class_register_list' %}" class="nav-link {% if sidenav_selection == 'lessons_register' %}active{% endif %}">
                             <i class="fas fa-clipboard-list"></i>
                             <p>Registers</p>
                         </a>
@@ -173,19 +173,19 @@
 
                 <ul class="nav nav-treeview">
                     <li class="nav-item">
-                        <a href="{% url 'studioadmin:v1_events' %}" class="nav-link {% if sidenav_selection == 'events' %}active{% endif %}">
+                        <a href="{% url 'studioadmin:events' %}" class="nav-link {% if sidenav_selection == 'events' %}active{% endif %}">
                             <i class="fas fa-pencil-alt"></i>
                             <p>View/edit</p>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="{% url 'studioadmin:v1_add_event' %}" class="nav-link {% if sidenav_selection == 'add_event' %}active{% endif %}">
+                        <a href="{% url 'studioadmin:add_event' %}" class="nav-link {% if sidenav_selection == 'add_event' %}active{% endif %}">
                             <i class="fas fa-plus"></i>
                             <p>Add new</p>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="{% url 'studioadmin:v1_event_register_list' %}" class="nav-link {% if sidenav_selection == 'events_register' %}active{% endif %}">
+                        <a href="{% url 'studioadmin:event_register_list' %}" class="nav-link {% if sidenav_selection == 'events_register' %}active{% endif %}">
                             <i class="fas fa-clipboard-list"></i>
                             <p>Registers</p>
                         </a>
@@ -198,7 +198,7 @@
 
 
             <li class="nav-item">
-            <a href="{% url 'studioadmin:v1_activitylog' %}" class="nav-link {% if sidenav_selection == 'activitylog' %}active{% endif %}">
+            <a href="{% url 'studioadmin:activitylog' %}" class="nav-link {% if sidenav_selection == 'activitylog' %}active{% endif %}">
                 <i class="fas fa-running"></i>
                 <p>
                 Activity Log

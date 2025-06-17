@@ -1,4 +1,4 @@
-{% extends "studioadmin/base.html" %}
+{% extends "studioadmin/base_v1.html" %}
 {% load static %}
 {% load bookingtags %}
 
@@ -17,28 +17,29 @@
         </p>
         {% if allowed_groups %}
             <div class="row">
-                    <div class="col-sm-12">
-                            <div class="table-responsive">
-                                <table class="table">
-                                    <thead>
-                                    <tr class="success">
-                                        <th class="text-center">Group Name</th>
-                                        <th class="text-center">Description</th>
-                                        <th class="text-center">Event Types</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-                                    {% for allowed_group in allowed_groups %}
-                                    <tr>
-                                        <td class="text-center studioadmin-tbl">{{ allowed_group }}</td>
-                                        <td class="text-center studioadmin-tbl">{% if allowed_group.description %}{{ allowed_group.description }}{% endif %}</td>
-                                        <td class="text-center studioadmin-tbl">{{ allowed_group|event_types_for_group }}</td>
-                                    </tr>
-                                    {% endfor %}
-                                    </tbody>
-                                </table>
-                        </div>
+                <div class="col-sm-12">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                            <tr class="success">
+                                <th class="text-center">Group Name</th>
+                                <th class="text-center">Description</th>
+                                <th class="text-center">Event Types</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for allowed_group in allowed_groups %}
+                            <tr>
+                                <td class="text-center studioadmin-tbl">{{ allowed_group }}</td>
+                                <td class="text-center studioadmin-tbl">{% if allowed_group.description %}{{ allowed_group.description }}{% endif %}</td>
+                                <td class="text-center studioadmin-tbl">{{ allowed_group|event_types_for_group }}</td>
+                            </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
+            </div>
 
         {% else %}
             <p>No groups currently configured</p>

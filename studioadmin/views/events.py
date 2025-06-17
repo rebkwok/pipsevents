@@ -24,7 +24,7 @@ from booking.models import Block, BlockType, EventType, Event, FilterCategory
 from booking.email_helpers import send_support_email
 from studioadmin.forms import EventAdminForm, OnlineTutorialAdminForm, EventQuickEditForm
 from studioadmin.views.email_helpers import send_new_classes_email_to_members
-from studioadmin.views.helpers import staff_required, StaffUserMixin, set_cloned_name, get_page, get_v1_template
+from studioadmin.views.helpers import staff_required, StaffUserMixin, set_cloned_name, get_page
 from activitylog.models import ActivityLog
 
 
@@ -85,7 +85,7 @@ def event_admin_list(request, ev_type):
         )
 
     return TemplateResponse(
-        request, get_v1_template(request, 'studioadmin/admin_events.html'), {
+        request, 'studioadmin/admin_events.html', {
             'type': ev_type,
             'events': events,
             'event_page': ev_page,
@@ -98,10 +98,6 @@ def event_admin_list(request, ev_type):
 
 class EventAdminMixin:
 
-    def get_template_names(self):
-        template_names = super().get_template_names()
-        return [get_v1_template(self.request, template) for template in template_names]
-     
     def add_new_category(self, form):
         event = form.save()
         new_category = form.cleaned_data.get("new_category")

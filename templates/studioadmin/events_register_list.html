@@ -1,11 +1,11 @@
-{% extends "studioadmin/base.html" %}
+{% extends "studioadmin/base_v1.html" %}
 {% load static %}
 {% load bookingtags %}
 
 {% block studioadmincontent %}
 
 
-        <h2>Scheduled
+        <h2 class="pt-2">Scheduled
             {% if type == 'events' %}Workshops/Events
             {% elif type == 'lessons' %}Classes
             {% elif type == 'online_tutorials' %}Online Tutorials
