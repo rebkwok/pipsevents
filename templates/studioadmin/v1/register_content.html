@@ -54,14 +54,14 @@
                                     {{ booking|format_status }}
                                 </td>
                                 <td class="text-center studioadmin-tbl">
-                                    <a href={% url 'studioadmin:v1_user_upcoming_bookings_list' booking.user.id %}>
+                                    <a href={% url 'studioadmin:user_upcoming_bookings_list' booking.user.id %}>
                                     {{ booking.user.first_name|abbr_name }} {{ booking.user.last_name|abbr_name }}</a>
                                     {% if booking.user.userprofile.pronouns %} ({{ booking.user.userprofile.pronouns }}){% endif %}
                                     {% if booking|is_first_class %}<span class="fas fa-star text-warning"></span>{% endif %}
                                 </td>
                                 <td class="text-center studioadmin-tbl">
                                     {% if booking.user|has_online_disclaimer %}
-                                        <a href="{% url 'studioadmin:v1_user_disclaimer' booking.user.id|encode %}" target="_blank">
+                                        <a href="{% url 'studioadmin:user_disclaimer' booking.user.id|encode %}" target="_blank">
                                             <span id="disclaimer" class="far fa-file-alt"></span>{% if booking.user|disclaimer_medical_info %} *{% endif %}</a>
                                     {% elif booking.user|expired_disclaimer %}
                                         <span class="studioadmin-help">(expired)</span>
@@ -95,7 +95,7 @@
                         {% if can_add_more %}
                             <tr>
                                 <td class="studioadmin-tbl" colspan="6">
-                                    <a class="bookingadd btn btn-wm register-table-btn" href="#" data-form="{% url 'studioadmin:v1_bookingregisteradd' event.id %}" title="add booking">Add booking</a>
+                                    <a class="bookingadd btn btn-wm register-table-btn" href="#" data-form="{% url 'studioadmin:bookingregisteradd' event.id %}" title="add booking">Add booking</a>
                                 </td>
                             </tr>
                         {% endif %}

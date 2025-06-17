@@ -101,7 +101,7 @@
                                     {% if event.max_participants %}{{ event.max_participants }}{% else %}N/A{% endif %}</td>
                                 <td class="text-center studioadmin-tbl">
                                     {% if event.waitinglistusers.count > 0 %}
-                                        <a href="{% url 'studioadmin:v1_event_waiting_list' event.id %}">{{ event |bookings_count }}</a>
+                                        <a href="{% url 'studioadmin:event_waiting_list' event.id %}">{{ event |bookings_count }}</a>
                                     {% else %}
                                         {{ event |bookings_count }}
                                     {% endif %}
@@ -165,7 +165,7 @@
                                         CANCELLED
                                     {% else %}
                                         {% if event.bookings.exists %}
-                                            <a href="{% url 'studioadmin:v1_cancel_event' event.slug %}">
+                                            <a href="{% url 'studioadmin:cancel_event' event.slug %}">
                                                 <div id="cancel_button" class="btn btn-sm btn-danger table-btn">Cancel</div>
                                             </a>
                                         {% else %}
