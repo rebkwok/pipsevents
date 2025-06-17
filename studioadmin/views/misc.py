@@ -33,6 +33,7 @@ from stripe_payments.models import Invoice, Seller, StripeSubscriptionInvoice
 logger = logging.getLogger(__name__)
 
 
+@login_required
 @is_instructor_or_staff
 def landing(request):
     now = datetime.now()
