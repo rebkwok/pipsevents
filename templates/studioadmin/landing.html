@@ -1,0 +1,81 @@
+{% extends "studioadmin/base_v1.html" %}
+{% load static %}
+
+{% block studioadmincontent %}
+
+    <div class="row mt-2">
+        <div class="card card-secondary col-12">
+            <div class="card-header">
+              <h3 class="card-title text-white">Today's schedule</h3>
+              <div class="card-tools">
+                <!-- Collapse Button -->
+                <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-minus"></i></button>
+              </div>
+              <!-- /.card-tools -->
+            </div>
+            <!-- /.card-header -->
+            <div class="card-body p-0 pb-2">
+                <ul class="list-group list-group-flush">
+                    {% if events %}
+                        {% for event in events %}
+                        <a href="{% url 'studioadmin:event_register' event.slug %}">
+                        <li class="list-group-item {% if event == next_event %}list-group-item-primary{% endif %}">{{ event.date|date:"H:i" }} {{ event.name }} - {{ event.location }}{% if event == next_event %}<span class="badge badge-primary float-right">Next</span>{% endif %}</li>
+                        </a>
+                        {% endfor %}
+                    {% else %}
+                        <li class="list-group-item">Nothing today</li>
+                    {% endif %}
+                </ul>
+            </div>
+            <!-- /.card-body -->
+          </div>
+          <!-- /.card -->
+
+        <div class="col-lg-4 col-md-6 col-sm-6 col-12">
+            <div class="small-box bg-gradient-success">
+              <div class="inner">
+                <h3>{{ user_count }}</h3>
+                <p>User Registrations</p>
+              </div>
+              <div class="icon">
+                <i class="fas fa-user-plus"></i>
+              </div>
+              <a href="#" class="small-box-footer">
+                More info <i class="fas fa-arrow-circle-right"></i>
+              </a>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6 col-sm-6 col-12">
+            <div class="small-box bg-gradient-warning">
+              <div class="inner">
+                <h3>{{ user_membership_count }}</h3>
+                <p>Active memberships</p>
+              </div>
+              <div class="icon">
+                <i class="fas fa-user-plus"></i>
+              </div>
+              <a href="#" class="small-box-footer">
+                More info <i class="fas fa-arrow-circle-right"></i>
+              </a>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6 col-sm-6 col-12">
+            <div class="small-box bg-gradient-info">
+              <div class="inner">
+                <h3>{{ bookings_this_week }}</h3>
+                <p>Bookings this week</p>
+              </div>
+              <div class="icon">
+                <i class="fas fa-user-plus"></i>
+              </div>
+              <a href="#" class="small-box-footer">
+                More info <i class="fas fa-arrow-circle-right"></i>
+              </a>
+            </div>
+          </div>
+
+    </div>
+
+{% endblock %}

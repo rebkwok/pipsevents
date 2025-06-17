@@ -90,7 +90,8 @@ from studioadmin.views import (BookingEditView,
                                membership_voucher_detail,
                                email_members,
                                email_all_members,
-                               user_memberships_list
+                               user_memberships_list,
+                               landing,
                                )
 
 app_name = 'studioadmin'
@@ -114,7 +115,7 @@ urlpatterns = [
         {'ev_type': 'events'}, name='event_register_list'),
     path('event-registers/print-registers-by-date/', register_print_day,
         name='register-day'),
-        path('event-registers/<slug:event_slug>/', register_view, name='event_register'),
+    path('event-registers/<slug:event_slug>/', register_view, name='event_register'),
     path('events/new/', EventAdminCreateView.as_view(),
         {'ev_type': 'event'}, name='add_event'),
 
@@ -381,7 +382,38 @@ urlpatterns = [
     path('memberships/email-members/', email_all_members, name='email_all_members'),
     path("memberships/new/", membership_add, name="membership_add"),
     path("memberships/", memberships_list, name="memberships_list"),
-    
+]
+
+urlpatterns += [path('v1/', landing, name="landing")]
+
+v1_urls = [
+    path("v1/setup/event-types/", EventTypeListView.as_view(), name="v1_setup_event_types"),
+    path("v1/setup/allowed_groups/", AllowedGroupListView.as_view(), name="v1_setup_allowed_groups"),
+    path('v1/events/<slug:slug>/edit', EventAdminUpdateView.as_view(),
+        {'ev_type': 'event'}, name='v1_edit_event'),
+    path('v1/events/', event_admin_list,
+        {'ev_type': 'events'}, name='v1_events'),
+    path('v1/event-registers/', EventRegisterListView.as_view(),
+        {'ev_type': 'events'}, name='v1_event_register_list'),
+    path('v1/event-registers/<slug:event_slug>/', register_view, name='v1_event_register'),
+    path('v1/events/new/', EventAdminCreateView.as_view(),
+        {'ev_type': 'event'}, name='v1_add_event'),
+    path('v1/classes/<slug:slug>/edit/', EventAdminUpdateView.as_view(),
+        {'ev_type': 'lesson'}, name='v1_edit_lesson'),
+    path('v1/classes/', event_admin_list,
+        {'ev_type': 'lessons'}, name='v1_lessons'),
+    path('v1/class-registers/', EventRegisterListView.as_view(),
+        {'ev_type': 'lessons'}, name='v1_class_register_list'),
+    path('v1/classes/new/', EventAdminCreateView.as_view(),
+        {'ev_type': 'lesson'}, name='v1_add_lesson'),
+    path(
+        'v1/activitylog/', ActivityLogListView.as_view(), name='v1_activitylog'
+    ),
+]
+
+urlpatterns += v1_urls
+
+urlpatterns += [
     path('jsi18n/', JavaScriptCatalog.as_view(), name='jsi18n'),
     path('', RedirectView.as_view(url='/studioadmin/class-registers/', permanent=True)),
-    ]
+]

@@ -13,7 +13,7 @@ from django.views.generic import ListView
 from braces.views import LoginRequiredMixin
 
 from studioadmin.forms import ActivityLogSearchForm
-from studioadmin.views.helpers import StaffUserMixin
+from studioadmin.views.helpers import StaffUserMixin, get_v1_template
 from activitylog.models import ActivityLog
 from common.views import _set_pagination_context
 
@@ -93,3 +93,8 @@ class ActivityLogListView(LoginRequiredMixin, StaffUserMixin, ListView):
         context['form'] = form
         _set_pagination_context(context)
         return context
+    
+    def get_template_names(self):
+        template_names = super().get_template_names()
+        return [get_v1_template(self.request, template) for template in template_names]
+    
