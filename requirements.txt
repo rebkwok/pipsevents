@@ -90,7 +90,7 @@ django-one-time-notices==1.0.0
     # via -r requirements.in
 django-paypal==2.1
     # via -r requirements.in
-django-select2==8.4.0
+django-select2==8.4.1
     # via -r requirements.in
 djangorestframework==3.15.2
     # via -r requirements.in
