@@ -116,20 +116,6 @@ $jq(function () {
         format:'D MMM YYYY',
     });
 
-    //http://tablesorter.com/docs/
-    $jq("#sortTable").tablesorter();
-
-    $jq('#select-all').click(function (event) {  //on click
-        if (this.checked) { // check select status
-            $jq('.select-checkbox').each(function () { //loop through each checkbox
-                this.checked = true;  //select all checkboxes with class "select-checkbox"
-            });
-        } else {
-            $jq('.select-checkbox').each(function () { //loop through each checkbox
-                this.checked = false; //deselect all checkboxes with class "select-checkbox"
-            });
-        }
-    });
 
     $jq('.collapse')
         .on('shown.bs.collapse', function() {

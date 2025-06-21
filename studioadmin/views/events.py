@@ -86,6 +86,7 @@ def event_admin_list(request, ev_type):
 
     return TemplateResponse(
         request, 'studioadmin/admin_events.html', {
+            'type_name_singular': EVENT_TYPE_PARAM_MAPPING[ev_type]["name"],
             'type': ev_type,
             'events': events,
             'event_page': ev_page,
