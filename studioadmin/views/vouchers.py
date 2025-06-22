@@ -34,7 +34,7 @@ class VoucherListView(LoginRequiredMixin, StaffUserMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super(VoucherListView, self).get_context_data(**kwargs)
-        context['sidenav_selection'] = 'vouchers'
+        context['sidenav_selection'] = 'event_vouchers'
         _set_pagination_context(context)
         return context
 
@@ -48,7 +48,7 @@ class VoucherUpdateView(LoginRequiredMixin, StaffUserMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         context = super(VoucherUpdateView, self).get_context_data(**kwargs)
-        context['sidenav_selection'] = 'vouchers'
+        context['sidenav_selection'] = 'event_vouchers'
         return context
 
     def form_valid(self, form):
@@ -81,7 +81,7 @@ class VoucherCreateView(LoginRequiredMixin, StaffUserMixin, CreateView):
 
     def get_context_data(self, **kwargs):
         context = super(VoucherCreateView, self).get_context_data(**kwargs)
-        context['sidenav_selection'] = 'add_voucher'
+        context['sidenav_selection'] = 'add_event_voucher'
         return context
 
     def form_valid(self, form):
@@ -215,7 +215,7 @@ class EventVoucherDetailView(LoginRequiredMixin, StaffUserMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super(EventVoucherDetailView, self).get_context_data(**kwargs)
-        context['sidenav_selection'] = 'vouchers'
+        context['sidenav_selection'] = 'event_vouchers'
         user_list = []
 
         used_vouchers = self.get_used_vouchers()\

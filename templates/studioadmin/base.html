@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "base_v1.html" %}
 
 {% load static %}
 {% load bookingtags %}
@@ -646,7 +646,7 @@
                         <span class="sidebar_active">Classes</span>{% else %}Classes{% endif %}</a></li>
                     <li><a href="{% url 'studioadmin:room_hire_register_list' %}">{% if sidenav_selection == 'room_hires_register' %}
                         <span class="sidebar_active">Room Hire</span>{% else %}Room Hire{% endif %}</a></li>
-                    <li><a href="{% url 'studioadmin:event_register_list' %}">{% if sidenav_selection == 'events_register' %}
+nav_selection == 'events_register' %}
                         <span class="sidebar_active">Events/Workshops</span>{% else %}Events/Workshops{% endif %}</a></li>
                     <li><a href="{% url 'studioadmin:register-day' %}">{% if sidenav_selection == 'register_day' %}
                         <span class="sidebar_active">View/print registers by date</span>{% else %}View/print registers by date{% endif %}</a></li>

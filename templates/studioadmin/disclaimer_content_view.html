@@ -1,9 +1,10 @@
-{% extends "studioadmin/base.html" %}
+{% extends "studioadmin/base_v1.html" %}
 {% load static %}
 
 {% block studioadmincontent %}
 
-    <div class="container-fluid row">
+<div class="card mt-2">
+    <div class="card-body">
         <div class="float-right"><a class="btn btn-info" href="{% url 'studioadmin:disclaimer_content_list' %}">Back to list</a></div>
 
         <h2>Disclaimer Version {{ disclaimer_content.version }} - {{ disclaimer_content.issue_date | date:"d M Y" }}</h2>
@@ -17,7 +18,7 @@
         <h4>Over 18 Statement</h4>
         <div>{{ disclaimer_content.over_18_statement }}</div>
 
-
     </div>
+</div>
 
 {% endblock studioadmincontent %}

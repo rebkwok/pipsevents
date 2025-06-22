@@ -1,8 +1,8 @@
-{%  extends "studioadmin/base.html" %}
+{%  extends "studioadmin/base_v1.html" %}
 
 
 {% block studioadmincontent %}
-    <h1>Memberships for:  {{ user.first_name }} {{ user.last_name }} ({{ user.username }})</h1>
+    <h1 class="pt-2">Memberships for:  {{ user.first_name }} {{ user.last_name }} ({{ user.username }})</h1>
 
     <div><a href="{% url 'studioadmin:user_upcoming_bookings_list' user.id %}">Go to user's bookings</a></div>
     <div><a href="{% url 'studioadmin:user_blocks_list' user.id %}">Go to user's blocks</a></div>

@@ -1,12 +1,13 @@
-{%  extends "studioadmin/base.html" %}
+{%  extends "studioadmin/base_v1.html" %}
 
 {% load accounttags static %}
 
 
 {% block studioadmincontent %}
-    <h1>Transaction History</h1>
+<h1 class="pt-2">Transaction History</h1>
+<div class="table-responsive">
 
-    <table class="table table-responsive table-striped">
+    <table class="table table-striped">
         <thead>
             <th>Invoice</th>
             <th>User</th>
@@ -37,6 +38,7 @@
 
     {% include 'booking/includes/pagination.html' %}
 
+</div>
 {% endblock studioadmincontent %}
 {% block extra_js %}
 {% endblock %}

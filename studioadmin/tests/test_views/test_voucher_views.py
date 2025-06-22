@@ -86,7 +86,7 @@ class VoucherListViewTests(TestPermissionMixin, TestCase):
         )
         resp = self.client.get(self.url)
         self.assertEqual(len(resp.context_data['vouchers']), 6)
-        self.assertEqual(resp.context_data['sidenav_selection'], 'vouchers')
+        self.assertEqual(resp.context_data['sidenav_selection'], 'event_vouchers')
 
     def test_vouchers_expired(self):
         """
@@ -612,7 +612,7 @@ class VoucherUsesViewTests(TestPermissionMixin, TestCase):
         self.assertEqual(len(resp.context_data['user_list']), 2)
         for user_item in resp.context_data['user_list']:
             self.assertEqual(user_item['count'], 2)
-        self.assertEqual(resp.context_data['sidenav_selection'], 'vouchers')
+        self.assertEqual(resp.context_data['sidenav_selection'], 'event_vouchers')
 
     def test_block_voucher_counts_listed(self):
         users = baker.make_recipe('booking.user', _quantity=2)

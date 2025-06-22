@@ -1,9 +1,9 @@
-{% extends "studioadmin/base.html" %}
+{% extends "studioadmin/base_v1.html" %}
 {% load static %}
 {% load bookingtags %}
 
 {% block studioadmincontent %}
-        <h2>Registered Users</h2>
+        <h2 class="pt-2">Registered Users</h2>
 
         <div class="row">
             <div class="col-sm-12">
@@ -38,7 +38,7 @@
                 />
                 {% for allowed_group in allowed_groups %}
                     <input
-                            class="btn table-btn btn-alph-filter mb-1 {% if active_group == allowed_group|title %}btn-alph-primary{% else %}btn-secondary{% endif %} "
+                            class="btn btn-alph-filter mb-1 {% if active_group == allowed_group|title %}btn-alph-primary{% else %}btn-secondary{% endif %} "
                             type="submit"
                             name="group_filter"
                             value="{{ allowed_group }}"

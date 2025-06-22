@@ -1,11 +1,13 @@
-{% extends "studioadmin/base.html" %}
+{% extends "studioadmin/base_v1.html" %}
 {% load static %}
 
 {% block studioadmincontent %}
 
+<div class="card mt-2">
+    <div class="card-body">
         <h2>Disclaimer Versions</h2>
 
-        <h4 class="col-12">Click to view content. Only draft versions are editable.</h4>
+        <h4>Click to view content. Only draft versions are editable.</h4>
 
         {% for disclaimer_content in disclaimer_contents %}
         <div {% if disclaimer_content.is_draft %}class="col-7 col-sm-5 col-md-4"{% else %}class="col-12"{% endif %}>
@@ -21,5 +23,6 @@
         {% endif %}
 
         {% endfor %}
-
+    </div>
+</div>
 {% endblock studioadmincontent %}

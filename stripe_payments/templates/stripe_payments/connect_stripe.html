@@ -1,9 +1,9 @@
-{%  extends "studioadmin/base.html" %}
+{%  extends "studioadmin/base_v1.html" %}
 
 {% load  static %}
 
 {% block studioadmincontent %}
-    <h1>Connect Stripe Account</h1>
+    <h1 class="pt-1">Connect Stripe Account</h1>
     {% if not request.user.is_superuser %}
         <p>WARNING! You do not have permission to connect a Stripe account. Please contact an administrator. </p>
     {% else %}

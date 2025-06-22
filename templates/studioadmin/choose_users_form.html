@@ -1,9 +1,9 @@
-{% extends "studioadmin/base.html" %}
+{% extends "studioadmin/base_v1.html" %}
 {% load static %}
 {% load bookingtags %}
 
 {% block studioadmincontent %}
-        <h2>Choose Students to Email </h2>
+        <h2 class="pt-2">Choose Students to Email </h2>
         <p>Select by class, workshop/event and/or select specific students.</p>
 
             <div class="card card-wm">
@@ -15,7 +15,7 @@
                             <details>
                                 <summary>
                                     <label><strong>{{ userfilterform.events.label }}</strong></label>
-                                    <span {% if event_count %}class="text-success"{% endif %}> ({{ event_count }} selected)</span>
+                                    <span {% if event_count %}class="text-success"{% endif %}> ({{ event_count }} / {{ userfilterform.events|length }} selected)</span>
                                 </summary>
                                 {{ userfilterform.events }}
                             </details>
@@ -24,7 +24,7 @@
                             <details>
                                 <summary>
                                     <label><strong>{{ userfilterform.lessons.label }}</strong></label>
-                                    <span {% if lesson_count %}class="text-success"{% endif %}> ({{ lesson_count }} selected)</span>
+                                    <span {% if lesson_count %}class="text-success"{% endif %}> ({{ lesson_count }} / {{ userfilterform.lessons|length }} selected)</span>
                                 </summary>
                                 {{ userfilterform.lessons }}
                             </details>

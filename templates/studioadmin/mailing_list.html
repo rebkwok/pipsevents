@@ -1,10 +1,10 @@
-{% extends "studioadmin/base.html" %}
+{% extends "studioadmin/base_v1.html" %}
 {% load static %}
 {% load bookingtags %}
 
 {% block studioadmincontent %}
 
-        <h2>Mailing List</h2>
+        <h2 class="pt-2">Mailing List</h2>
         <p>Go to <a href="{% url 'studioadmin:users' %}">user list</a> to subscribe new users to the mailing list.</p>
 
         {% if users %}

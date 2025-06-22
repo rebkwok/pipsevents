@@ -1,11 +1,11 @@
-{% extends "studioadmin/base.html" %}
+{% extends "studioadmin/base_v1.html" %}
 {% load static %}
 {% load bookingtags %}
 
 {% block studioadmincontent %}
 
 {{ form.media }}
-       <div class="card card-wm">
+       <div class="card card-wm mt-2">
             <div class="card-header">
                 {% if voucher %}
                 <h2 class="card-title">Edit Voucher</h2>
@@ -17,11 +17,11 @@
             <div class="card-body">
                 <div>
                     {% if form.instance.is_gift_voucher %}
-                    <a href="{% url 'studioadmin:gift_vouchers' %}" class="btn btn-warning table-btn">Gift Voucher List</a>
+                    <a href="{% url 'studioadmin:gift_vouchers' %}" class="btn btn-warning">Gift Voucher List</a>
                     {% elif is_block_voucher %}
-                    <a href="{% url 'studioadmin:block_vouchers' %}" class="btn btn-warning table-btn">View Voucher List</a>
+                    <a href="{% url 'studioadmin:block_vouchers' %}" class="btn btn-warning">View Voucher List</a>
                     {% else %}
-                    <a href="{% url 'studioadmin:vouchers' %}" class="btn btn-warning table-btn">View Voucher List</a>
+                    <a href="{% url 'studioadmin:vouchers' %}" class="btn btn-warning">View Voucher List</a>
                     {% endif %}
                 </div><br/>
                 {% if form.errors %}

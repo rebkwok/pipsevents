@@ -1,10 +1,10 @@
-{% extends "studioadmin/base.html" %}
+{% extends "studioadmin/base_v1.html" %}
 {% load static %}
 {% load bookingtags %}
 
 {% block studioadmincontent %}
 
-        <h2>Blocks:
+        <h2 class="pt-2">Blocks:
         {% if block_status == 'current' %}
         Showing all current (paid and unpaid) blocks
         {% elif block_status == 'active' %}
