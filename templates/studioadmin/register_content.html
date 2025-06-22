@@ -1,116 +1,115 @@
 {% load bookingtags static %}
 
-    <h2>Register for {{ event }}</h2>
-
     {% if event.video_link %}
     <h3><a href="{{ event.video_link }}">{{ event.video_link }}</a></h3>
     {% endif %}
 
-    <div class="row">
-        <div class="col-sm-12 pt-2">
-            <div class="card card-wm">
-                <div class="card-body">
-                    <form class="float-right" action="" method="get">
-                                {{ status_filter.status_choice }}
-                    </form>
-                </div>
-                <div class="table-responsive">
-                    <table class="table">
-                        <tr class="compress success">
-                            <th class="text-center"></th>
-                            <th >Attended</th>
-                            <th class="text-center" >Status</th>
-                            <th class="text-center">User</th>
-                            <th class="text-center">Disclaimer</th>
-                            <th class="text-center">Paid</th>
-                        </tr>
+    <div class="card card-wm mt-2">
 
-                        <!-- Modal -->
-                        <div class="modal fade" id="RegisterBookingAddModal" tabindex="-1" role="dialog" aria-labelledby="RegisterBookingAddModalLabel"></div>
-                        <!-- /.modal -->
+        <div class="card-header">
+        <h2 class="card-title">Register for {{ event }}</h2>
+        </div>
 
-                        {% for booking in bookings %}
-                            <tr id='booking-row-{{ booking.id }}' class="compress{% if booking.no_show or booking.status == 'CANCELLED' %} expired{% endif %}">
-                                    <td class="text-center register-index studioadmin-tbl">{{ forloop.counter }}.</td>
-                                    <td class="text-center studioadmin-tbl">
-                                        <div class="btn-group btn-group-sm" role="group">
-                                          <button
-                                                  id="booking-attended-{{ booking.id }}"
-                                                  data-booking_id="{{ booking.id }}"
-                                                  data-attendance="attended"
-                                                  type="button"
-                                                  class="btn btn-attended {% if booking.attended %}btn-wm{% else %}btn-outline-secondary{% endif %}"
-                                                  >Yes</button>
-                                          <button
-                                                  id="booking-noshow-{{ booking.id }}"
-                                                  data-booking_id="{{ booking.id }}"
-                                                  data-attendance="no-show"
-                                                  type="button"
-                                                  class="btn btn-noshow {% if not booking.no_show %}btn-outline-secondary{% endif %}"
-                                                  >No</button>
-                                        </div>
-                                    </td>
-                                <td id="booking-status-{{ booking.id }}" class="text-center studioadmin-tbl">
-                                    {{ booking|format_status }}
-                                </td>
-                                <td class="text-center studioadmin-tbl">
-                                    <a href={% url 'studioadmin:user_upcoming_bookings_list' booking.user.id %}>
-                                    {{ booking.user.first_name|abbr_name }} {{ booking.user.last_name|abbr_name }}</a>
-                                    {% if booking.user.userprofile.pronouns %} ({{ booking.user.userprofile.pronouns }}){% endif %}
-                                    {% if booking|is_first_class %}<span class="fas fa-star text-warning"></span>{% endif %}
-                                </td>
-                                <td class="text-center studioadmin-tbl">
-                                    {% if booking.user|has_online_disclaimer %}
-                                        <a href="{% url 'studioadmin:user_disclaimer' booking.user.id|encode %}" target="_blank">
-                                            <span id="disclaimer" class="far fa-file-alt"></span>{% if booking.user|disclaimer_medical_info %} *{% endif %}</a>
-                                    {% elif booking.user|expired_disclaimer %}
-                                        <span class="studioadmin-help">(expired)</span>
-                                    {% elif booking.user|has_disclaimer %}
-                                        <span id="disclaimer" class="fas fa-check"></span>
+        <div class="card-body">
+            <form class="float-right" action="" method="get">
+                    <div class="form-group">{{ status_filter.status_choice }}</div>
+            </form>
+        </div>
+        <div class="table-responsive">
+            <table class="table">
+                <tr class="compress success">
+                    <th class="text-center"></th>
+                    <th >Attended</th>
+                    <th class="text-center" >Status</th>
+                    <th class="text-center">User</th>
+                    <th class="text-center">Disclaimer</th>
+                    <th class="text-center">Paid</th>
+                </tr>
+
+                <!-- Modal -->
+                <div class="modal fade" id="RegisterBookingAddModal" tabindex="-1" role="dialog" aria-labelledby="RegisterBookingAddModalLabel"></div>
+                <!-- /.modal -->
+
+                {% for booking in bookings %}
+                    <tr id='booking-row-{{ booking.id }}' class="compress{% if booking.no_show or booking.status == 'CANCELLED' %} expired{% endif %}">
+                            <td class="text-center register-index studioadmin-tbl">{{ forloop.counter }}.</td>
+                            <td class="text-center studioadmin-tbl">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <button
+                                            id="booking-attended-{{ booking.id }}"
+                                            data-booking_id="{{ booking.id }}"
+                                            data-attendance="attended"
+                                            type="button"
+                                            class="btn btn-attended {% if booking.attended %}btn-wm{% else %}btn-outline-secondary{% endif %}"
+                                            >Yes</button>
+                                    <button
+                                            id="booking-noshow-{{ booking.id }}"
+                                            data-booking_id="{{ booking.id }}"
+                                            data-attendance="no-show"
+                                            type="button"
+                                            class="btn btn-noshow {% if not booking.no_show %}btn-outline-secondary{% endif %}"
+                                            >No</button>
+                                </div>
+                            </td>
+                        <td id="booking-status-{{ booking.id }}" class="text-center studioadmin-tbl">
+                            {{ booking|format_status }}
+                        </td>
+                        <td class="text-center studioadmin-tbl">
+                            <a href={% url 'studioadmin:user_upcoming_bookings_list' booking.user.id %}>
+                            {{ booking.user.first_name|abbr_name }} {{ booking.user.last_name|abbr_name }}</a>
+                            {% if booking.user.userprofile.pronouns %} ({{ booking.user.userprofile.pronouns }}){% endif %}
+                            {% if booking|is_first_class %}<span class="fas fa-star text-warning"></span>{% endif %}
+                        </td>
+                        <td class="text-center studioadmin-tbl">
+                            {% if booking.user|has_online_disclaimer %}
+                                <a href="{% url 'studioadmin:user_disclaimer' booking.user.id|encode %}" target="_blank">
+                                    <span id="disclaimer" class="far fa-file-alt"></span>{% if booking.user|disclaimer_medical_info %} *{% endif %}</a>
+                            {% elif booking.user|expired_disclaimer %}
+                                <span class="studioadmin-help">(expired)</span>
+                            {% elif booking.user|has_disclaimer %}
+                                <span id="disclaimer" class="fas fa-check"></span>
+                            {% else %}
+                                <span id="disclaimer" class="fas fa-times"></span>
+                            {% endif %}
+                        </td>
+
+                        <td id="booking-paid-{{ booking.id }}" class="text-center studioadmin-tbl {% if not booking.paid %}register-unpaid{% endif %}">
+                            {% if booking.paid %}
+                                <span 
+                                    {% if booking.block or booking.membership %}
+                                        data-toggle="tooltip" data-placement="top" title="Booked with {% if booking.block %}block{% else %}membership ({{ booking.membership.membership.name }}){% endif %}"
                                     {% else %}
-                                        <span id="disclaimer" class="fas fa-times"></span>
-                                    {% endif %}
-                                </td>
+                                        class="fas fa-check-circle text-success"
+                                    {% endif %}>
+                                    {% if booking.block %}
+                                        <img src={% static 'booking/images/circle-b.svg' %} />
+                                        {% elif booking.membership %}
+                                        <img src={% static 'booking/images/circle-m.svg' %} />
+                                        {% endif %}
+                                </span>
+                            {% else %}
+                                <span class="fas fa-times">
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                {% if can_add_more %}
+                    <tr>
+                        <td class="studioadmin-tbl" colspan="6">
+                            <a class="bookingadd btn btn-wm ml-2" href="#" data-form="{% url 'studioadmin:bookingregisteradd' event.id %}" title="add booking">Add booking</a>
+                        </td>
+                    </tr>
+                {% endif %}
+                {% if event.max_participants %}
+                    <tr>
+                        <td class="studioadmin-tbl" colspan="6">
+                            <span class="ml-2">Spaces left: {{ event.spaces_left }} / {{ event.max_participants }}</span>
+                        </td>
+                    </tr>
+                {% endif %}
 
-                                <td id="booking-paid-{{ booking.id }}" class="text-center studioadmin-tbl {% if not booking.paid %}register-unpaid{% endif %}">
-                                    {% if booking.paid %}
-                                        <span 
-                                            {% if booking.block or booking.membership %}
-                                                data-toggle="tooltip" data-placement="top" title="Booked with {% if booking.block %}block{% else %}membership ({{ booking.membership.membership.name }}){% endif %}"
-                                            {% else %}
-                                                class="fas fa-check-circle text-success"
-                                            {% endif %}>
-                                            {% if booking.block %}
-                                                <img src={% static 'booking/images/circle-b.svg' %} />
-                                                {% elif booking.membership %}
-                                                <img src={% static 'booking/images/circle-m.svg' %} />
-                                                {% endif %}
-                                        </span>
-                                    {% else %}
-                                        <span class="fas fa-times">
-                                    {% endif %}
-                                </td>
-                            </tr>
-                        {% endfor %}
-                        {% if can_add_more %}
-                            <tr>
-                                <td class="studioadmin-tbl" colspan="6">
-                                    <a class="bookingadd btn btn-wm register-table-btn" href="#" data-form="{% url 'studioadmin:bookingregisteradd' event.id %}" title="add booking">Add booking</a>
-                                </td>
-                            </tr>
-                        {% endif %}
-                        {% if event.max_participants %}
-                            <tr>
-                                <td class="studioadmin-tbl" colspan="6">
-                                    Spaces left: {{ event.spaces_left }} / {{ event.max_participants }}
-                                </td>
-                            </tr>
-                        {% endif %}
-
-                    </table>
-                    </div>
-                </div>
-
+            </table>
             </div>
         </div>
+
     </div>

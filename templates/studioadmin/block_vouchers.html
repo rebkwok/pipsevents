@@ -1,10 +1,10 @@
-{% extends "studioadmin/base.html" %}
+{% extends "studioadmin/base_v1.html" %}
 {% load static %}
 {% load bookingtags %}
 
 {% block studioadmincontent %}
 
-    <div class="container-fluid row">
+    <div class="pt-2">
 
         <h2>Block Vouchers</h2>
 
@@ -45,12 +45,14 @@
                                     <td class="text-center studioadmin-tbl"><a href="{% url 'booking:gift_voucher_details' voucher.code %}" target="_blank"><span class="fas fa-link"></span></a> </td>
                                 </tr>
                                 {% endfor %}
-                                {% include 'booking/includes/pagination.html' %}
+                                
                             {% else %}
                               <tr><td colspan="9" class="studioadmin-tbl">No vouchers found</td></tr>
                             {% endif %}
                             </tbody>
+                            
                         </table>
+                        {% include 'booking/includes/pagination.html' %}
                     </div>
                 </div>
             </div>

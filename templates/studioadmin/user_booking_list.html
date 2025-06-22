@@ -1,10 +1,10 @@
-{% extends "studioadmin/base.html" %}
+{% extends "studioadmin/base_v1.html" %}
 {% load static %}
 {% load bookingtags %}
 
 {% block studioadmincontent %}
 
-        <h2>Bookings for {{ user.first_name }} {{ user.last_name }} ({{ user.username }}):
+        <h2 class="pt-2">Bookings for {{ user.first_name }} {{ user.last_name }} ({{ user.username }}):
             {% if booking_status == 'past' %}
                 Past bookings
             {% else %}

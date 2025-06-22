@@ -1,0 +1,41 @@
+aside.main-sidebar.sidebar-light-danger.elevation-2 > div > nav > ul > li.nav-item.menu-open > a,
+aside.main-sidebar.sidebar-light-danger.elevation-2 > div > nav > ul > li.nav-item > a.active
+{
+    background-color: rgb(240, 139, 165);
+}
+
+aside.main-sidebar.sidebar-light-danger.elevation-2 > div > nav > ul > li.nav-item.menu-open > ul > li > a.nav-link {
+    margin-left: 10%;
+    width: 90%;
+}
+
+aside.main-sidebar.sidebar-light-danger.elevation-2 > div > nav > ul > li.nav-item.menu-open > ul > li > a.nav-link.active {
+    background-color: rgba(240, 139, 165, 0.3);
+}
+aside.main-sidebar.sidebar-light-danger.elevation-2 > div > nav > ul > li.nav-item.menu-open > ul > li.nav-item.menu-open > ul > li > a.nested-nav-link {
+    margin-left: 20%;
+    width: 80%;
+}
+
+li.nav-header {
+    border-bottom: 1px solid rgba(240, 139, 165, 0.3);;
+    margin-bottom: 5px;
+}
+
+tr.table-details > td {
+    border-top: none;
+    padding-top: 0;
+    margin-top: 0;
+}
+
+.expandable-body > td > p {
+    padding-left: 2em;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-top: 0;
+    margin-bottom: 0.5em;
+}
+
+.badge-location-xs {
+    padding: 0;
+  }

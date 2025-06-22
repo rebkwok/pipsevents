@@ -3,7 +3,7 @@ from django.views.generic import ListView
 from braces.views import LoginRequiredMixin
 
 from booking.models import AllowedGroup, EventType
-from studioadmin.views.helpers import StaffUserMixin, get_v1_template
+from studioadmin.views.helpers import StaffUserMixin
 
 
 class EventTypeListView(LoginRequiredMixin, StaffUserMixin, ListView):
@@ -21,10 +21,6 @@ class EventTypeListView(LoginRequiredMixin, StaffUserMixin, ListView):
         context["sidenav_selection"] = "event_types"
         return context
     
-    def get_template_names(self):
-        template_names = super().get_template_names()
-        return [get_v1_template(self.request, template) for template in template_names]
-    
 
 class AllowedGroupListView(LoginRequiredMixin, StaffUserMixin, ListView):
 
@@ -36,7 +32,3 @@ class AllowedGroupListView(LoginRequiredMixin, StaffUserMixin, ListView):
         context = super().get_context_data(**kwargs)
         context["sidenav_selection"] = "allowed_groups"
         return context
-    
-    def get_template_names(self):
-        template_names = super().get_template_names()
-        return [get_v1_template(self.request, template) for template in template_names]

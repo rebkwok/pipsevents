@@ -1,7 +1,10 @@
 
 <!DOCTYPE html>
 {% load static %}
+{% load socialaccount %}
 {% load bookingtags %}
+{% load cookielaw_tags %}
+{% load notices_tags %}
 <html lang="en">
 
 <head>
@@ -24,9 +27,10 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
 
   <!-- Custom styles -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/css/bootstrap-datetimepicker.min.css" integrity="sha512-aEe/ZxePawj0+G2R+AaIxgrQuKT68I28qh+wgLrcAJOz3rxCP+TwrK5SPN+E5I+1IQjNtcfvb96HDagwrKRdBw==" crossorigin="anonymous" />
     <link href="{% static 'booking/css/custom-v1.14.8.css' %}" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'booking/css/print.css' %}"  type="text/css" media="print" />
-    <link href="{% static 'studioadmin/css/studioadmin-v0.1.css' %}" rel="stylesheet">
+    <link href="{% static 'studioadmin/css/studioadmin-v0.2.css' %}" rel="stylesheet">
      
   {% block head %}{% endblock %}
 </head>
@@ -47,7 +51,7 @@
             <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
           </li>
         <li class="nav-item d-none d-sm-inline-block">
-        <a href="/" class="nav-link">View site</a>
+        <a href="/" class="nav-link">View booking site</a>
         </li>
     </ul>
     
@@ -75,9 +79,9 @@
   <!-- Main Sidebar Container -->
   <aside class="main-sidebar sidebar-light-danger elevation-2">
     <!-- Brand Logo -->
-    <a href="{% url 'studioadmin:v1_class_register_list' %}" class="brand-link text-sm ">
+    <a href="{% url 'studioadmin:class_register_list' %}" class="brand-link pl-0">
         <img src="{% static 'booking/images/logo_brand_new.png' %}" alt="Logo" class="brand-image img-circle elevation-0"
-             style="opacity: .8">
+            >
         <span class="brand-text font-weight-light">Admin</span>
       </a>
 
@@ -90,7 +94,8 @@
             <!-- Add icons to the links using the .nav-icon class
                 with font-awesome or any other icon font library -->
             
-            <!-- Dashboard -->
+              
+            <!-- Dashboard - Visible to all users -->
             <li class="nav-item">
                 <a href="{% url 'studioadmin:landing' %}" class="nav-link {% if sidenav_selection == 'landing' %}active{% endif %}">
                     <i class="fas fa-tachometer-alt"></i>
@@ -101,10 +106,447 @@
             </li>
             <!-- Dashboard -->
 
+            <!-- Visible to staff only -->
+            {% if request.user.is_staff %}
+
+                <!-- Timetable -->
+                <li class="nav-header text-secondary">SCHEDULING</li>
+                <li class="nav-item {% if sidenav_selection in 'timetable,add_session,upload_timetable' %}menu-open{% endif %}">
+                    <a href="#" class="nav-link {% if sidenav_selection in 'timetable,add_session,upload_timetable' %}active active-wm{% endif %}">
+                        <i class="fas fa-calendar-alt"></i>
+                        <p>
+                        Timetable
+                        <i class="right fas fa-angle-left"></i>
+                        </p>
+                    </a>
+
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a href="{% url 'studioadmin:timetable' %}" class="nav-link {% if sidenav_selection == 'timetable' %}active{% endif %}">
+                                <i class="fas fa-pencil-alt"></i>
+                                <p>View/edit</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{% url 'studioadmin:add_session' %}" class="nav-link {% if sidenav_selection == 'add_session' %}active{% endif %}">
+                                <i class="fas fa-plus"></i>
+                                <p>Add</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{% url 'studioadmin:upload_timetable' %}" class="nav-link {% if sidenav_selection == 'upload_timetable' %}active{% endif %}">
+                                <i class="fas fa-upload"></i>
+                                <p>Upload timetable</p>
+                            </a>
+                        </li>
+                            
+                    </ul>
+                </li>
+                <!-- Timetable -->
+
+            <li class="nav-item {% if sidenav_selection in 'lessons,add_lesson,lessons_register,room_hires,add_room_hire,room_hires_register,events,add_event,events_register,online_tutorials,add_online_tutorial,online_tutorials_register' %}menu-open{% endif %}">
+                <a href="#" class="nav-link {% if sidenav_selection in 'lessons,add_lesson,lessons_register,room_hires,add_room_hire,room_hires_register,events,add_event,events_register,online_tutorials,add_online_tutorial,online_tutorials_register' %}active active-wm{% endif %}">
+                    <i class="far fa-calendar-plus"></i>
+                    <p>
+                    Scheduled sessions 
+                    <i class="right fas fa-angle-left"></i>
+                    </p>
+                </a>
+
+                <ul class="nav nav-treeview">
+                
+                    <!-- Classes -->
+                    <li class="nav-item {% if sidenav_selection in 'lessons,add_lesson,lessons_register' %}menu-open{% endif %}">
+                        <a href="#" class="nav-link {% if sidenav_selection in 'lessons,add_lesson,lessons_register' %}active active-wm{% endif %}">
+                            <i class="nav-icon fas fa-school"></i>
+                            <p>
+                            Classes
+                            <i class="right fas fa-angle-left"></i>
+                            </p>
+                        </a>
+
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a href="{% url 'studioadmin:lessons' %}" class="nav-link nested-nav-link {% if sidenav_selection == 'lessons' %}active{% endif %}">
+                                    <i class="fas fa-pencil-alt"></i>
+                                    <p>View/edit</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{% url 'studioadmin:add_lesson' %}" class="nav-link nested-nav-link {% if sidenav_selection == 'add_lesson' %}active{% endif %}">
+                                    <i class="fas fa-plus"></i>
+                                    <p>Add</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{% url 'studioadmin:class_register_list' %}" class="nav-link nested-nav-link {% if sidenav_selection == 'lessons_register' %}active{% endif %}">
+                                    <i class="fas fa-clipboard-list"></i>
+                                    <p>Registers</p>
+                                </a>
+                            </li>
+                                
+                        </ul>
+                    </li>
+                    <!-- Classes -->
+
+                    <!-- Room hire -->
+                    <li class="nav-item {% if sidenav_selection in 'room_hires,add_room_hire,room_hires_register' %}menu-open{% endif %}">
+                        <a href="#" class="nav-link {% if sidenav_selection in 'room_hires,add_room_hire,room_hires_register' %}active active-wm{% endif %}">
+                            <i class="fas fa-house-user"></i>
+                            <p>
+                            Room Hire
+                            <i class="right fas fa-angle-left"></i>
+                            </p>
+                        </a>
+
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a href="{% url 'studioadmin:room_hires' %}" class="nav-link nested-nav-link {% if sidenav_selection == 'room_hires' %}active{% endif %}">
+                                    <i class="fas fa-pencil-alt"></i>
+                                    <p>View/edit</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{% url 'studioadmin:add_room_hire' %}" class="nav-link nested-nav-link {% if sidenav_selection == 'add_room_hire' %}active{% endif %}">
+                                    <i class="fas fa-plus"></i>
+                                    <p>Add</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{% url 'studioadmin:room_hire_register_list' %}" class="nav-link nested-nav-link {% if sidenav_selection == 'room_hires_register' %}active{% endif %}">
+                                    <i class="fas fa-clipboard-list"></i>
+                                    <p>Registers</p>
+                                </a>
+                            </li>
+                                
+                        </ul>
+                    </li>
+                    <!-- Room hire -->
+                                
+                    <!-- Workshops -->
+                    <li class="nav-item {% if sidenav_selection in 'events,add_event,events_register' %}menu-open{% endif %}">
+                        <a href="#" class="nav-link {% if sidenav_selection in 'events,add_event,events_register' %}active active-wm{% endif %}">
+                            <i class="fas fa-wrench"></i>
+                            <p>
+                            Workshops/Events
+                            <i class="right fas fa-angle-left"></i>
+                            </p>
+                        </a>
+
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a href="{% url 'studioadmin:events' %}" class="nav-link nested-nav-link {% if sidenav_selection == 'events' %}active{% endif %}">
+                                    <i class="fas fa-pencil-alt"></i>
+                                    <p>View/edit</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{% url 'studioadmin:add_event' %}" class="nav-link nested-nav-link {% if sidenav_selection == 'add_event' %}active{% endif %}">
+                                    <i class="fas fa-plus"></i>
+                                    <p>Add</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{% url 'studioadmin:event_register_list' %}" class="nav-link nested-nav-link {% if sidenav_selection == 'events_register' %}active{% endif %}">
+                                    <i class="fas fa-clipboard-list"></i>
+                                    <p>Registers</p>
+                                </a>
+                            </li>
+                                
+                        </ul>
+                    </li>
+                    <!-- Workshops -->
+
+                    <!-- Online tutorials -->
+                    <li class="nav-item {% if sidenav_selection in 'online_tutorials,add_online_tutorial,online_tutorials_register' %}menu-open{% endif %}">
+                        <a href="#" class="nav-link {% if sidenav_selection in 'online_tutorials,add_online_tutorial,online_tutorials_register' %}active active-wm{% endif %}">
+                            <i class="fas fa-globe"></i>
+                            <p>
+                            Online tutorials
+                            <i class="right fas fa-angle-left"></i>
+                            </p>
+                        </a>
+
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a href="{% url 'studioadmin:online_tutorials' %}" class="nav-link nested-nav-link {% if sidenav_selection == 'online_tutorials' %}active{% endif %}">
+                                    <i class="fas fa-pencil-alt"></i>
+                                    <p>View/edit</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{% url 'studioadmin:add_online_tutorial' %}" class="nav-link nested-nav-link {% if sidenav_selection == 'add_online_tutorial' %}active{% endif %}">
+                                    <i class="fas fa-plus"></i>
+                                    <p>Add</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{% url 'studioadmin:online_tutorials_register_list' %}" class="nav-link nested-nav-link {% if sidenav_selection == 'online_tutorials_register' %}active{% endif %}">
+                                    <i class="fas fa-clipboard-list"></i>
+                                    <p>Registers</p>
+                                </a>
+                            </li>
+                                
+                        </ul>
+                    </li>
+                    <!-- Online tutorials -->
+                </ul>
+            </li>
+
+            <!-- Ticketed events -->
+            <li class="nav-item {% if sidenav_selection in 'ticketed_evs,add_ticketed_event,print_tickets_list' %}menu-open{% endif %}">
+                <a href="#" class="nav-link {% if sidenav_selection in 'ticketed_evs,add_ticketed_event,print_tickets_list' %}active active-wm{% endif %}">
+                    <i class="fas fa-ticket-alt"></i>
+                    <p>
+                        Ticketed events
+                        <i class="right fas fa-angle-left"></i>
+                    </p> 
+                </a>
+
+                <ul class="nav nav-treeview">
+                    <li class="nav-item">
+                        <a href="{% url 'studioadmin:ticketed_events' %}" class="nav-link {% if sidenav_selection == 'ticketed_evs' %}active{% endif %}">
+                            <i class="fas fa-pencil-alt"></i>
+                            <p>View/edit</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'studioadmin:add_ticketed_event' %}" class="nav-link {% if sidenav_selection == 'add_ticketed_ev' %}active{% endif %}">
+                            <i class="fas fa-plus"></i>
+                            <p>Add</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'studioadmin:print_tickets_list' %}" class="nav-link {% if sidenav_selection == 'print_tickets_list' %}active{% endif %}">
+                            <i class="fas fa-clipboard-list"></i>
+                            <p>View/print ticket lists</p>
+                        </a>
+                    </li>
+                        
+                </ul>
+            </li>
+            <!-- Ticketed events -->
+
+            <li class="nav-header text-secondary">MEMBERSHIPS / USERS</li>
+            <!-- Memberships -->
+            <li class="nav-item {% if sidenav_selection in 'memberships,membership_add' %}menu-open{% endif %}">
+                <a href="#" class="nav-link {% if sidenav_selection in 'memberships,membership_add' %}active active-wm{% endif %}">
+                    <i class="fas fa-layer-group"></i>
+                    <p>
+                        Memberships
+                        <i class="right fas fa-angle-left"></i>
+                    </p>
+                </a>
+
+                <ul class="nav nav-treeview">
+                    <li class="nav-item">
+                        <a href="{% url 'studioadmin:memberships_list' %}" class="nav-link {% if sidenav_selection == 'memberships' %}active{% endif %}">
+                            <i class="fas fa-clipboard-list"></i>
+                            <p>Memberships</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'studioadmin:membership_add' %}" class="nav-link {% if sidenav_selection == 'membership_add' %}active{% endif %}">
+                            <i class="fas fa-plus"></i>
+                            <p>Add</p>
+                        </a>
+                    </li>
+                        
+                </ul>
+            </li>
+            <!-- Memberships -->
+
+            <!-- Students -->
+            <li class="nav-item {% if sidenav_selection in 'users,blocks,email_users,mailing_list,attendance' %}menu-open{% endif %}">
+                <a href="#" class="nav-link {% if sidenav_selection in 'users,blocks,email_users,mailing_list,attendance' %}active active-wm{% endif %}">
+                    <i class="fas fa-user"></i>
+                    <p>
+                        Students
+                        <i class="right fas fa-angle-left"></i>
+                    </p>
+                </a>
+
+                <ul class="nav nav-treeview">
+                    <li class="nav-item">
+                        <a href="{% url 'studioadmin:users' %}" class="nav-link {% if sidenav_selection == 'users' %}active{% endif %}">
+                            <i class="fas fa-users"></i>
+                            <p>Registered users</p>
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a href="{% url 'studioadmin:users_status' %}" class="nav-link {% if sidenav_selection == 'attendance' %}active{% endif %}">
+                            <i class="fas fa-hand-paper"></i>
+                            <p>Attendance</p>
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a href="{% url 'studioadmin:blocks' %}" class="nav-link {% if sidenav_selection == 'blocks' %}active{% endif %}">
+                            <i class="fas fa-cubes"></i>
+                            <p>Blocks</p>
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a href="{% url 'studioadmin:choose_email_users' %}" class="nav-link {% if sidenav_selection == 'email_users' %}active{% endif %}">
+                            <i class="fas fa-envelope"></i>
+                            <p>Bulk email</p>
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a href="{% url 'studioadmin:mailing_list' %}" class="nav-link {% if sidenav_selection == 'mailing_list' %}active{% endif %}">
+                            <i class="fab fa-mailchimp"></i>
+                            <p>Mailing list</p>
+                        </a>
+                    </li>
+  
+                </ul>
+            </li>
+            <!-- Students -->
+
+            <li class="nav-header text-secondary">VOUCHERS & PAYMENTS</li>
+            <!-- Vouchers -->
+            <li class="nav-item {% if sidenav_selection in 'event_vouchers,add_event_voucher,block_vouchers,add_block_voucher,gift_vouchers,add_membership_voucher,membership_vouchers' %}menu-open{% endif %}">
+                <a href="#" class="nav-link {% if sidenav_selection in 'event_vouchers,add_event_voucher,block_vouchers,add_block_voucher,gift_vouchers,add_membership_voucher,membership_vouchers' %}active{% endif %}">
+                    <i class="fas fa-gift"></i>
+                    <p>
+                    Vouchers
+                    <i class="right fas fa-angle-left"></i>
+                    </p> 
+                   
+                </a>
+
+                <ul class="nav nav-treeview">
+
+                    <!-- Event vouchers -->
+                    <li class="nav-item {% if sidenav_selection in 'event_vouchers,add_event_voucher' %}menu-open{% endif %}">
+                        <a href="#" class="nav-link {% if sidenav_selection in 'event_vouchers,add_event_voucher' %}active active-wm{% endif %}">
+                            <i class="far fa-circle"></i>
+                            <p>
+                            Class/Event
+                            <i class="right fas fa-angle-left"></i>
+                            </p>
+                            
+                        </a>
+
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a href="{% url 'studioadmin:vouchers' %}" class="nav-link nested-nav-link {% if sidenav_selection == 'vouchers' %}active{% endif %}">
+                                    <i class="fas fa-list"></i>
+                                    <p>View</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{% url 'studioadmin:add_voucher' %}" class="nav-link nested-nav-link {% if sidenav_selection == 'add_voucher' %}active{% endif %}">
+                                    <i class="fas fa-plus"></i>
+                                    <p>Add</p>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    <!-- Event vouchers -->
+
+                    <!-- Block vouchers -->
+                    <li class="nav-item {% if sidenav_selection in 'block_vouchers,add_block_voucher' %}menu-open{% endif %}">
+                        <a href="#" class="nav-link {% if sidenav_selection in 'block_vouchers,add_block_voucher' %}active active-wm{% endif %}">
+                            <i class="fas far fa-circle"></i>
+                            <p>
+                            Block
+                            <i class="right fas fa-angle-left"></i>
+                            </p>
+                        </a>
+
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a href="{% url 'studioadmin:block_vouchers' %}" class="nav-link nested-nav-link {% if sidenav_selection == 'block_vouchers' %}active{% endif %}">
+                                    <i class="fas fa-list"></i>
+                                    <p>View</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{% url 'studioadmin:add_block_voucher' %}" class="nav-link nested-nav-link {% if sidenav_selection == 'add_block_voucher' %}active{% endif %}">
+                                    <i class="fas fa-plus"></i>
+                                    <p>Add</p>
+                                </a>
+                            </li>
+        
+                        </ul>
+                    </li>
+                    <!-- Block vouchers -->
+
+                    <!-- Membership vouchers -->
+                    <li class="nav-item {% if sidenav_selection in 'membership_vouchers,add_membership_voucher' %}menu-open{% endif %}">
+                        <a href="#" class="nav-link {% if sidenav_selection in 'membership_vouchers,add_membership_voucher' %}active active-wm{% endif %}">
+                            <i class="fas far fa-circle"></i>
+                            <p>
+                            Membership
+                            <i class="right fas fa-angle-left"></i>
+                            </p>
+                        </a>
+
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a href="{% url 'studioadmin:membership_vouchers' %}" class="nav-link nested-nav-link {% if sidenav_selection == 'membership_vouchers' %}active{% endif %}">
+                                    <i class="fas fa-list"></i>
+                                    <p>View</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{% url 'studioadmin:add_membership_voucher' %}" class="nav-link nested-nav-link {% if sidenav_selection == 'add_membership_voucher' %}active{% endif %}">
+                                    <i class="fas fa-plus"></i>
+                                    <p>Add</p>
+                                </a>
+                            </li>
+        
+                        </ul>
+                    </li>
+                    <!-- Membership vouchers -->
+
+                    <li class="nav-item">
+                        <a href="{% url 'studioadmin:gift_vouchers' %}" class="nav-link {% if sidenav_selection == 'gift_vouchers' %}active{% endif %}">
+                            <i class="fas fa-gift"></i>
+                            <p>Gift Vouchers</p>
+                        </a>
+                    </li>
+
+                </ul>
+            </li>
+
+
+            <!-- Payments -->
+            <li class="nav-item {% if sidenav_selection in 'invoices,membership_payments' %}menu-open{% endif %}">
+                <a href="#" class="nav-link {% if sidenav_selection in 'invoices,membership_payments' %}active{% endif %}">
+                    <i class="fas fa-pound-sign"></i>
+                    <p>
+                    Payments
+                    <i class="right fas fa-angle-left"></i>
+                    </p>
+                </a>
+
+                <ul class="nav nav-treeview">
+                    <li class="nav-item">
+                        <a href="{% url 'studioadmin:invoices' %}" class="nav-link {% if sidenav_selection == 'invoices' %}active{% endif %}">
+                            <i class="fas fa-receipt"></i>
+                            <p>Transactions</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'studioadmin:subscription_invoices' %}" class="nav-link {% if sidenav_selection == 'membership_payments' %}active{% endif %}">
+                            <i class="fas fa-money-check"></i>
+                            <p>Subscriptions</p>
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
+                        
+            <li class="nav-header text-secondary">SETTINGS & LOGS</li>
             <!-- Setup -->
-            <li class="nav-item {% if sidenav_selection in 'allowed_groups,event_types' %}menu-open{% endif %}">
-                <a href="#" class="nav-link {% if sidenav_selection in 'allowed_groups,event_types' %}active{% endif %}">
-                    <i class="nav-icon fas fa-cog"></i>
+            <li class="nav-item {% if sidenav_selection in 'allowed_groups,event_types,connect_stripe,disclaimer_content_list,disclaimer_content_new,disclaimer_content_view' %}menu-open{% endif %}">
+                <a href="#" class="nav-link {% if sidenav_selection in 'allowed_groups,event_types,connect_stripe,disclaimer_content_list,disclaimer_content_new,disclaimer_content_view' %}active{% endif %}">
+                    <i class="fas fa-cog"></i>
                     <p>
                     Setup
                     <i class="right fas fa-angle-left"></i>
@@ -112,99 +554,151 @@
                 </a>
 
                 <ul class="nav nav-treeview">
+
+                    <li class="nav-header">DISCLAIMERS</li>
                     <li class="nav-item">
-                        <a href="{% url 'studioadmin:v1_setup_allowed_groups' %}" class="nav-link {% if sidenav_selection == 'allowed_groups' %}active{% endif %}">
+                        <a href="{% url 'studioadmin:disclaimer_content_list' %}" class="nav-link {% if sidenav_selection == 'disclaimer_content_list' %}active{% endif %}">
+                            <i class="fas fa-list"></i>
+                            <p>Versions</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'studioadmin:disclaimer_content_new' %}" class="nav-link {% if sidenav_selection == 'disclaimer_content_new' %}active{% endif %}">
+                            <i class="fas fa-plus"></i>
+                            <p>New</p>
+                        </a>
+                    </li>
+
+                    <li class="nav-header">CONFIGURATION</li>
+                    <li class="nav-item">
+                        <a href="{% url 'studioadmin:setup_allowed_groups' %}" class="nav-link {% if sidenav_selection == 'allowed_groups' %}active{% endif %}">
                             <i class="fas fa-user-friends"></i>
                             <p>Allowed Groups</p>
                         </a>
-                        </li>
-                        <li class="nav-item">
-                        <a href="{% url 'studioadmin:v1_setup_event_types' %}" class="nav-link {% if sidenav_selection == 'event_types' %}active{% endif %}">
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'studioadmin:setup_event_types' %}" class="nav-link {% if sidenav_selection == 'event_types' %}active{% endif %}">
                             <i class="fas fa-flag"></i>
                             <p>Event types</p>
+                        </a>
+                    </li>
+
+                    <li class="nav-header">STRIPE</li>
+                    <li class="nav-item">
+                        <a href="{% url 'stripe_payments:connect_stripe' %}" class="nav-link {% if sidenav_selection == 'connect_stripe' %}active{% endif %}">
+                            <i class="fab fa-stripe-s"></i>
+                            <p>Connect Stripe</p>
                         </a>
                     </li>
                 </ul>
             </li>
             <!-- Setup -->
 
-            <!-- Classes -->
-            <li class="nav-item {% if sidenav_selection in 'lessons,add_lesson,lessons_register' %}menu-open{% endif %}">
-                <a href="#" class="nav-link {% if sidenav_selection in 'lessons,add_lesson,lessons_register' %}active active-wm{% endif %}">
-                    <i class="nav-icon fas fa-school"></i>
+            <!-- Notifications -->
+            <li class="nav-item {% if sidenav_selection in 'all_banner,new_banner,popup_notification' %}menu-open{% endif %}">
+                <a href="#" class="nav-link {% if sidenav_selection in 'all_banner,new_banner,popup_notification' %}active{% endif %}">
+                    <i class="fas fa-bell"></i>
                     <p>
-                    Classes
+                    Notifications
                     <i class="right fas fa-angle-left"></i>
                     </p>
                 </a>
 
                 <ul class="nav nav-treeview">
+
                     <li class="nav-item">
-                        <a href="{% url 'studioadmin:v1_lessons' %}" class="nav-link {% if sidenav_selection == 'lessons' %}active{% endif %}">
-                            <i class="fas fa-pencil-alt"></i>
-                            <p>View/edit</p>
+                        <a href="{% url 'studioadmin:all_users_banner' %}" class="nav-link {% if sidenav_selection == 'all_banner' %}active{% endif %}">
+                            <i class="fas fa-flag"></i>
+                            <p>Banner - all users</p>
                         </a>
                     </li>
+
                     <li class="nav-item">
-                        <a href="{% url 'studioadmin:v1_add_lesson' %}" class="nav-link {% if sidenav_selection == 'add_lesson' %}active{% endif %}">
-                            <i class="fas fa-plus"></i>
-                            <p>Add new</p>
+                        <a href="{% url 'studioadmin:new_users_banner' %}" class="nav-link {% if sidenav_selection == 'new_banner' %}active{% endif %}">
+                            <i class="far fa-flag"></i>
+                            <p>Banner - new users</p>
                         </a>
                     </li>
+
                     <li class="nav-item">
-                        <a href="{% url 'studioadmin:v1_class_register_list' %}" class="nav-link {% if sidenav_selection == 'lessons_register' %}active{% endif %}">
-                            <i class="fas fa-clipboard-list"></i>
-                            <p>Registers</p>
+                        <a href="{% url 'studioadmin:popup_notification' %}" class="nav-link {% if sidenav_selection == 'popup_notification' %}active{% endif %}">
+                            <i class="fas fa-share-square"></i>
+                            <p>Popup</p>
                         </a>
                     </li>
-                        
+
                 </ul>
             </li>
-            <!-- Classes -->
-
-            <!-- Workshops -->
-            <li class="nav-item {% if sidenav_selection in 'events,add_event,events_register' %}menu-open{% endif %}">
-                <a href="#" class="nav-link {% if sidenav_selection in 'events,add_event,events_register' %}active active-wm{% endif %}">
-                    <i class="fas fa-building"></i>
-                    <p>
-                    Workshops/Events
-                    </p>
-                </a>
-
-                <ul class="nav nav-treeview">
-                    <li class="nav-item">
-                        <a href="{% url 'studioadmin:v1_events' %}" class="nav-link {% if sidenav_selection == 'events' %}active{% endif %}">
-                            <i class="fas fa-pencil-alt"></i>
-                            <p>View/edit</p>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{% url 'studioadmin:v1_add_event' %}" class="nav-link {% if sidenav_selection == 'add_event' %}active{% endif %}">
-                            <i class="fas fa-plus"></i>
-                            <p>Add new</p>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{% url 'studioadmin:v1_event_register_list' %}" class="nav-link {% if sidenav_selection == 'events_register' %}active{% endif %}">
-                            <i class="fas fa-clipboard-list"></i>
-                            <p>Registers</p>
-                        </a>
-                    </li>
-                        
-                </ul>
-            </li>
-            <!-- Classes -->
-
-
+                    
+            <!-- Notifications -->
 
             <li class="nav-item">
-            <a href="{% url 'studioadmin:v1_activitylog' %}" class="nav-link {% if sidenav_selection == 'activitylog' %}active{% endif %}">
+            <a href="{% url 'studioadmin:activitylog' %}" class="nav-link {% if sidenav_selection == 'activitylog' %}active{% endif %}">
                 <i class="fas fa-running"></i>
                 <p>
                 Activity Log
                 </p>
             </a>
             </li>
+            <!-- staff only ends -->
+
+             <!-- instructor view 
+             Registers - classes/room hire/events
+             Students - list only
+             -->
+            {% elif request.user|in_group:"instructors" %} 
+
+                <!-- Timetable -->
+                <li class="nav-header text-secondary">REGISTERS</li>
+                <li class="nav-item">
+                    <a href="{% url 'studioadmin:class_register_list' %}" class="nav-link {% if sidenav_selection == 'lessons_register' %}active{% endif %}">
+                        <i class="fas fa-school"></i>
+                        <p>
+                        Classes
+                        </p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'studioadmin:room_hire_register_list' %}" class="nav-link {% if sidenav_selection == 'room_hires_register' %}active{% endif %}">
+                        <i class="fas fa-house-user"></i>
+                        <p>
+                        Room hire
+                        </p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'studioadmin:event_register_list' %}" class="nav-link {% if sidenav_selection == 'events_register' %}active{% endif %}">
+                        <i class="fas fa-wrench"></i>
+                        <p>
+                        Events/Workshops
+                        </p>
+                    </a>
+                </li>
+
+                <li class="nav-header text-secondary">STUDENTS</li>
+                <li class="nav-item">
+                    <a href="{% url 'studioadmin:users' %}" class="nav-link {% if sidenav_selection == 'users' %}active{% endif %}">
+                        <i class="fas fa-users"></i>
+                        <p>Registered users</p>
+                    </a>
+                </li>
+                            
+            {% endif %}
+
+            <!-- Event disclaimers - Visible to all with perm or instructors (automatically visible to staff) -->
+            {% if perms.accounts.view_nonregistereddisclaimer or request.user|in_group:"instructors" %} 
+            <li class="nav-header text-secondary pt-0"></li>
+            <li class="nav-item">
+                <a href="{% url 'studioadmin:event_disclaimers' %}" class="nav-link {% if sidenav_selection == 'event_disclaimers' %}active{% endif %}">
+                    <i class="fas fa-glass-cheers"></i>
+                    <p>
+                    One-off disclaimers
+                    </p>
+                </a>
+            </li>
+            {% endif %}
+            <!-- Event disclaimers -->
+
         </ul>
         </nav>
         <!-- /.sidebar-menu -->
@@ -218,6 +712,26 @@
     <!-- Main content -->
     <div class="content">
       <div class="container-fluid">
+        {% if messages %}
+        <div class="container-fluid mt-2 mb-3" id="message-row">
+            {% for message in messages %}
+                <div
+                    {% if message.tags and message.tags == 'error' %}
+                        class="message alert alert-danger alert-dismissible"
+                    {% elif message.tags %}
+                        class="message alert alert-{{ message.tags }} alert-dismissible"
+                    {% endif %}>
+                    <button type="button" class="pt-0 pb-0 close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    {% if 'safe' in message.tags %}
+                        {{ message|safe }}
+                    {% else %}
+                        {{ message }}
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    
         {% block studioadmincontent %}{% endblock %}
       </div><!-- /.container-fluid -->
     </div>
@@ -246,27 +760,31 @@
 
 <script src="https://unpkg.com/htmx.org@1.9.2" integrity="sha384-L6OqL9pRWyyFU3+/bjdSri+iIphTN/bvYyM37tICVyOJkWZLpP2vGn6VUEXgzg6h" crossorigin="anonymous" defer></script>
 <script src="https://unpkg.com/htmx.org/dist/ext/class-tools.js" defer></script>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.27.0/moment.min.js" integrity="sha512-rmZcZsyhe0/MAjquhTgiUcb4d9knaFc7b5xAfju483gbEXTkeJRUMIPk6s3ySZMYUHEcjKbjLjyddGWMrNEvZg==" crossorigin="anonymous"></script>
 <script src="https://code.jquery.com/jquery-3.5.1.min.js" integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin="anonymous"></script>
-{% comment %} <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous"></script> {% endcomment %}
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/js/all.min.js" integrity="sha512-YSdqvJoZr83hj76AIVdOcvLWYMWzy6sJyIMic2aQz5kh2bPTd9dzY3NtdeEAzPp/PhgZqr4aJObB3ym/vsItMg==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.10.2/underscore-min.js" integrity="sha512-HKvDCFVKg8ZPGjecy6on7UECEpE76Y86h3GaE4JMCz+deFWdjcW/tWnh0hCfaBvURvlOa9f5CNVzt7EFkulYbw==" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/overlayscrollbars/2.11.0/browser/overlayscrollbars.browser.es6.min.js" integrity="sha512-cUttwnAJPjxtNV0J7YWEQmgAXdSA8To+RO/1eQgrjMMtDmuyNP0wYgNqNQ9insqV270l/ht3ooGiRuC0oLgpig==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-{% comment %} <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.AreYouSure/1.9.0/jquery.are-you-sure.min.js" integrity="sha512-YuZemcyQ8r4w8tdxIzkJVgWfHrzSQN9PuF18I490DE8H97DOkrt+bolBf3/mve+9t8SLWODBzFCCPxH/vZYqBg==" crossorigin="anonymous"></script> {% endcomment %}
-{% comment %} <script src="{% static 'booking/js/custom-v1.8.js' %}"></script> {% endcomment %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.3/js/jquery.tablesorter.min.js" integrity="sha512-qzgd5cYSZcosqpzpn7zF2ZId8f/8CHmFKZ8j7mU4OUXTNRd5g+ZHBPsgKEwoqxCtdQvExE5LprwwPAgoicguNg==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/js/bootstrap-datetimepicker.min.js" integrity="sha512-GDey37RZAxFkpFeJorEUwNoIbkTwsyC736KNSYucu1WJWFK9qTdzYub8ATxktr6Dwke7nbFaioypzbDOQykoRg==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.AreYouSure/1.9.0/jquery.are-you-sure.min.js" integrity="sha512-YuZemcyQ8r4w8tdxIzkJVgWfHrzSQN9PuF18I490DE8H97DOkrt+bolBf3/mve+9t8SLWODBzFCCPxH/vZYqBg==" crossorigin="anonymous"></script>
+
 
 <script>
     var $jq = jQuery.noConflict();
     /*** Handle jQuery plugin naming conflict between jQuery UI and Bootstrap ***/
-    {% comment %} $jq.widget.bridge('uibutton', $jq.ui.button);
-    $jq.widget.bridge('uitooltip', $jq.ui.tooltip); {% endcomment %}
+    $jq.widget.bridge('uibutton', $jq.ui.button);
+    $jq.widget.bridge('uitooltip', $jq.ui.tooltip);
 </script>
 
+<script src="{% static 'studioadmin/js/studioadmin-v0.1.js' %}"></script>
 
 {% block extra_js %}{% endblock %}
 
 
-<script defer src="https://static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon='{"rayId":"94fa4ea72fa8ae03","serverTiming":{"name":{"cfExtPri":true,"cfEdge":true,"cfOrigin":true,"cfL4":true,"cfSpeedBrain":true,"cfCacheStatus":true}},"version":"2025.6.2","token":"2437d112162f4ec4b63c3ca0eb38fb20"}' crossorigin="anonymous"></script>
+
 </body>
 </html>
 

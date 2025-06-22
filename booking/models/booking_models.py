@@ -330,9 +330,18 @@ class Event(models.Model):
         if self.allowed_group == AllowedGroup.default_group():
             return "-"
         return self.allowed_group
-        
+    
     def get_absolute_url(self):
         return reverse("booking:event_detail", kwargs={'slug': self.slug})
+
+    def get_admin_edit_url(self):
+        event_type_to_url_name = {
+            "CL": "edit_lesson",
+            "EV": "edit_event",
+            "RH": "edit_room_hire",
+            "OT": "edit_online_tutorial"
+        }
+        return reverse(f"studioadmin:{event_type_to_url_name[self.event_type.event_type]}", kwargs={'slug': self.slug})
 
     @property
     def is_past(self):

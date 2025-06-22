@@ -1,51 +1,31 @@
-//http://xdsoft.net/jqplugins/datetimepicker/
-Date.parseDate = function( input, format ){
-  return moment(input,format).toDate();
-};
-Date.prototype.dateFormat = function( format ){
-  return moment(this).format(format);
-};
 
-var timeoutID;
+
 
 var $jq = jQuery.noConflict();
 
-function timeoutShoppingBasket() {
-  var bookingsPaypalForm = document.getElementById("checkout-bookings-total-and-paypalform");
-  var blocksPaypalForm = document.getElementById("checkout-blocks-total-and-paypalform");
-  var giftPaypalForm = document.getElementById("gift-voucher-paypal-form");
-  if (bookingsPaypalForm !== null) {
-      bookingsPaypalForm.innerHTML = '<div class="btn btn-warning reload-btn" onclick=location.reload();><span class="fas fa-sync-alt"></span> Refresh basket</div>';
-  }
-  if (blocksPaypalForm !== null) {
-      blocksPaypalForm.innerHTML = '<div class="btn btn-warning reload-btn" onclick=location.reload();><span class="fas fa-sync-alt"></span> Refresh basket</div>';
-  }
-    if (giftPaypalForm !== null) {
-      giftPaypalForm.innerHTML = '<div class="btn btn-warning reload-btn" onclick=location.reload();><span class="fas fa-sync-alt"></span> Refresh</div>';
-  }
-
-}
+//http://xdsoft.net/jqplugins/datetimepicker/
+Date.parseDate = function( input, format ){
+    return moment(input,format).toDate();
+  };
+  Date.prototype.dateFormat = function( format ){
+    return moment(this).format(format);
+  };
 
 
-$jq(function () {
+$jq(function() {
+    //http://tablesorter.com/docs/
+    $jq("#sortTable").tablesorter();
 
-    timeoutID = window.setTimeout(timeoutShoppingBasket, 60*1000);
-
-    $jq(function() {
-        // messages timeout for 5 sec
-        setTimeout(function() {
-            $jq('#message-row').fadeOut('slow');
-        }, 5000); // <-- time in milliseconds, 1000 =  1 sec
-    });
-
-    // blocks modal in menu bar
-    $jq(".blockmodalbtn").on("click", function(ev) { // for each edit url
-        ev.preventDefault(); // prevent navigation
-        var url = $jq(this).data("url"); // get the form url
-        $jq("#BlocksModal").load(url, function() { // load the url into the modal
-            $jq(this).modal('show'); // display the modal on url load
-        });
-        return false; // prevent the click propagation
+    $jq('#select-all').click(function (event) {  //on click
+        if (this.checked) { // check select status
+            $jq('.select-checkbox').each(function () { //loop through each checkbox
+                this.checked = true;  //select all checkboxes with class "select-checkbox"
+            });
+        } else {
+            $jq('.select-checkbox').each(function () { //loop through each checkbox
+                this.checked = false; //deselect all checkboxes with class "select-checkbox"
+            });
+        }
     });
 
     $jq(function () {
@@ -115,32 +95,11 @@ $jq(function () {
     $jq('#eventdatepicker').datetimepicker({
         format:'D MMM YYYY',
     });
-
-
-    $jq('.collapse')
-        .on('shown.bs.collapse', function() {
-            if(this.id) {
-                $jq(this)
-                    .parent()
-                    .find("." + this.id + ".fa-plus-square")
-                    .removeClass("fa-plus-square")
-                    .addClass("fa-minus-square");
-            }
-        })
-        .on('hidden.bs.collapse', function() {
-            if(this.id) {
-                $jq(this)
-                    .parent()
-                    .find("." + this.id + ".fa-minus-square")
-                    .removeClass("fa-minus-square")
-                    .addClass("fa-plus-square");
-            }
-        });
-
-});
-
+    
+})
 
 //Add CSRF tokens for ajax forms
+
 $jq(function() {
 
     // This function gets cookie with a given name

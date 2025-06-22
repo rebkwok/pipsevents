@@ -23,7 +23,7 @@ from booking.email_helpers import send_waiting_list_email
 from booking.models import Event, Booking, Block, BlockType, WaitingListUser
 from studioadmin.forms import StatusFilter,  RegisterDayForm, AddRegisterBookingForm
 from studioadmin.views.helpers import is_instructor_or_staff, \
-    InstructorOrStaffUserMixin, get_v1_template
+    InstructorOrStaffUserMixin
 from .events import EVENT_TYPE_PARAM_MAPPING
 from activitylog.models import ActivityLog
 
@@ -63,7 +63,7 @@ def register_view(request, event_slug):
 
     status_filter = StatusFilter(initial={'status_choice': status_choice})
 
-    template = get_v1_template(request, 'studioadmin/register.html')
+    template = 'studioadmin/register.html'
 
     sidenav_selection = 'lessons_register'
     if event.event_type.event_type == 'EV':
@@ -236,10 +236,6 @@ class EventRegisterListView(
     model = Event
     template_name = 'studioadmin/events_register_list.html'
     context_object_name = 'events'
-
-    def get_template_names(self):
-        template_names = super().get_template_names()
-        return [get_v1_template(self.request, template) for template in template_names]
 
     def get_queryset(self):
         today = timezone.now().replace(hour=0, minute=0)

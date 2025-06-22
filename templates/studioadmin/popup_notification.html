@@ -1,4 +1,4 @@
-{% extends "studioadmin/base.html" %}
+{% extends "studioadmin/base_v1.html" %}
 {% load crispy_forms_tags %}
 {% load bookingtags %}
 
@@ -33,9 +33,8 @@
         onclick="hideModal()"
     ></div>
 
-    <div class="row">
-
-        <div class="col-12">
+    <div class="card mt-2">
+        <div class="card-body">
             <h1>Pop-up notification</h1>
             <p>
                 This notifcation appears as a popup for every new session. It works by setting a
@@ -66,18 +65,18 @@
                 Preview the popup by clicking the button below. Save any changes first.
             </p>
             <button class="btn btn-wm mb-2" {% if not form.instance.id %}disabled{% endif %} onclick="showModal()">Show popup</button>
-        </div>
 
-        <div class="col-12">
         {% if form.errors %}
             <p class="text-danger">Please correct the errors below:</p>
         {% endif %}
+
         <form method="post" action="">
             {% csrf_token %}
             <div style="position: relative">
             {%  crispy form %}
             </div>
         </form>
+
         </div>
     </div>
 {% endblock %}

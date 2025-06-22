@@ -1,9 +1,10 @@
-{% extends "studioadmin/base.html" %}
+{% extends "studioadmin/base_v1.html" %}
 {% load static %}
 
 {% block studioadmincontent %}
 
-    <div class="container-fluid row">
+<div class="card mt-2">
+    <div class="card-body">
         <h2>{% if disclaimer_content %}Editing Draft Version {{ disclaimer_content.version }}{% else %}New Disclaimer Version{% endif %}</h2>
 
         <p>
@@ -29,5 +30,6 @@
             <button class="btn btn-wm" type="submit" name="publish">Publish</button>
         </form>
     </div>
+</div>
 
 {% endblock studioadmincontent %}
