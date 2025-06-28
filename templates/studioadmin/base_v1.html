@@ -109,6 +109,17 @@
             <!-- Visible to staff only -->
             {% if request.user.is_staff %}
 
+                <!-- Stats -->
+                <li class="nav-item">
+                    <a href="{% url 'studioadmin:stats' %}" class="nav-link {% if sidenav_selection == 'stats' %}active{% endif %}">
+                        <i class="fas fa-chart-line"></i>
+                        <p>
+                        Analytics
+                        </p>
+                    </a>
+                </li>
+                 <!-- Stats -->
+
                 <!-- Timetable -->
                 <li class="nav-header text-secondary">SCHEDULING</li>
                 <li class="nav-item {% if sidenav_selection in 'timetable,add_session,upload_timetable' %}menu-open{% endif %}">
@@ -713,24 +724,24 @@
     <div class="content">
       <div class="container-fluid">
         {% if messages %}
-        <div class="container-fluid mt-2 mb-3" id="message-row">
-            {% for message in messages %}
-                <div
-                    {% if message.tags and message.tags == 'error' %}
-                        class="message alert alert-danger alert-dismissible"
-                    {% elif message.tags %}
-                        class="message alert alert-{{ message.tags }} alert-dismissible"
-                    {% endif %}>
-                    <button type="button" class="pt-0 pb-0 close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                    {% if 'safe' in message.tags %}
-                        {{ message|safe }}
-                    {% else %}
-                        {{ message }}
-                    {% endif %}
-                </div>
-            {% endfor %}
-        </div>
-    {% endif %}
+            <div class="container-fluid mt-2 mb-3" id="message-row">
+                {% for message in messages %}
+                    <div
+                        {% if message.tags and message.tags == 'error' %}
+                            class="message alert alert-danger alert-dismissible"
+                        {% elif message.tags %}
+                            class="message alert alert-{{ message.tags }} alert-dismissible"
+                        {% endif %}>
+                        <button type="button" class="pt-0 pb-0 close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                        {% if 'safe' in message.tags %}
+                            {{ message|safe }}
+                        {% else %}
+                            {{ message }}
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
     
         {% block studioadmincontent %}{% endblock %}
       </div><!-- /.container-fluid -->
@@ -749,7 +760,7 @@
   <!-- /.control-sidebar -->
 
   <!-- Main Footer -->
-<footer class="main-footer">
+<footer>
     {% include 'common/footer.html' %}
 </footer>
 

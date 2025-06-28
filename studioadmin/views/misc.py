@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 import calendar
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 import shortuuid
 
 from django.conf import settings
@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 @login_required
 @is_instructor_or_staff
 def landing(request):
-    now = datetime.now()
+    now = datetime.now(tz=UTC)
     today_start = now.replace(hour=0, minute=0)
     today_end = now.replace(hour=23, minute=59)
 
