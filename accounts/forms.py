@@ -303,6 +303,12 @@ class DisclaimerForm(forms.ModelForm):
             if dob > yearsago:
                 self.add_error(
                     'dob', 'You must be over 18 years in order to register')
+            
+            max_yearsago = datetime.today().date() - relativedelta(years=100)
+            if dob < max_yearsago:
+                self.add_error(
+                    'dob', 'Please enter a valid date of birth')
+
         return super(DisclaimerForm, self).clean()
 
 
