@@ -293,11 +293,8 @@ class UserMembership(models.Model):
         return super().clean()
 
     @classmethod
-    def active_member_ids(cls):
-        """
-        Return a list of IDs for users who have an active membership
-        """
-        valid_subscriptions = cls.objects.filter(
+    def active_memberships(cls):
+        return cls.objects.filter(
             # active/past due statuses are active (past due is auto-cancelled on 28th, so we can assume all past dues are valid)
             models.Q(subscription_status__in=["active", "past_due"]) | 
             # cancelled can be valid, if the start date is before now, and end date is after now
@@ -306,8 +303,15 @@ class UserMembership(models.Model):
                 end_date__gt=timezone.now(),
                 start_date__lt=timezone.now()
             )
-        ).values_list("user_id", flat=True)
-        return set(valid_subscriptions)
+        )
+
+    @classmethod
+    def active_member_ids(cls):
+        """
+        Return a list of IDs for users who have an active membership
+        """
+        valid_subscriptions = cls.active_memberships()
+        return set(valid_subscriptions.values_list("user_id", flat=True))
 
     def is_active(self):
         # Note active doesn't mean valid for a particular class and date

@@ -1,0 +1,668 @@
+{% extends "studioadmin/base_v1.html" %}
+{% load static %}
+
+{% block studioadmincontent %}
+
+    <div class="row mt-2">
+
+        <div class="col-sm-4 col-12">
+            <div class="info-box bg-success">
+                <span class="info-box-icon"><i class="fas fa-user-plus"></i></span>
+                <div class="info-box-content">
+                    <span class="info-box-text">User Registrations</span>
+                    <span class="info-box-number">{{ user_count }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-4 col-12">
+            <div class="info-box bg-warning">
+                <span class="info-box-icon"><i class="fas fa-layer-group"></i></span>
+                <div class="info-box-content">
+                    <span class="info-box-text">Active Memberships</span>
+                    <span class="info-box-number">{{ user_membership_count }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-4 col-12">
+            <div class="info-box bg-info">
+                <span class="info-box-icon"><i class="fas fa-user-tag"></i></span>
+                <div class="info-box-content">
+                    <span class="info-box-text">Total bookings</span>
+                    <span class="info-box-number">{{ booking_count }}</span>
+                </div>
+            </div>
+        </div>
+    
+        <div class="col-lg-4 col-md-6 col-sm-6 col-12">
+            <div class="card card-success">
+                <div class="card-header">
+                    <h3 class="card-title text-white"># Users by Age</h3>
+    
+                    <div class="card-tools">
+                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart">
+                        <canvas id="usersAgeChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
+                    </div>
+                </div>
+                <!-- /.card-body -->
+            </div>
+            <!-- /.card -->  
+        </div>
+
+        <div class="col-lg-4 col-md-6 col-sm-6 col-12">
+            <div class="card card-warning">
+                <div class="card-header">
+                    <h3 class="card-title">Active Memberships</h3>
+    
+                    <div class="card-tools">
+                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart">
+                        <canvas id="membershipsChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
+                    </div>
+                </div>
+                <!-- /.card-body -->
+            </div>
+            <!-- /.card -->  
+        </div>
+
+        <div class="col-lg-4 col-md-6 col-sm-6 col-12">
+            <div class="card card-info">
+                <div class="card-header">
+                    <h3 class="card-title text-white">% Users booked in past month</h3>
+    
+                    <div class="card-tools">
+                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart">
+                        <canvas id="usersPastMonthChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
+                    </div>
+                </div>
+                <!-- /.card-body -->
+            </div>
+            <!-- /.card -->  
+        </div>
+
+        <div class="col-12">
+            <div class="card card-light">
+                <div class="card-header">
+                    <h3 class="card-title">Stats by Year</h3>
+    
+                    <div class="card-tools">
+                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    </div>
+                </div>
+                <div class="card-body">
+
+                    <div class="row pl-2 pr-2">
+                    
+                        <form id="filterForm" class="form-inline mb-4 col-12">                
+                            <label for="year" class="mr-2">Choose a year</label>
+                            <select class="form-control" name="year" id="year"></select>
+                        </form>
+
+                        <div class="col-lg-4 col-md-6 col-sm-6 col-12">
+                            <div class="card card-success">
+                                <div class="card-header">
+                                    <h3 class="card-title text-white"># Scheduled Events</h3>
+                    
+                                    <div class="card-tools">
+                                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart">
+                                        <canvas id="eventsChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
+                                    </div>
+                                </div>
+                                <!-- /.card-body -->
+                            </div>
+                            <!-- /.card -->  
+                        </div>
+
+                        <div class="col-lg-4 col-md-6 col-sm-6 col-12">
+                            <div class="card card-success">
+                                <div class="card-header">
+                                    <h3 class="card-title text-white"># Bookings</h3>
+                    
+                                    <div class="card-tools">
+                                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart">
+                                        <canvas id="bookingsChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
+                                    </div>
+                                </div>
+                                <!-- /.card-body -->
+                            </div>
+                            <!-- /.card -->  
+                        </div>
+
+                        <div class="col-lg-4 col-md-6 col-sm-6 col-12">
+                            <div class="card card-success">
+                                <div class="card-header">
+                                    <h3 class="card-title text-white">% Spaces Filled</h3>
+                    
+                                    <div class="card-tools">
+                                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart">
+                                        <canvas id="pctBookingsChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
+                                    </div>
+                                </div>
+                                <!-- /.card-body -->
+                            </div>
+                            <!-- /.card -->  
+                        </div>
+
+                        <div class="col-lg-4 col-md-6 col-sm-6 col-12">
+                            <div class="card card-warning">
+                                <div class="card-header">
+                                    <h3 class="card-title text-white">% Events with Waiting List</h3>
+                    
+                                    <div class="card-tools">
+                                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart">
+                                        <canvas id="pctWaitingListChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
+                                    </div>
+                                </div>
+                                <!-- /.card-body -->
+                            </div>
+                            <!-- /.card -->  
+                        </div>
+
+                        <div class="col-lg-4 col-md-6 col-sm-6 col-12">
+                            <div class="card card-warning">
+                                <div class="card-header">
+                                    <h3 class="card-title text-white">Average # Late Cancellations</h3>
+                    
+                                    <div class="card-tools">
+                                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart">
+                                        <canvas id="avgLateCancellationChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
+                                    </div>
+                                </div>
+                                <!-- /.card-body -->
+                            </div>
+                            <!-- /.card -->  
+                        </div>
+
+                        <div class="col-lg-4 col-md-6 col-sm-6 col-12">
+                            <div class="card card-warning">
+                                <div class="card-header">
+                                    <h3 class="card-title text-white">Average # No-shows</h3>
+                                    <div class="card-tools">
+                                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart">
+                                        <canvas id="avgNoShowChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
+                                    </div>
+                                </div>
+                                <!-- /.card-body -->
+                            </div>
+                            <!-- /.card -->  
+                        </div>
+
+                        <div class="col-lg-4 col-md-6 col-sm-6 col-12">
+                            <div class="card card-primary">
+                                <div class="card-header">
+                                    <h3 class="card-title text-white">New user registrations</h3>
+                    
+                                    <div class="card-tools">
+                                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart">
+                                        <canvas id="usersChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
+                                    </div>
+                                </div>
+                                <!-- /.card-body -->
+                            </div>
+                            <!-- /.card -->  
+                        </div>
+
+                        <div class="col-lg-4 col-md-6 col-sm-6 col-12">
+                            <div class="card card-danger">
+                                <div class="card-header">
+                                    <h3 class="card-title text-white">Payment Methods (Classes/Room Hire)</h3>
+                    
+                                    <div class="card-tools">
+                                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart">
+                                        <canvas id="paymentMethodsClRhChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
+                                    </div>
+                                </div>
+                                <!-- /.card-body -->
+                            </div>
+                            <!-- /.card -->  
+                        </div>
+
+                        <div class="col-lg-4 col-md-6 col-sm-6 col-12">
+                            <div class="card card-danger">
+                                <div class="card-header">
+                                    <h3 class="card-title text-white">Payment Methods (Events/Workshops)</h3>
+                    
+                                    <div class="card-tools">
+                                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart">
+                                        <canvas id="paymentMethodsEvChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
+                                    </div>
+                                </div>
+                                <!-- /.card-body -->
+                            </div>
+                            <!-- /.card -->  
+                        </div>
+                    </div>     
+                
+                </div>
+                <!-- /.card-body -->
+            </div>
+            <!-- /.card -->  
+        </div>
+
+        <div class="col-12">
+            <div class="card card-primary">
+                <div class="card-header">
+                    <h3 class="card-title text-white">Cumulative user registrations</h3>
+    
+                    <div class="card-tools">
+                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart">
+                        <canvas id="cumulativeUsersChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
+                    </div>
+                </div>
+                <!-- /.card-body -->
+            </div>
+            <!-- /.card -->  
+        </div>
+
+    </div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.2.1/dist/chart.umd.min.js"></script>
+<script>
+
+    $jq(document).ready(function() {
+        let bookingsCtx = document.getElementById("bookingsChart").getContext("2d");
+        let bookingsChart = new Chart(bookingsCtx, {
+            type: "line",
+            options: {
+                plugins: {
+                    responsive: true,
+                    title: {
+                        display: false,
+                        text: ""
+                    }
+                }
+            }
+        });
+
+        let eventsCtx = document.getElementById("eventsChart").getContext("2d");
+        let eventsChart = new Chart(eventsCtx, {
+            type: "line",
+            options: {
+                plugins: {
+                    responsive: true,
+                    title: {
+                        display: false,
+                        text: ""
+                    }
+                }
+            }
+        });
+
+        let pctBookingsCtx = document.getElementById("pctBookingsChart").getContext("2d");
+        let pctBookingsChart = new Chart(pctBookingsCtx, {
+            type: "line",
+            options: {
+                plugins: {
+                    responsive: true,
+                    title: {
+                        display: false,
+                        text: ""
+                    }
+                },
+                scales: {
+                    y: {
+                        ticks: {
+                            precision: 0
+                        },
+                        beginAtZero: true,
+                        max: 100,
+                    }
+                }
+            }
+        });
+
+        let pctWaitingListCtx = document.getElementById("pctWaitingListChart").getContext("2d");
+        let pctWaitingListChart = new Chart(pctWaitingListCtx, {
+            type: "line",
+            options: {
+                plugins: {
+                    responsive: true,
+                    title: {
+                        display: false,
+                        text: ""
+                    }
+                },
+                scales: {
+                    y: {
+                        ticks: {
+                            precision: 0
+                        },
+                        beginAtZero: true,
+                        max: 100,
+                    }
+                }
+            }
+        });
+
+        let avgNoShowCtx = document.getElementById("avgNoShowChart").getContext("2d");
+        let avgNoShowChart = new Chart(avgNoShowCtx, {
+            type: "line",
+            options: {
+                plugins: {
+                    responsive: true,
+                    title: {
+                        display: false,
+                        text: ""
+                    }
+                },
+                scales: {
+                    y: {
+                        ticks: {
+                            precision: 0
+                        },
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        let avgLateCancellationCtx = document.getElementById("avgLateCancellationChart").getContext("2d");
+        let avgLateCancellationChart = new Chart(avgLateCancellationCtx, {
+            type: "line",
+            options: {
+                plugins: {
+                    responsive: true,
+                    title: {
+                        display: false,
+                        text: ""
+                    }
+                },
+                scales: {
+                    y: {
+                        ticks: {
+                            precision: 0
+                        },
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        let usersCtx = document.getElementById("usersChart").getContext("2d");
+        let usersChart = new Chart(usersCtx, {
+            type: "bar",
+            options: {
+                plugins: {
+                    responsive: true,
+                    title: {
+                        display: false,
+                        text: ""
+                    },
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        ticks: {
+                            precision: 0
+                        }
+                    }
+                }
+            }
+        });
+
+        let cumulativeUsersCtx = document.getElementById("cumulativeUsersChart").getContext("2d");
+        let cumulativeUsersChart = new Chart(cumulativeUsersCtx, {
+            type: "line",
+            options: {
+                plugins: {
+                    responsive: true,
+                    title: {
+                        display: false,
+                        text: ""
+                    },
+                    legend: {
+                        display: false
+                    },
+                },
+                scales: {
+                    y: {
+                        ticks: {
+                            precision: 0
+                        },
+                        {% comment %} beginAtZero: true {% endcomment %}
+                    }
+                }
+            }
+        });
+
+        let paymentMethodsClRhCtx = document.getElementById("paymentMethodsClRhChart").getContext("2d");
+        let paymentMethodsClRhChart = new Chart(paymentMethodsClRhCtx, {
+            type: "pie",
+            options: {
+                plugins: {
+                    responsive: true,
+                    title: {
+                        display: false,
+                        text: ""
+                    },
+                    legend: {
+                        display: true
+                    }
+                },
+            }
+        });
+
+        let paymentMethodsEvCtx = document.getElementById("paymentMethodsEvChart").getContext("2d");
+        let paymentMethodsEvChart = new Chart(paymentMethodsEvCtx, {
+            type: "pie",
+            options: {
+                plugins: {
+                    responsive: true,
+                    title: {
+                        display: false,
+                        text: ""
+                    },
+                    legend: {
+                        display: true
+                    }
+                },
+            }
+        });
+
+        let membershipsCtx = document.getElementById("membershipsChart").getContext("2d");
+        let membershipsChart = new Chart(membershipsCtx, {
+            type: "pie",
+            options: {
+                plugins: {
+                    responsive: true,
+                    title: {
+                        display: false,
+                        text: ""
+                    },
+                    legend: {
+                        display: true
+                    }
+                },
+            }
+        });
+
+        let usersAgeCtx = document.getElementById("usersAgeChart").getContext("2d");
+        let usersAgeChart = new Chart(usersAgeCtx, {
+            type: "bar",
+            options: {
+                plugins: {
+                    responsive: true,
+                    title: {
+                        display: false,
+                        text: ""
+                    },
+                    legend: {
+                        display: false
+                    }
+                },
+            }
+        });
+
+        let usersPastMonthCtx = document.getElementById("usersPastMonthChart").getContext("2d");
+        let usersPastMonthChart = new Chart(usersPastMonthCtx, {
+            type: "pie",
+            options: {
+                plugins: {
+                    responsive: true,
+                    title: {
+                        display: false,
+                        text: ""
+                    },
+                    legend: {
+                        display: true
+                    }
+                },
+            }
+        });
+
+        $jq.ajax({
+            url: "/studioadmin/analytics/filter-options/",
+            type: "GET",
+            dataType: "json",
+            success: (jsonResponse) => {
+                // Load all the options
+                jsonResponse.options.forEach(option => {
+                $jq("#year").append(new Option(option, option));
+                });
+                // Load year-specific data for the first option
+                loadAllCharts($jq("#year").children().first().val());
+                // load non-year specific charts
+                loadChart(cumulativeUsersChart, `/studioadmin/analytics/cumulative-users/`);
+                loadChart(membershipsChart, `/studioadmin/analytics/memberships/`);
+                loadChart(usersAgeChart, `/studioadmin/analytics/users-by-age/`);
+                loadChart(usersPastMonthChart, `/studioadmin/analytics/users-booked-past-month/`);
+            },
+            error: () => console.log("Failed to fetch chart filter options!")
+        });
+           
+        $jq("#year").on("change", (event) => {
+            event.preventDefault();
+        
+            const year = $jq("#year").val();
+            loadAllCharts(year);
+        });
+ 
+        function loadChart(chart, endpoint) {
+            $jq.ajax({
+            url: endpoint,
+            type: "GET",
+            dataType: "json",
+            success: (jsonResponse) => {
+                // Extract data from the response
+                const title = jsonResponse.title;
+                const labels = jsonResponse.data.labels;
+                const datasets = jsonResponse.data.datasets;
+        
+                // Reset the current chart
+                chart.data.datasets = [];
+                chart.data.labels = [];
+        
+                // Load new data into the chart
+                chart.options.plugins.title.text = title;
+                chart.options.plugins.title.display = true;
+                chart.data.labels = labels;
+                datasets.forEach(dataset => {
+                chart.data.datasets.push(dataset);
+                });
+                chart.update();
+            },
+            error: () => console.log("Failed to fetch chart data from " + endpoint + "!")
+            });
+        }
+         
+        function loadAllCharts(year) {
+            loadChart(bookingsChart, `/studioadmin/analytics/bookings/${year}/`);
+            loadChart(eventsChart, `/studioadmin/analytics/scheduled-events/${year}/`);
+            loadChart(usersChart, `/studioadmin/analytics/users/${year}/`);
+            loadChart(paymentMethodsClRhChart, `/studioadmin/analytics/payment-methods/${year}/cl-rh/`);
+            loadChart(paymentMethodsEvChart, `/studioadmin/analytics/payment-methods/${year}/ev/`);
+            loadChart(pctBookingsChart, `/studioadmin/analytics/pct-bookings/${year}/`);
+            loadChart(pctWaitingListChart, `/studioadmin/analytics/pct-waiting-list/${year}/`);
+            loadChart(avgLateCancellationChart, `/studioadmin/analytics/late-cancellations/${year}/`);
+            loadChart(avgNoShowChart, `/studioadmin/analytics/no-shows/${year}/`);
+        }
+ 
+    });
+</script>
+
+{% endblock %}
