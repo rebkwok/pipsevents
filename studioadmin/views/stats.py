@@ -517,7 +517,7 @@ def get_users_by_age():
 
     if users_by_age is None or users_by_age["last_signed"] < last_signed:
         now = datetime.now(tz=UTC)
-        cutoff = now - relativedelta(years=5)
+        cutoff = now - relativedelta(years=1)
         queries = Q(version=DisclaimerContent.current_version()) & (Q(date__gte=cutoff) | Q(date_updated__gte=cutoff))
         ages = (
             OnlineDisclaimer.objects.filter(queries)
@@ -586,11 +586,10 @@ def view_users_by_age(request):
 def view_users_booked_in_past_month(request):
     cutoff = datetime.now(tz=UTC) - relativedelta(months=1)
     now = datetime.now(tz=UTC)
-    cutoff = now - relativedelta(years=5)
-    queries = Q(version=DisclaimerContent.current_version()) & (Q(date__gte=cutoff) | Q(date_updated__gte=cutoff))
-    users = OnlineDisclaimer.objects.filter(queries).values("user_id").count()
+    disclaimer_cutoff = now - relativedelta(years=1)
+    queries = Q(version=DisclaimerContent.current_version()) & (Q(date__gte=cutoff) | Q(date_updated__gte=disclaimer_cutoff))
+    users = OnlineDisclaimer.objects.filter(queries).distinct("user_id").values("user_id").count()
     booked_past_month = Booking.objects.filter(status="OPEN", event__date__gte=cutoff).distinct("user_id").count()
-
     data = {
         "booked": booked_past_month,
         "not booked": users - booked_past_month
@@ -603,7 +602,7 @@ def view_users_booked_in_past_month(request):
             "labels": list(data.keys()),
             "datasets": [
                 {
-                    "label": "Users with booking in past month",
+                    "label": "Active users",
                     "backgroundColor": [colour[0] for colour in colours],
                     "borderColor": [colour[1] for colour in colours],
                     "data": list(data.values()),
