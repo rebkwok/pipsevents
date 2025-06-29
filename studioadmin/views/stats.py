@@ -109,15 +109,20 @@ def view_filter_options(request):
     return JsonResponse({"options": get_years()})
 
 
-def months_to_recalculate(now):
+def months_to_recalculate(now, recalc_future):
     # Recalculate months that might have changed (assuming this is the current year)
-    # always re-calculate this month
+    
     # recalculate last month if we're not in the first month; 
     # we haven't calculated this month yet, so we can't be sure last month is up to date
     # If it's Jan, we don't care about last year
-    yield now.month
     if now.month > 1:
         yield now.month - 1
+    # always re-calculate this month
+    yield now.month
+    # For some calculations we need to include info for future months
+    if recalc_future:
+        for i in range(now.month + 1, 13):
+            yield i
 
 
 def get_new_user_registrations(year):
@@ -229,7 +234,7 @@ def view_cumulative_user_registrations(request):
     })
 
 
-def get_annual_monthly_stats_by_event_type(cache_key, year, calc_fn, extra_filter_kwargs=None):
+def get_annual_monthly_stats_by_event_type(cache_key, year, calc_fn, extra_filter_kwargs=None, recalc_future=False):
     extra_filter_kwargs = extra_filter_kwargs or {}
     events_filter_kwargs = {
         "cancelled": False,
@@ -260,7 +265,7 @@ def get_annual_monthly_stats_by_event_type(cache_key, year, calc_fn, extra_filte
         for ev_type in EventType.TYPE_VERBOSE_NAME.keys():
             events_by_type = events.filter(event_type__event_type=ev_type)
             
-            for month in months_to_recalculate(now):
+            for month in months_to_recalculate(now, recalc_future):
                 events_year_dict[ev_type][calendar.month_abbr[month]] = calc_fn(events_by_type, month)
         cache.set(cache_key, events_year_dict)
     else:
@@ -314,7 +319,7 @@ def get_bookings_count_for_month(all_events, month):
 @staff_member_required
 def view_bookings_count(request, year):
     cache_key = f"stats_bookings_count_{year}"   
-    events_year_dict = get_annual_monthly_stats_by_event_type(cache_key, year, get_bookings_count_for_month)
+    events_year_dict = get_annual_monthly_stats_by_event_type(cache_key, year, get_bookings_count_for_month, recalc_future=True)
     return json_response_annual_stats_by_event_type(year, events_year_dict)
 
 
@@ -325,7 +330,7 @@ def get_events_count_for_month(all_events, month):
 @staff_member_required
 def view_events_count(request, year):
     cache_key = f"stats_events_count_{year}"
-    events_year_dict = get_annual_monthly_stats_by_event_type(cache_key, year, get_events_count_for_month)
+    events_year_dict = get_annual_monthly_stats_by_event_type(cache_key, year, get_events_count_for_month, recalc_future=True)
     return json_response_annual_stats_by_event_type(year, events_year_dict)
 
 
@@ -347,7 +352,8 @@ def view_pct_events_with_waiting_list(request, year):
 
     cache_key = f"stats_pct_events_with_waiting_list_{year}"
     events_year_dict = get_annual_monthly_stats_by_event_type(
-        cache_key, year, get_pct_waiting_list_for_month, extra_filter_kwargs={"max_participants__isnull": False}
+        cache_key, year, get_pct_waiting_list_for_month, extra_filter_kwargs={"max_participants__isnull": False},
+        recalc_future=True
     )
     return json_response_annual_stats_by_event_type(year, events_year_dict)
 
@@ -372,7 +378,8 @@ def view_pct_bookings_per_class(request, year):
     """
     cache_key = (f"stats_pct_bookings_per_class_{year}")
     events_year_dict = get_annual_monthly_stats_by_event_type(
-        cache_key, year, get_bookings_ratio_for_month, extra_filter_kwargs={"max_participants__isnull": False}
+        cache_key, year, get_bookings_ratio_for_month, extra_filter_kwargs={"max_participants__isnull": False},
+        recalc_future=True
     )
     return json_response_annual_stats_by_event_type(year, events_year_dict)
 
