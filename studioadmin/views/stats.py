@@ -585,7 +585,10 @@ def view_users_by_age(request):
 @staff_member_required
 def view_users_booked_in_past_month(request):
     cutoff = datetime.now(tz=UTC) - relativedelta(months=1)
-    users = User.objects.count()
+    now = datetime.now(tz=UTC)
+    cutoff = now - relativedelta(years=5)
+    queries = Q(version=DisclaimerContent.current_version()) & (Q(date__gte=cutoff) | Q(date_updated__gte=cutoff))
+    users = OnlineDisclaimer.objects.filter(queries).values("user_id").count()
     booked_past_month = Booking.objects.filter(status="OPEN", event__date__gte=cutoff).distinct("user_id").count()
 
     data = {
@@ -595,7 +598,7 @@ def view_users_booked_in_past_month(request):
     colours = generate_colour_palette(len(data))
 
     return JsonResponse({
-        "title": "Membership Types",
+        "title": "Active users booked in past month",
         "data": {
             "labels": list(data.keys()),
             "datasets": [
