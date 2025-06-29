@@ -109,7 +109,7 @@ def view_filter_options(request):
     return JsonResponse({"options": get_years()})
 
 
-def months_to_recalculate(now, recalc_future):
+def months_to_recalculate(now, recalc_future=False):
     # Recalculate months that might have changed (assuming this is the current year)
     
     # recalculate last month if we're not in the first month; 
@@ -518,7 +518,7 @@ def get_users_by_age():
     if users_by_age is None or users_by_age["last_signed"] < last_signed:
         now = datetime.now(tz=UTC)
         cutoff = now - relativedelta(years=1)
-        queries = Q(version=DisclaimerContent.current_version()) & (Q(date__gte=cutoff) | Q(date_updated__gte=cutoff))
+        queries = Q(version=DisclaimerContent.current_version()) & (Q(date__gte=cutoff) | (Q(date_updated__isnull=False) & Q(date_updated__gte=cutoff)))
         ages = (
             OnlineDisclaimer.objects.filter(queries)
             .annotate(
@@ -583,26 +583,25 @@ def view_users_by_age(request):
 
 
 @staff_member_required
-def view_users_booked_in_past_month(request):
-    cutoff = datetime.now(tz=UTC) - relativedelta(months=1)
+def view_new_users_booked_in_past_month(request):
+    beginning_of_year = datetime.now(tz=UTC).replace(day=1, month=1)
     now = datetime.now(tz=UTC)
-    disclaimer_cutoff = now - relativedelta(years=1)
-    queries = Q(version=DisclaimerContent.current_version()) & (Q(date__gte=cutoff) | Q(date_updated__gte=disclaimer_cutoff))
-    users = OnlineDisclaimer.objects.filter(queries).distinct("user_id").values("user_id").count()
-    booked_past_month = Booking.objects.filter(status="OPEN", event__date__gte=cutoff).distinct("user_id").count()
+    cutoff = now - relativedelta(months=1)
+    users = User.objects.filter(date_joined__gte=beginning_of_year).values_list("id", flat=True)
+    booked_past_month = Booking.objects.filter(status="OPEN", event__date__gte=cutoff, user_id__in=users).distinct("user_id").count()
     data = {
         "booked": booked_past_month,
-        "not booked": users - booked_past_month
+        "not booked": users.count() - booked_past_month
     }
     colours = generate_colour_palette(len(data))
 
     return JsonResponse({
-        "title": "Active users booked in past month",
+        "title": "New users (registered this year) booked in past month",
         "data": {
             "labels": list(data.keys()),
             "datasets": [
                 {
-                    "label": "Active users",
+                    "label": "# users",
                     "backgroundColor": [colour[0] for colour in colours],
                     "borderColor": [colour[1] for colour in colours],
                     "data": list(data.values()),
