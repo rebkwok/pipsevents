@@ -131,7 +131,7 @@ def get_new_user_registrations(year):
     now = datetime.now(tz=UTC)
 
     if month_dict is None:
-        logger.info(f"cache miss: {cache_key}")
+        logger.debug(f"cache miss: {cache_key}")
         month_dict = get_year_dict()
         grouped = (
             User.objects.filter(date_joined__year=year)
@@ -142,7 +142,7 @@ def get_new_user_registrations(year):
             month_dict[calendar.month_abbr[group["month"]]] = group["count"] 
         cache.set(cache_key, month_dict)
     elif now.year == year:
-        logger.info(f"cache hit (this year): {cache_key}")
+        logger.debug(f"cache hit (this year): {cache_key}")
         users_this_year = User.objects.filter(date_joined__year=year)
 
         for month in months_to_recalculate(now):
@@ -150,7 +150,7 @@ def get_new_user_registrations(year):
             month_dict[month_abbr] = users_this_year.filter(date_joined__month=month).count()
         cache.set(cache_key, month_dict)
     else:
-        logger.info(f"cache hit (this year): {cache_key}")
+        logger.debug(f"cache hit (this year): {cache_key}")
     return month_dict
 
 
@@ -185,7 +185,7 @@ def get_cumulative_user_registrations():
         return User.objects.filter(date_joined__lte=dt).count()
 
     if yr_month_dict is not None:
-        logger.info(f"cache hit: {cache_key}")
+        logger.debug(f"cache hit: {cache_key}")
         month_abbr =  calendar.month_abbr[now.month]
         months_to_recalc = [(now.year, now.month)]
         if f"{month_abbr} {now.year}" not in yr_month_dict:
@@ -202,7 +202,7 @@ def get_cumulative_user_registrations():
             month_abbr = calendar.month_abbr[month]
             yr_month_dict[f"{month_abbr} {year}"] = _calculate_users_to_month_end(year, month)
     else:
-        logger.info(f"cache miss: {cache_key}")
+        logger.debug(f"cache miss: {cache_key}")
         years = User.objects.distinct("date_joined__year").values_list("date_joined__year", flat=True)
         yr_month_dict = {}
         for year in sorted(years):
@@ -247,7 +247,7 @@ def get_annual_monthly_stats_by_event_type(cache_key, year, calc_fn, extra_filte
     now = datetime.now(tz=UTC)
 
     if events_year_dict is None:
-        logger.info("cache miss: %s", cache_key)
+        logger.debug("cache miss: %s", cache_key)
         events_year_dict = get_event_types_year_dict()
 
         events = Event.objects.filter(**events_filter_kwargs)
@@ -258,8 +258,7 @@ def get_annual_monthly_stats_by_event_type(cache_key, year, calc_fn, extra_filte
                 events_year_dict[ev_type][calendar.month_abbr[month]] = calc_fn(events_by_type, month)
         cache.set(cache_key, events_year_dict)
     elif now.year == year:
-        logger.info("cache hit (this year): %s", cache_key)
-        
+        logger.debug("cache hit (this year): %s", cache_key)
         events = Event.objects.filter(**events_filter_kwargs)
 
         for ev_type in EventType.TYPE_VERBOSE_NAME.keys():
@@ -269,7 +268,7 @@ def get_annual_monthly_stats_by_event_type(cache_key, year, calc_fn, extra_filte
                 events_year_dict[ev_type][calendar.month_abbr[month]] = calc_fn(events_by_type, month)
         cache.set(cache_key, events_year_dict)
     else:
-        logger.info("cache hit (previous year): %s", cache_key)
+        logger.debug("cache hit (previous year): %s", cache_key)
     
     return events_year_dict
 
@@ -401,7 +400,7 @@ def view_average_no_show_per_class(request, year):
     instructor_confirmed_no_show; average per week/month
     Accept start/end date and units (week/month)
     """
-    cache_key = (f"stats_pct_bookings_per_class_{year}")
+    cache_key = (f"stats_avg_no_show_per_class_{year}")
     events_year_dict = get_annual_monthly_stats_by_event_type(
         cache_key, year, get_avg_no_shows_per_class_for_month
     )
@@ -426,7 +425,7 @@ def view_average_late_cancellation_per_class(request, year):
     no shows with instructor_confirmed_no_show=False; average per week/month
     Accept start/end date and units (week/month)
     """
-    cache_key = (f"stats_pct_bookings_per_class_{year}")
+    cache_key = (f"stats_avg_late_cancellations_per_class_{year}")
     events_year_dict = cache.get(cache_key)
     events_year_dict = get_annual_monthly_stats_by_event_type(
         cache_key, year, get_avg_late_cancellation_per_class_for_month
@@ -442,7 +441,7 @@ def get_annual_payment_methods(year, event_types):
     event_types = [et.upper() for et in event_types.split("-")]
 
     if data is None or year == datetime.now().year:
-        logger.info(f"cache miss: {cache_key}")
+        logger.debug(f"cache miss: {cache_key}")
         paid_bookings = Booking.objects.filter(event__event_type__event_type__in=event_types, event__date__year=year, paid=True)
         block = paid_bookings.filter(block__isnull=False).count()
         membership = paid_bookings.filter(membership__isnull=False).count()

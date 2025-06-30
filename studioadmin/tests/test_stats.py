@@ -26,6 +26,7 @@ from studioadmin.views.stats import (
     get_users_by_age,
     get_years,
     get_event_types_year_dict,
+    months_to_recalculate,
 )
 
 
@@ -211,3 +212,10 @@ def test_get_annual_monthly_stats_by_event_type(freezer):
     assert get_annual_monthly_stats_by_event_type("test_key_2022", 2022, calc_fn2) == expected
     # unless we change the cache key
     assert get_annual_monthly_stats_by_event_type("test_new_key_2022", 2022, calc_fn2) != expected
+
+
+def test_months_to_recalculate():
+    assert [m for m in months_to_recalculate(datetime(2024, 3, 2, tzinfo=UTC))] == [2, 3]
+    assert [m for m in months_to_recalculate(datetime(2024, 6, 29, tzinfo=UTC))] == [5, 6]
+    assert [m for m in months_to_recalculate(datetime(2024, 1, 2, tzinfo=UTC))] == [1]
+    assert [m for m in months_to_recalculate(datetime(2024, 10, 29, tzinfo=UTC), recalc_future=True)] == [9, 10, 11, 12]
