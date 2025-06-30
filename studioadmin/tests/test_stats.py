@@ -2,8 +2,11 @@ import pytest
 from datetime import datetime, UTC
 from unittest.mock import patch
 
+from django.core.cache import cache
+
 from model_bakery import recipe, baker
 
+from accounts.models import OnlineDisclaimer
 from booking.models import Event, Booking, EventType, Membership, UserMembership
 
 from stripe_payments.tests.mock_connector import MockConnector
@@ -68,20 +71,27 @@ def test_get_active_memberships_by_type(seller):
 def test_get_users_by_age(freezer):
     freezer.move_to(datetime(2025, 6, 1, tzinfo=UTC))
 
+    date_signed = date=datetime(2024, 12, 1)
+
     # 18, 20, 25: 18-25
-    baker.make_recipe("booking.online_disclaimer", dob=datetime(2007, 2, 1, tzinfo=UTC))
-    baker.make_recipe("booking.online_disclaimer", dob=datetime(2005, 2, 1, tzinfo=UTC))
-    baker.make_recipe("booking.online_disclaimer", dob=datetime(2000, 2, 1, tzinfo=UTC))
+    baker.make_recipe("booking.online_disclaimer", dob=datetime(2007, 2, 1, tzinfo=UTC), date=date_signed)
+    baker.make_recipe("booking.online_disclaimer", dob=datetime(2005, 2, 1, tzinfo=UTC), date=date_signed)
+    baker.make_recipe("booking.online_disclaimer", dob=datetime(2000, 2, 1, tzinfo=UTC), date=date_signed)
     # 27: 26-30
-    baker.make_recipe("booking.online_disclaimer", dob=datetime(1998, 2, 1, tzinfo=UTC))
+    baker.make_recipe("booking.online_disclaimer", dob=datetime(1998, 2, 1, tzinfo=UTC), date=date_signed)
     # 45: 41-45
-    baker.make_recipe("booking.online_disclaimer", dob=datetime(1980, 2, 1, tzinfo=UTC))
+    baker.make_recipe("booking.online_disclaimer", dob=datetime(1980, 2, 1, tzinfo=UTC), date=date_signed)
     # 71, 80, 85: 71+
-    baker.make_recipe("booking.online_disclaimer", dob=datetime(1954, 2, 1, tzinfo=UTC))
-    baker.make_recipe("booking.online_disclaimer", dob=datetime(1945, 2, 1, tzinfo=UTC))
-    baker.make_recipe("booking.online_disclaimer", dob=datetime(1940, 2, 1, tzinfo=UTC))
+    baker.make_recipe("booking.online_disclaimer", dob=datetime(1954, 2, 1, tzinfo=UTC), date=date_signed)
+    baker.make_recipe("booking.online_disclaimer", dob=datetime(1945, 2, 1, tzinfo=UTC), date=date_signed)
+    baker.make_recipe(
+        "booking.online_disclaimer", dob=datetime(1940, 2, 1, tzinfo=UTC), 
+        date=datetime(2023, 1, 1, tzinfo=UTC), date_updated=date_signed
+    )
     # nonsense age, excluded
-    baker.make_recipe("booking.online_disclaimer", dob=datetime(1800, 2, 1, tzinfo=UTC))
+    baker.make_recipe("booking.online_disclaimer", dob=datetime(1800, 2, 1, tzinfo=UTC), date=date_signed)
+    # expired, excluded
+    baker.make_recipe("booking.online_disclaimer", dob=datetime(1800, 2, 1, tzinfo=UTC), date=datetime(2023, 1, 1, tzinfo=UTC))
 
     assert get_users_by_age() == {
         "18-25": 3,
@@ -98,6 +108,8 @@ def test_get_users_by_age(freezer):
     }
     
     freezer.move_to(datetime(2027, 6, 1, tzinfo=UTC))
+    # update all disclaimers so same users will be counted
+    OnlineDisclaimer.objects.update(date_updated=datetime(2026, 12, 1, tzinfo=UTC))
     assert get_users_by_age() == {
         "18-25": 2,
         "26-30": 2,
