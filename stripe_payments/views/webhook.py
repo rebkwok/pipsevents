@@ -308,16 +308,19 @@ def stripe_webhook(request):
                 # Stripe account, we update membership and send emails to support to check
                 price_id = event_object["items"].data[0].price.id
 
+                # NOTE: if price changes on the membership, it may not have updated on the subscription yet (if we're still
+                # in the previous billing cycle. So don't error is we can't find a membership)
                 if price_id != user_membership.membership.stripe_price_id:
                     old_membership_name = user_membership.membership.name
-                    membership = Membership.objects.get(stripe_price_id=price_id)
-                    old_price_id = user_membership.membership.stripe_price_id
-                    user_membership.membership = membership
-                    user_membership.save()
-                    ActivityLog.objects.create(
-                        log=f"Stripe webhook: Membership ({old_membership_name}) for user {user_membership.user} has been changed to {membership.name}"
-                    )
-                    send_updated_membership_email_to_support(user_membership, membership.stripe_price_id, old_price_id)
+                    membership = Membership.objects.filter(stripe_price_id=price_id).first()
+                    if membership:
+                        old_price_id = user_membership.membership.stripe_price_id
+                        user_membership.membership = membership
+                        user_membership.save()
+                        ActivityLog.objects.create(
+                            log=f"Stripe webhook: Membership ({old_membership_name}) for user {user_membership.user} has been changed to {membership.name}"
+                        )
+                        send_updated_membership_email_to_support(user_membership, membership.stripe_price_id, old_price_id)
                 
                 # reallocate bookings now we're done with updating the membership
                 user_membership.reallocate_bookings()

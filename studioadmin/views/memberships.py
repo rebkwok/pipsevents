@@ -35,13 +35,15 @@ def _process_membership_create_or_update(request, membership=None):
         "membership": membership
     }
     if request.method == "POST":
+        updating = membership is not None
         form = MembershipAddEditForm(request.POST, instance=membership)   
         if form.is_valid():
             membership = form.save()
             formset =  MembershipItemFormset(request.POST, instance=membership)
             if formset.is_valid():
                 formset.save()
-                ActivityLog.objects.create(log=f"Membership config ({membership.name}) created by admin user {request.user.username}")
+                action = "updated" if updating else "created"
+                ActivityLog.objects.create(log=f"Membership config ({membership.name}) {action} by admin user {request.user.username}")
                 messages.success(request, "Membership configuration saved")
                 return HttpResponseRedirect(reverse("studioadmin:memberships_list")) 
         else:
