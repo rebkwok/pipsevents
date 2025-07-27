@@ -910,15 +910,16 @@ def ajax_create_booking(request, event_id):
         )
         context["booking_open"] = context["booked"]
 
-
-    ActivityLog.objects.create(
-        log='Booking {} {} for "{}" by user {}'.format(
-            booking.id,
-            'created' if not
-            (previously_cancelled or previously_no_show)
-            else 'rebooked',
-                booking.event, booking.user.username)
+    log_msg = (
+        f"Booking {booking.id} "
+        f"{'created' if not (previously_cancelled or previously_no_show) else 'rebooked'} "
+        f"for '{booking.event}' by user {booking.user.username}."
     )
+    if booking.block:
+        log_msg += f"Block used ({booking.block.id})."
+    elif booking.membership:
+        log_msg += f"Membership used ({booking.membership.id})."
+    ActivityLog.objects.create(log=log_msg)
 
     host = 'http://{}'.format(request.get_host())
     
