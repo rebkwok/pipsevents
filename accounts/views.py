@@ -59,13 +59,13 @@ class ProfileUpdateView(LoginRequiredMixin, UpdateView):
         first_name_changed = 'first_name' in form.changed_data
         last_name_changed = 'last_name' in form.changed_data
         if (first_name_changed or last_name_changed) and form.instance.subscribed():
-            update_mailchimp(form.instance, 'update_profile')
-            ActivityLog.objects.create(
-                log='User profile changed for {} ({}); MailChimp list updated '
-                    'with new first/last name'.format(
-                    form.instance.username, form.instance.email
+            if update_mailchimp(form.instance, 'update_profile'):
+                ActivityLog.objects.create(
+                    log='User profile changed for {} ({}); MailChimp list updated '
+                        'with new first/last name'.format(
+                        form.instance.username, form.instance.email
+                    )
                 )
-            )
         user = form.save()
         if 'pronouns' in form.changed_data or "booking_preference"  in form.changed_data:
             user.userprofile.pronouns = form.cleaned_data["pronouns"]
@@ -98,14 +98,14 @@ class CustomEmailView(EmailView):
         if request.POST.get("email") and "action_primary" in request.POST \
                 and request.user.email != old_email:
             if request.user.subscribed():
-                update_mailchimp(request.user, 'update_email', old_email=old_email)
-                ActivityLog.objects.create(
-                    log='Primary email changed to {} for {} {} ({}); MailChimp list '
-                        'updated.'.format(
-                        request.user.email, request.user.first_name,
-                        request.user.last_name, request.user.username
+                if update_mailchimp(request.user, 'update_email', old_email=old_email):
+                    ActivityLog.objects.create(
+                        log='Primary email changed to {} for {} {} ({}); MailChimp list '
+                            'updated.'.format(
+                            request.user.email, request.user.first_name,
+                            request.user.last_name, request.user.username
+                        )
                     )
-                )
         return res
 
 custom_email_view = login_required(CustomEmailView.as_view())
@@ -235,13 +235,13 @@ def subscribe_view(request):
                     request.user.username
                 )
             )
-            update_mailchimp(request.user, 'subscribe')
-            ActivityLog.objects.create(
-                log='User {} {} ({}) has been subscribed to MailChimp'.format(
-                    request.user.first_name, request.user.last_name,
-                    request.user.username
+            if update_mailchimp(request.user, 'subscribe'):
+                ActivityLog.objects.create(
+                    log='User {} {} ({}) has been subscribed to MailChimp'.format(
+                        request.user.first_name, request.user.last_name,
+                        request.user.username
+                    )
                 )
-            )
         elif 'unsubscribe' in request.POST:
             group.user_set.remove(request.user)
             messages.success(request, 'You have been unsubscribed from the mailing list')
@@ -251,13 +251,13 @@ def subscribe_view(request):
                     request.user.username
                 )
             )
-            update_mailchimp(request.user, 'unsubscribe')
-            ActivityLog.objects.create(
-                log='User {} {} ({}) has been unsubscribed from MailChimp'.format(
-                    request.user.first_name, request.user.last_name,
-                    request.user.username
+            if update_mailchimp(request.user, 'unsubscribe'):
+                ActivityLog.objects.create(
+                    log='User {} {} ({}) has been unsubscribed from MailChimp'.format(
+                        request.user.first_name, request.user.last_name,
+                        request.user.username
+                    )
                 )
-            )
 
     return TemplateResponse(
         request, 'account/mailing_list_subscribe.html'
@@ -316,13 +316,13 @@ class SignedDataPrivacyCreateView(LoginRequiredMixin, FormView):
                     user.username
                 )
             )
-            update_mailchimp(user, 'subscribe')
-            ActivityLog.objects.create(
-                log='User {} {} ({}) has been subscribed to MailChimp'.format(
-                    user.first_name, user.last_name,
-                    user.username
+            if update_mailchimp(user, 'subscribe'):
+                ActivityLog.objects.create(
+                    log='User {} {} ({}) has been subscribed to MailChimp'.format(
+                        user.first_name, user.last_name,
+                        user.username
+                    )
                 )
-            )
 
         if not mailing_list and user.subscribed():
             # remove subscribed user from mailing list
@@ -333,13 +333,13 @@ class SignedDataPrivacyCreateView(LoginRequiredMixin, FormView):
                     user.username
                 )
             )
-            update_mailchimp(user, 'unsubscribe')
-            ActivityLog.objects.create(
-                log='User {} {} ({}) has been unsubscribed from MailChimp'.format(
-                    user.first_name, user.last_name,
-                    user.username
+            if update_mailchimp(user, 'unsubscribe'):
+                ActivityLog.objects.create(
+                    log='User {} {} ({}) has been unsubscribed from MailChimp'.format(
+                        user.first_name, user.last_name,
+                        user.username
+                    )
                 )
-            )
         return HttpResponseRedirect(self.get_success_url(next_url))
 
     def get_success_url(self, next_url):

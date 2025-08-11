@@ -79,13 +79,13 @@ class SignupForm(forms.Form):
                     user.username
                 )
             )
-            update_mailchimp(user, 'subscribe')
-            ActivityLog.objects.create(
-                log='User {} {} ({}) has been subscribed to MailChimp'.format(
-                    user.first_name, user.last_name,
-                    user.username
+            if update_mailchimp(user, 'subscribe'):
+                ActivityLog.objects.create(
+                    log='User {} {} ({}) has been subscribed to MailChimp'.format(
+                        user.first_name, user.last_name,
+                        user.username
+                    )
                 )
-            )
 
 
 class UserProfileForm(forms.ModelForm):
