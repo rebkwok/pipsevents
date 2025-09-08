@@ -189,6 +189,10 @@ def test_membership_change_price_with_user_memberships(mocked_responses, seller)
                 "id": "sub_sched-1",
                 "subscription": "subsc-1",
                 "end_behavior": "release",
+                "current_phase": {
+                    "start_date": datetime(2024, 6, 25).timestamp(),
+                    "end_date": datetime(2024, 7, 25).timestamp(),
+                },
                 "phases": [
                     {
                         "start_date": datetime(2024, 6, 25).timestamp(),
@@ -254,6 +258,10 @@ def test_membership_change_price_with_user_membership_existing_schedule(mocked_r
                     "id": "sub_sched-1",
                     "subscription": "subsc-1",
                     "end_behavior": "release",
+                    "current_phase": {
+                        "start_date": datetime(2024, 6, 25).timestamp(),
+                        "end_date": datetime(2024, 7, 25).timestamp(),
+                    },
                     "phases": [
                         {
                             "start_date": datetime(2024, 6, 25).timestamp(),
@@ -277,6 +285,10 @@ def test_membership_change_price_with_user_membership_existing_schedule(mocked_r
                 "id": "sub_sched-1",
                 "subscription": "subsc-1",
                 "end_behavior": "release",
+                "current_phase": {
+                    "start_date": datetime(2024, 6, 25).timestamp(),
+                    "end_date": datetime(2024, 7, 25).timestamp(),
+                },
                 "phases": [
                     {
                         "start_date": datetime(2024, 6, 25).timestamp(),

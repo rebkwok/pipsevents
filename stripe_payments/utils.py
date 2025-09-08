@@ -410,19 +410,23 @@ class StripeConnector:
         # check schedule for end_behavior
         # if end_behavior is cancel, don't update, it's going to cancel at the end of the current billing period
         if schedule.end_behavior == "release":
+            current_phase_items = [
+                {
+                    "price": phase["items"][0].price,
+                    "quantity": phase["items"][0].quantity,
+                } for phase in schedule.phases 
+                if phase.start_date == schedule.current_phase.start_date and phase.end_date == schedule.current_phase.end_date
+            ]
+
+            # Update schedule to end current phase and create new phase for the new price
             schedule = stripe.SubscriptionSchedule.modify(
                 schedule.id,
                 end_behavior="release",
                 phases=[
                         {
-                            'items': [
-                                {
-                                    'price': schedule.phases[0]["items"][0].price,
-                                    'quantity': schedule.phases[0]["items"][0].quantity,
-                                }
-                            ],
-                            'start_date': schedule.phases[0].start_date,
-                            'end_date': schedule.phases[0].end_date,
+                            'items': current_phase_items,
+                            'start_date': schedule.current_phase.start_date,
+                            'end_date': schedule.current_phase.end_date,
                         },
                         {
                             'items': [
