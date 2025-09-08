@@ -545,7 +545,16 @@ def test_cancel_subscription_on_schedule(seller, mocked_responses):
                 "id": "sub_sched-1",
                 "subscription": "subsc-1",
                 "end_behavior": "release",
+                "current_phase": {
+                    "start_date": datetime(2024, 6, 25).timestamp(),
+                    "end_date": datetime(2024, 7, 25).timestamp(),
+                },
                 "phases": [
+                    {
+                        "start_date": datetime(2024, 5, 25).timestamp(),
+                        "end_date": datetime(2024, 6, 25).timestamp(),
+                        "items": [{"price": 1000, "quantity": 2}],
+                    },
                     {
                         "start_date": datetime(2024, 6, 25).timestamp(),
                         "end_date": datetime(2024, 7, 25).timestamp(),

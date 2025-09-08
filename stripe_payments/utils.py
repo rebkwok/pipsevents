@@ -448,19 +448,22 @@ class StripeConnector:
             return stripe.Subscription.delete(subscription_id, stripe_account=self.connected_account_id)
         # retrieve or create schedule from subscription id
         schedule = self.get_or_create_subscription_schedule(subscription_id)
+        current_phase_items = [
+            {
+                "price": phase["items"][0].price,
+                "quantity": phase["items"][0].quantity,
+            } for phase in schedule.phases 
+            if phase.start_date == schedule.current_phase.start_date and phase.end_date == schedule.current_phase.end_date
+        ]
+
         schedule = stripe.SubscriptionSchedule.modify(
             schedule.id,
             end_behavior="cancel",
             phases=[
                 {
-                    'items': [
-                        {
-                            'price': schedule.phases[0]["items"][0].price,
-                            'quantity': schedule.phases[0]["items"][0].quantity,
-                        }
-                    ],
-                    'start_date': schedule.phases[0].start_date,
-                    'end_date': schedule.phases[0].end_date,
+                    'items': current_phase_items,
+                    'start_date': schedule.current_phase.start_date,
+                    'end_date': schedule.current_phase.end_date,
                     "proration_behavior": "none"
                 }
             ],
