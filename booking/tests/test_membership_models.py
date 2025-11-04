@@ -811,6 +811,7 @@ def test_user_membership_bookings_by_month(seller):
     [
         (datetime(2020, 4, 15, tzinfo=dt_tz.utc), datetime(2020, 5, 15, tzinfo=dt_tz.utc)),
         (datetime(2020, 5, 31, tzinfo=dt_tz.utc), datetime(2020, 6, 1, tzinfo=dt_tz.utc)),
+        (datetime(2020, 11, 30, tzinfo=dt_tz.utc), datetime(2020, 12, 15, tzinfo=dt_tz.utc)),
         (datetime(2020, 12, 30, tzinfo=dt_tz.utc), datetime(2021, 1, 15, tzinfo=dt_tz.utc)),
     ]
 )

@@ -358,7 +358,7 @@ class UserMembership(models.Model):
         return self.bookings.filter(status="OPEN", event__date__month=datetime.now().month, event__date__year=datetime.now().year)
     
     def bookings_next_month(self):
-        next_month = (datetime.now().month + 1 - 12) % 12
+        next_month = ((datetime.now().month - 12) % 12) + 1
         year = datetime.now().year + 1 if next_month == 1 else datetime.now().year
         return self.bookings.filter(status="OPEN", event__date__month=next_month, event__date__year=year)
     
