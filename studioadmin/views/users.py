@@ -164,7 +164,7 @@ def users_status(request):
         {"start_date": start_date_str, "end_date": end_date_str}
     )
     bookings = Booking.objects \
-        .filter(event__date__gte=start_date, attended=True)\
+        .filter(event__date__gte=start_date, status="OPEN", no_show=False)\
         .filter(event__date__lte=end_date)
 
     users_with_bookings = bookings.distinct("user_id")
